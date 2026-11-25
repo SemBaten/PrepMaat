@@ -1,0 +1,250 @@
+,
+/* ============ Avondeten d13: snel klaar (max. 25 minuten) ============ */
+{ id:"kippitahummus", type:"diner", serves:2, time:20, t:["kip","midden-oosten",0],
+  name:"Snelle kip-pita's met hummus en salade", short:"In 20 minuten op tafel.",
+  items:[["kipfilet",300],["olie",1],["komijn",0.5],["paprikapoeder",1],["knoflookpoeder",0.5],["zout",0.5],["pita",4],["hummus",100],["tomaat",2],["komkommer",0.5],["rodeui",0.5],["sla",50],["kwark",75]],
+  steps:[
+    "Snijd {kipfilet} in reepjes en meng met {komijn}, {paprikapoeder}, {knoflookpoeder} en {zout:0.25}.",
+    ["Bak de kip in {olie} 6 minuten.",6],
+    GAAR,
+    "Snijd {tomaat}, {komkommer} en {rodeui} fijn en meng met {zout:0.25}.",
+    ["Warm {pita} 2 minuten in de broodrooster. Smeer {hummus} erin en vul met {sla}, kip, salade en {kwark}.",2]
+  ]},
+{ id:"kipspitskoolei", type:"diner", serves:2, time:20, t:["kip","aziatisch",0],
+  name:"Kip-wok met spitskool, ei en mie", short:"Veel groente, weinig afwas.",
+  items:[["mie",125],["kipfilet",300],["olie",1.5],["spitskool",300],["wortel",100],["knoflook",2],["gember",0.5],["sojasaus",1.5],["ketjap",1],["ei",2],["lenteui",2]],
+  steps:[
+    ["Kook {mie} volgens de verpakking (meestal 4 minuten). Giet af.",4],
+    "Snijd {kipfilet} in reepjes, {spitskool} in dunne reepjes, {wortel} in luciferreepjes en {knoflook} fijn.",
+    ["Bak de kip in {olie:1} 5 minuten op hoog vuur. Doe kool, wortel, knoflook en {gember} erbij en bak 3 minuten.",8],
+    GAAR,
+    ["Schuif opzij en bak {ei} roerend in {olie:0.5} 1 minuut. Doe de mie, {sojasaus} en {ketjap} erbij en schep om.",1],
+    "Strooi {lenteui} in ringetjes erover."
+  ]},
+{ id:"gnocchigarnalen", type:"diner", serves:2, time:20, t:["vis","italiaans",0],
+  name:"Gebakken gnocchi met garnalen, courgette en citroen", short:"Krokant van buiten, zacht van binnen.",
+  items:[["gnocchi",500],["olie",1.5],["courgette",1],["knoflook",2],["garnalen",250],["cherrytomaat",150],["citroen",0.5],["parmezaan",20],["peper",0.25],["zout",0.25]],
+  steps:[
+    ["Bak {gnocchi} in {olie:1} 8 minuten tot ze goudbruin zijn. Leg op een bord.",8],
+    ["Bak {courgette} in halve plakjes in {olie:0.5} 3 minuten. Doe {knoflook} en {garnalen} erbij en bak 3 minuten tot de garnalen helemaal roze zijn.",6],
+    "Schep de gnocchi en gehalveerde {cherrytomaat} erdoor met {zout}, {peper}, de geraspte schil en het sap van {citroen}. Strooi {parmezaan} erover."
+  ]},
+{ id:"biefstukwraps", type:"diner", serves:2, time:20, t:["rund","mexicaans",1],
+  name:"Biefstukwraps met paprika, ui en limoenkwark", short:"Steakwraps in 20 minuten.",
+  items:[["runderreepjes",300],["olie",1],["paprika",2],["ui",1],["paprikapoeder",1],["komijn",1],["chili",0.25],["zout",0.5],["wraps",4],["kwark",100],["limoen",1],["sla",50],["kaas",30]],
+  steps:[
+    "Snijd {paprika} en {ui} in reepjes. Meng {paprikapoeder}, {komijn}, {chili} en {zout:0.25}.",
+    ["Bak {runderreepjes} in {olie:0.5} op hoog vuur 2 minuten. Leg op een bord.",2],
+    ["Bak paprika en ui in {olie:0.5} 5 minuten. Doe vlees en kruiden erbij en bak 1 minuut.",6],
+    "Meng {kwark} met het sap van {limoen} en {zout:0.25}.",
+    ["Warm {wraps} 1 minuut in een droge pan. Vul met {sla}, vlees, {kaas} en limoenkwark.",1]
+  ]},
+{ id:"tonijnorzosalade", type:"diner", serves:2, time:20, t:["vis","italiaans",0],
+  name:"Lauwe orzo met tonijn, citroen, erwten en rucola", short:"Frisse pasta in 20 minuten.",
+  items:[["orzo",150],["zout",0.5],["doperwten",150],["tonijn",224],["citroen",1],["olie",1.5],["rucola",50],["cherrytomaat",150],["parmezaan",20],["peper",0.25]],
+  steps:[...PASTA({s:0.5,k:"orzo",t:"8 tot 10",m:9}),
+    "Doe {doperwten} de laatste 3 minuten bij de orzo. Giet samen af.",
+    "Meng {olie}, de geraspte schil en het sap van {citroen} en {peper}.",
+    "Meng orzo en erwten met de dressing, uitgelekte {tonijn}, gehalveerde {cherrytomaat} en {rucola}. Strooi {parmezaan} erover."
+  ]},
+{ id:"boerenomelet", type:"diner", serves:2, time:25, t:["varken","hollands",0],
+  name:"Boerenomelet met ham, aardappel, paprika en kaas", short:"Alles uit de koelkast in één pan.",
+  items:[["krieltjes",300],["olie",1],["ui",1],["paprika",1],["hamblokjes",100],["ei",5],["melk",50],["zout",0.25],["peper",0.25],["kaas",40],["sla",75],["tomaat",1]],
+  steps:[
+    "Snijd {krieltjes} in plakjes, {ui} fijn en {paprika} in blokjes.",
+    ["Bak de krieltjes in {olie} met deksel 10 minuten tot ze zacht zijn. Doe ui, paprika en {hamblokjes} erbij en bak 3 minuten.",13],
+    ["Klop {ei} met {melk}, {zout} en {peper} en giet erover. Strooi {kaas} erop en bak op laag vuur met deksel 6 minuten tot het ei gestold is.",6],
+    "Snijd in punten en serveer met {sla} en {tomaat}."
+  ]},
+{ id:"pastatonijnrucola", type:"diner", serves:2, time:20, t:["vis","italiaans",0],
+  name:"Spaghetti met tonijn, knoflook, citroen en rucola", short:"Voorraadkast-pasta met een frisse twist.",
+  items:[["spaghetti",160],["zout",0.5],["olie",1.5],["knoflook",3],["chili",0.25],["tonijn",224],["cherrytomaat",150],["citroen",0.5],["rucola",50],["parmezaan",25]],
+  steps:[...PASTA({s:0.5,k:"spaghetti",w:true}),
+    ["Bak {knoflook} in dunne plakjes met {chili} in {olie} op laag vuur 2 minuten. Doe gehalveerde {cherrytomaat} erbij en bak 2 minuten.",4],
+    "Doe de spaghetti, uitgelekte {tonijn}, 50 ml kookwater en het sap van {citroen} erbij en schep om.",
+    "Meng {rucola} erdoor en strooi {parmezaan} erover."
+  ]},
+{ id:"kipquinoaavocado", type:"diner", serves:2, time:25, t:["kip","amerikaans",0],
+  name:"Kip-quinoabowl met avocado, maïs en tomaat", short:"Kleurrijke bowl met limoendressing.",
+  items:[["quinoa",120],["water",240],["zout",0.5],["kipfilet",300],["olie",1.5],["paprikapoeder",1],["avocado",1],["mais",140],["cherrytomaat",150],["rodeui",0.5],["limoen",1]],
+  steps:[
+    ["Spoel {quinoa} en kook met {water} en {zout:0.25} 15 minuten met deksel.",15],
+    "Ondertussen: snijd {kipfilet} in reepjes en bestrooi met {paprikapoeder} en {zout:0.25}.",
+    ["Bak de kip in {olie:0.5} 6 minuten.",6],
+    GAAR,
+    "Snijd {avocado} en {cherrytomaat} in stukjes en {rodeui} fijn. Spoel {mais} af. Meng {olie:1} met het sap van {limoen}.",
+    "Verdeel quinoa, kip en groente over 2 kommen en sprenkel de dressing erover."
+  ]},
+{ id:"garnalenfajitas", type:"diner", serves:2, time:20, t:["vis","mexicaans",1],
+  name:"Garnalenfajita's met paprika en avocado", short:"Snel, fris en een beetje pittig.",
+  items:[["garnalen",300],["olie",1],["paprika",2],["ui",1],["paprikapoeder",1],["komijn",1],["chili",0.25],["zout",0.5],["wraps",4],["avocado",1],["limoen",1],["kwark",75]],
+  steps:[
+    "Snijd {paprika} en {ui} in reepjes. Meng {paprikapoeder}, {komijn}, {chili} en {zout:0.25} met {garnalen}.",
+    ["Bak paprika en ui in {olie} 5 minuten. Doe de garnalen erbij en bak 3 minuten tot ze helemaal roze zijn.",8],
+    "Prak {avocado} met het sap van {limoen} en {zout:0.25}.",
+    ["Warm {wraps} 1 minuut in een droge pan. Vul met garnalen, avocado en {kwark}.",1]
+  ]},
+{ id:"kalkoenpestoroom", type:"diner", serves:2, time:20, t:["kip","italiaans",0],
+  name:"Kalkoen in pesto-roomsaus met penne en tomaatjes", short:"Romig, groen en in 20 minuten klaar.",
+  items:[["pasta",160],["zout",0.75],["kalkoen",300],["olie",0.5],["cherrytomaat",150],["pesto",1.5],["kookroom",100],["spinazie",100],["parmezaan",15]],
+  steps:[...PASTA({s:0.5}),
+    "Snijd {kalkoen} in reepjes en bestrooi met {zout:0.25}.",
+    ["Bak de kalkoen in {olie} 5 minuten. Doe {cherrytomaat} erbij en bak 2 minuten.",7],
+    GAAR,
+    ["Roer {pesto}, {kookroom} en {spinazie} erdoor en laat 1 minuut pruttelen.",1],
+    "Meng de pasta erdoor en strooi {parmezaan} erover."
+  ]},
+{ id:"panzalmcouscous", type:"diner", serves:2, time:20, t:["vis","midden-oosten",0],
+  name:"Zalm uit de pan met couscous en tomaat-komkommersalade", short:"Simpel en gezond in 20 minuten.",
+  items:[["couscous",130],["groentebouillon",0.5],["water",200],["zalm",250],["olie",1],["komijn",0.5],["zout",0.5],["tomaat",2],["komkommer",0.5],["rodeui",0.5],["peterselie",10],["citroen",1],["kwark",75]],
+  steps:[
+    COUS({}),
+    "Bestrooi {zalm} met {komijn} en {zout:0.25}.",
+    ["Bak de zalm in {olie:0.5} 4 minuten op de velkant en 2 minuten op de andere kant.",6],
+    "Snijd {tomaat}, {komkommer} en {rodeui} fijn. Meng met gehakte {peterselie}, {olie:0.5}, het sap van {citroen} en {zout:0.25}.",
+    "Meng de salade door de couscous en leg de zalm erop. Serveer met {kwark}."
+  ]},
+{ id:"koreaanseierrijst", type:"diner", serves:2, time:25, t:["vega","aziatisch",0],
+  name:"Koreaanse eier-rijstkom met tofu, spinazie en sesam", short:"Rijst, ei en groente met sesamsaus.",
+  items:[["rijst",150],["water",225],["zout",0.5],["tofu",200],["olie",1.5],["spinazie",200],["knoflook",1],["sojasaus",1.5],["sesam",1],["ei",4],["gochujang",0.5],["honing",0.5],["wortel",100]],
+  steps:[...RICE({w:225,s:0.25}),
+    ["Ondertussen: bak {tofu} in blokjes in {olie:0.5} 6 minuten goudbruin.",6],
+    ["Laat {spinazie} met geperste {knoflook} 2 minuten slinken. Meng met {sojasaus:0.5}, {sesam:0.5} en {zout:0.25}.",2],
+    ["Bak {ei} als spiegeleieren in {olie:1} 3 minuten.",3],
+    "Saus: meng {gochujang}, {honing} en {sojasaus:1}. Rasp {wortel}.",
+    "Verdeel rijst, spinazie, wortel, tofu en eieren over kommen. Druppel de saus erover en strooi {sesam:0.5} erop."
+  ]},
+{ id:"gehaktcourgettepasta", type:"diner", serves:2, time:25, t:["rund","grieks",0],
+  name:"Gehakt-courgettepasta met feta en oregano", short:"Griekse smaken in een snelle pasta.",
+  items:[["pasta",150],["zout",0.75],["gehakt",250],["olie",0.5],["ui",1],["knoflook",2],["courgette",1],["tomblokjes",400],["oregano",1],["kaneel",0.25],["feta",50]],
+  steps:[...PASTA({s:0.5}),
+    "Snijd {ui} en {knoflook} fijn en {courgette} in blokjes.",
+    ["Bak {gehakt} en ui in {olie} 6 minuten tot er geen roze meer te zien is. Doe knoflook en courgette erbij en bak 3 minuten.",9],
+    ["Doe {tomblokjes}, {oregano}, {kaneel} en {zout:0.25} erbij en laat 6 minuten pruttelen.",6],
+    "Meng de pasta erdoor en verkruimel {feta} erover."
+  ]},
+{ id:"satewraps", type:"diner", serves:2, time:20, t:["kip","aziatisch",0],
+  name:"Kip-satéwraps met komkommer en wortel", short:"Pindasaus in een wrap. Kinderen vinden het ook top.",
+  items:[["kipfilet",300],["olie",0.5],["ketjap",1],["kerrie",0.5],["pindakaas",2],["sambal",0.5],["water",50],["wraps",4],["komkommer",0.5],["wortel",100],["sla",50],["zout",0.25]],
+  steps:[
+    "Snijd {kipfilet} in reepjes en meng met {ketjap:0.5}, {kerrie} en {zout}.",
+    ["Bak de kip in {olie} 6 minuten.",6],
+    GAAR,
+    ["Saus: verwarm {pindakaas}, {ketjap:0.5}, {sambal} en {water} 2 minuten al roerend.",2],
+    "Snijd {komkommer} en {wortel} in reepjes. Vul {wraps} met {sla}, groente, kip en saus."
+  ]},
+{ id:"caesarwraps", type:"diner", serves:2, time:20, t:["kip","amerikaans",0],
+  name:"Kip-caesarwraps met ei en Parmezaan", short:"Caesarsalade om op te rollen.",
+  items:[["kipfilet",300],["olie",0.5],["zout",0.5],["peper",0.25],["ei",2],["kwark",75],["mosterd",1],["citroen",0.5],["knoflook",1],["parmezaan",25],["sla",100],["wraps",4]],
+  steps:[
+    EGGS({}),
+    "Snijd {kipfilet} in reepjes en bestrooi met {zout:0.25} en {peper}.",
+    ["Bak de kip in {olie} 6 minuten.",6],
+    GAAR,
+    "Dressing: meng {kwark}, {mosterd}, het sap van {citroen}, geperste {knoflook}, {parmezaan} en {zout:0.25}.",
+    "Meng {sla} met de dressing. Vul {wraps} met sla, kip en het ei in plakjes."
+  ]},
+{ id:"garnalensaganaki", type:"diner", serves:2, time:20, t:["vis","grieks",0],
+  name:"Garnalen saganaki: in tomatensaus met feta en brood", short:"Grieks eilandgerecht in 20 minuten.",
+  items:[["olie",1],["ui",0.5],["knoflook",2],["tomblokjes",400],["oregano",0.5],["chili",0.25],["garnalen",300],["feta",75],["peterselie",10],["brood",4],["sla",50]],
+  steps:[
+    ["Bak fijne {ui} en {knoflook} in {olie} 3 minuten. Doe {tomblokjes}, {oregano} en {chili} erbij en laat 7 minuten pruttelen.",10],
+    ["Leg {garnalen} in de saus, verkruimel {feta} erover, deksel erop en laat 4 minuten garen tot de garnalen helemaal roze zijn.",4],
+    "Strooi gehakte {peterselie} erover. Serveer met geroosterd {brood} en {sla}."
+  ]},
+{ id:"biefstuksesamnoedels", type:"diner", serves:2, time:20, t:["rund","aziatisch",0],
+  name:"Biefstuk met sesamnoedels en paksoi", short:"Restaurantwaardig in 20 minuten.",
+  items:[["mie",125],["biefstuk",300],["zout",0.25],["olie",1],["paksoi",200],["knoflook",1],["sojasaus",1.5],["honing",0.5],["azijn",0.5],["sesam",1],["lenteui",2]],
+  steps:[
+    ["Kook {mie} volgens de verpakking (meestal 4 minuten). Giet af.",4],
+    ["Bestrooi {biefstuk} met {zout} en bak in {olie:0.5} op hoog vuur 2 tot 3 minuten per kant. Laat 5 minuten rusten.",5],
+    ["Bak {paksoi} in stukken met {knoflook} in {olie:0.5} 3 minuten.",3],
+    "Meng {sojasaus}, {honing}, {azijn} en {sesam:0.5} door de mie en de paksoi.",
+    "Snijd de biefstuk in plakjes en leg op de noedels met {lenteui} en {sesam:0.5}."
+  ]},
+{ id:"uitsmijter", type:"diner", serves:2, time:15, t:["varken","hollands",0],
+  name:"Uitsmijter met ham, kaas en een frisse salade", short:"Hollandse klassieker voor een luie avond.",
+  items:[["brood",4],["hamblokjes",100],["kaasplak",40],["olie",0.5],["ei",4],["zout",0.25],["peper",0.25],["sla",75],["tomaat",2],["komkommer",0.5]],
+  steps:[
+    "Rooster {brood} en beleg met {hamblokjes} en {kaasplak}.",
+    ["Bak {ei} als spiegeleieren in {olie} op middelhoog vuur 4 minuten, tot het eiwit helemaal gestold is. Bestrooi met {zout} en {peper}.",4],
+    "Leg de eieren op het brood. Serveer met {sla}, {tomaat} en {komkommer}."
+  ]},
+{ id:"singaporenoedels", type:"diner", serves:2, time:25, t:["kip","aziatisch",1],
+  name:"Singapore-noedels met kip, garnalen en kerrie", short:"Dunne rijstnoedels met een gele kerriesmaak.",
+  items:[["rijstnoedels",120],["kipfilet",200],["garnalen",100],["olie",1.5],["paprika",1],["ui",1],["tauge",100],["knoflook",2],["kerrie",1.5],["kurkuma",0.5],["chili",0.25],["sojasaus",1.5],["ei",2],["lenteui",2]],
+  steps:[
+    "Bereid {rijstnoedels} volgens de verpakking (meestal 4 minuten wellen). Spoel koud.",
+    "Snijd {kipfilet} in reepjes, {paprika} en {ui} in reepjes en {knoflook} fijn.",
+    ["Bak de kip in {olie:1} 5 minuten. Doe {garnalen}, paprika, ui en knoflook erbij en bak 3 minuten tot de garnalen roze zijn.",8],
+    GAAR,
+    ["Schuif opzij en bak {ei} roerend in {olie:0.5} 1 minuut. Doe noedels, {tauge}, {kerrie}, {kurkuma}, {chili} en {sojasaus} erbij en schep 2 minuten om.",3],
+    "Strooi {lenteui} erover."
+  ]},
+{ id:"tofuroereibrood", type:"diner", serves:2, time:15, t:["vega","hollands",0],
+  name:"Tofu-roerei met spinazie op brood, met tomaat en avocado", short:"Vega roerei in 15 minuten.",
+  items:[["tofu",375],["olie",1],["ui",0.5],["kurkuma",0.5],["paprikapoeder",0.5],["zout",0.5],["peper",0.25],["spinazie",100],["brood",4],["tomaat",2],["avocado",1]],
+  steps:[
+    ["Bak fijne {ui} in {olie} 2 minuten. Verkruimel {tofu} erboven met je handen.",2],
+    ["Roer {kurkuma}, {paprikapoeder}, {zout:0.25} en {peper} erdoor en bak 5 minuten. Doe {spinazie} erbij tot hij slinkt.",5],
+    "Rooster {brood}. Snijd {tomaat} en {avocado} in plakjes en bestrooi met {zout:0.25}.",
+    "Schep het tofu-roerei op het brood en leg tomaat en avocado ernaast."
+  ]},
+{ id:"fetakikkerpita", type:"diner", serves:2, time:15, t:["vega","grieks",0],
+  name:"Pita met krokante kikkererwten, feta en tzatziki", short:"Vega pita in 15 minuten.",
+  items:[["kikkererwten",480],["olie",1],["paprikapoeder",1],["komijn",0.5],["oregano",0.5],["zout",0.5],["kwark",150],["komkommer",0.5],["knoflook",1],["pita",4],["feta",75],["tomaat",2],["sla",50]],
+  steps:[
+    "Spoel {kikkererwten} af en dep droog met keukenpapier.",
+    ["Bak de kikkererwten in {olie} op hoog vuur 6 minuten tot ze krokant zijn. Roer {paprikapoeder}, {komijn}, {oregano} en {zout:0.25} erdoor.",6],
+    "Tzatziki: meng {kwark} met geraspte {komkommer}, geperste {knoflook} en {zout:0.25}.",
+    ["Warm {pita} 2 minuten in de broodrooster. Vul met {sla}, {tomaat}, kikkererwten, verkruimelde {feta} en tzatziki.",2]
+  ]},
+{ id:"zwartebonensoep", type:"diner", serves:2, time:20, t:["vega","mexicaans",1],
+  name:"Zwarte-bonensoep met kwark, kaas en krokante wrap", short:"Romige soep in 20 minuten.",
+  items:[["olie",1],["ui",1],["knoflook",2],["komijn",1],["paprikapoeder",1],["chili",0.25],["zwartebonen",480],["tomblokjes",200],["water",400],["groentebouillon",1],["limoen",1],["kwark",150],["kaas",40],["wraps",2]],
+  steps:[
+    "Zet de oven aan op 200 °C. Snijd {wraps} in reepjes en bak 6 minuten tot ze krokant zijn.",
+    ["Bak fijne {ui} en {knoflook} in {olie} 3 minuten met {komijn}, {paprikapoeder} en {chili}.",3],
+    ["Doe afgespoelde {zwartebonen}, {tomblokjes}, {water} en {groentebouillon} erbij en kook 8 minuten. Pureer half met een staafmixer.",8],
+    "Knijp {limoen} erin. Serveer met {kwark}, {kaas} en de krokante reepjes."
+  ]},
+{ id:"tomatensoeptosti", type:"diner", serves:2, time:25, t:["vega","hollands",0],
+  name:"Tomatensoep met kikkererwten en een kaastosti", short:"Soep en tosti: altijd goed.",
+  items:[["olie",0.5],["ui",1],["knoflook",1],["tompuree",35],["tomblokjes",400],["passata",250],["water",250],["groentebouillon",1],["italiaans",1],["kikkererwten",240],["kookroom",50],["brood",4],["kaasplak",80],["mosterd",1]],
+  steps:[
+    ["Bak fijne {ui} en {knoflook} in {olie} 3 minuten. Roer {tompuree} erdoor.",3],
+    ["Doe {tomblokjes}, {passata}, {water}, {groentebouillon} en {italiaans} erbij en kook 10 minuten. Pureer glad. Roer afgespoelde {kikkererwten} en {kookroom} erdoor.",10],
+    ["Tosti's: smeer {mosterd} op 2 sneetjes van {brood}, beleg met {kaasplak} en dek af. Bak in een droge koekenpan 3 minuten per kant tot de kaas smelt.",6],
+    "Serveer de soep met de tosti's."
+  ]},
+{ id:"kippestowraps", type:"diner", serves:2, time:20, t:["kip","italiaans",0],
+  name:"Kip-pestowraps uit de pan met mozzarella en tomaat", short:"Krokante gevouwen wraps met een gesmolten hart.",
+  items:[["kipfilet",300],["olie",1],["zout",0.25],["pesto",1.5],["wraps",4],["mozzarella",125],["tomaat",2],["spinazie",50],["rucola",50]],
+  steps:[
+    "Snijd {kipfilet} in kleine reepjes en bestrooi met {zout}.",
+    ["Bak de kip in {olie:0.5} 6 minuten.",6],
+    GAAR,
+    "Smeer {pesto} op {wraps}. Beleg de helft met kip, plakjes {tomaat}, {spinazie} en gescheurde {mozzarella}. Vouw dubbel.",
+    ["Bak de wraps in {olie:0.5} 2 minuten per kant tot ze krokant zijn en de kaas smelt.",4],
+    "Serveer met {rucola}."
+  ]},
+{ id:"witvisknoflookspinazie", type:"diner", serves:2, time:20, t:["vis","frans",0],
+  name:"Witvis met citroen-knoflookspinazie en couscous", short:"Licht en snel, met veel groen.",
+  items:[["couscous",130],["groentebouillon",0.5],["water",200],["koolvis",300],["zout",0.5],["peper",0.25],["olie",1],["knoflook",2],["spinazie",300],["citroen",1],["kookroom",50],["kikkererwten",120]],
+  steps:[
+    COUS({}),
+    "Bestrooi {koolvis} met {zout:0.25} en {peper}.",
+    ["Bak de vis in {olie:0.5} 3 minuten per kant tot hij wit is en uit elkaar valt.",6],
+    ["Bak geperste {knoflook} in {olie:0.5} 30 seconden. Doe {spinazie}, afgespoelde {kikkererwten}, {kookroom}, {zout:0.25} en het sap van {citroen} erbij en laat 2 minuten slinken.",2],
+    "Serveer de vis op de spinazie met de couscous."
+  ]},
+{ id:"varkenshaasgnocchi", type:"diner", serves:2, time:25, t:["varken","frans",0],
+  name:"Varkenshaas met mosterdsaus, gnocchi en sperziebonen", short:"Mals vlees in 25 minuten.",
+  items:[["sperziebonen",200],["zout",0.75],["gnocchi",400],["olie",1.5],["varkenshaas",300],["peper",0.25],["mosterd",2],["kookroom",100],["tijm",0.25]],
+  steps:[
+    ["Kook {sperziebonen} 6 minuten in water met {zout:0.25}. Giet af.",6],
+    ["Ondertussen: bak {gnocchi} in {olie:1} 8 minuten goudbruin.",8],
+    "Snijd {varkenshaas} in medaillons van 2 cm en bestrooi met {zout:0.25} en {peper}.",
+    ["Bak het vlees in {olie:0.5} 3 minuten per kant. Roer {mosterd}, {kookroom}, {tijm} en {zout:0.25} erdoor en laat 1 minuut pruttelen.",7],
+    "Snijd een stukje door: licht roze is goed, er mag geen rood sap uitkomen."
+  ]}
