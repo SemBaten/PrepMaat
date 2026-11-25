@@ -35,9 +35,19 @@ service cloud.firestore {
         && request.resource.data.img.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$');
       allow update, delete: if false;
     }
-    // Feedback: gebruikers mogen alleen toevoegen. Niemand kan het via de app lezen; Sem leest het in de Firebase-console.
+    // Beheerders: alleen aan te passen in de Firebase-console (document admins/list met een lijst 'uids')
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/list)
+        && request.auth.uid in get(/databases/$(database)/documents/admins/list).data.uids;
+    }
+    match /admins/{id} {
+      allow read, write: if false;
+    }
+    // Feedback: gebruikers mogen alleen toevoegen. Alleen de beheerder (Sem) kan het lezen, in de app of in de console.
     match /feedback/{id} {
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update, delete: if false;
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['uid', 'd', 'score', 'about', 'text', 'v'])
         && request.resource.data.uid == request.auth.uid
@@ -46,6 +56,22 @@ service cloud.firestore {
         && request.resource.data.about is string && request.resource.data.about.size() <= 20
         && request.resource.data.text is string && request.resource.data.text.size() <= 1000
         && request.resource.data.v is string && request.resource.data.v.size() <= 10;
+    }
+    // Gedeelde boodschappenlijsten: wie de (lange, willekeurige) code kent mag lezen en afvinken.
+    // Alleen de maker mag de producten aanpassen. Weghalen kan niet.
+    match /lists/{code} {
+      allow read: if request.auth != null && code.size() >= 8 && code.size() <= 20;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['owner', 'items', 'checks', 'u'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.items is list && request.resource.data.items.size() <= 150
+        && request.resource.data.checks is map && request.resource.data.checks.size() <= 200;
+      allow update: if request.auth != null
+        && request.resource.data.checks is map && request.resource.data.checks.size() <= 200
+        && request.resource.data.owner == resource.data.owner
+        && (request.auth.uid == resource.data.owner
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checks', 'u']));
+      allow delete: if false;
     }
   }
 }

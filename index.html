@@ -155,6 +155,11 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: left; width: 100%; }
 .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; margin-top: 1px; }
 .item.done { opacity: 0.5; }
+.fblist { display: grid; gap: 8px; }
+.fbitem { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-radius: 8px; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.pricebar { display: grid; gap: 2px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.pricebar b { font-family: var(--display); font-size: 22px; }
 .seg { position: sticky; top: 0; z-index: 6; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; background: var(--sunk); border-radius: 12px; }
 .seg button { border: 0; background: none; padding: 9px 4px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--muted); }
 .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
@@ -11191,8 +11196,9 @@ function goals(){
   const fib = Math.min(45, Math.max(30, Math.round(kcal / 1000 * 14)));
   const minK = Math.max(P.sex === "m" ? 1500 : 1200, vet ? bmr : 0);
   let today = { kcal, train: false, extra: 0 };
-  if (restK && E.trainDays && E.trainDays.length && sessionK){
-    const train = E.trainDays.includes(todayIdx());
+  const TD = Array.isArray(S.train) ? S.train : E.trainDays;
+  if (restK && TD && TD.length && sessionK){
+    const train = TD.includes(todayIdx());
     const base = Math.max(minK, restK + adj);
     today = { kcal: Math.round((base + (train ? sessionK : 0)) / 50) * 50, train, extra: Math.round(sessionK / 50) * 50 };
   }
@@ -11382,6 +11388,7 @@ async function initCloud(){
     firebase.initializeApp(FIREBASE_CONFIG);
     const cred = await firebase.auth().signInAnonymously();
     CLOUD.uid = cred.user.uid; CLOUD.db = firebase.firestore(); CLOUD.on = true;
+    listenShare(); if (S.tab === "lijst") render();
     await refreshStats();
     flushFeedback();
   } catch(e){ console.warn("Online deel niet beschikbaar:", e); CLOUD.on = false; }
@@ -11414,7 +11421,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v30";
+const APP_VERSION = "v31";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -11618,6 +11625,7 @@ function shopItems(){
   S.plan.diner.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || S.persons) - 1 + pf(r)) / r.serves); });
   (S.plan.ontbijt || []).forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || 1) - 1 + pf(r)) / r.serves); });
   (S.plan.snack || []).forEach(x => { const s = SID[x.id]; if (s) add(s, x.n); });
+  { const td = trainDays(), ts = trainSnack(); if (td.length && ts && (nPlanned() > 0)) add(ts, td.length); }
   const items = [];
   for (const [k, q] of Object.entries(tot)){
     const d = DB[k]; if (d.c === "water") continue;
@@ -11822,9 +11830,13 @@ function viewWeek(){
   ${inspiration()}`;
   else if (seg === "week") body = nd ? `
   <section class="section">${weekStrip()}</section>
+  ${trainSection()}
   ${nl + nd ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Lunchbakjes en eventueel avondeten achter elkaar, met één afweeglijst en timers.</span></button>` : ""}
-  ${restCard()}` : `<div class="card"><p style="margin:0">Kies eerst je avondeten. Daarna zet je hier per dag wat je eet.</p><button class="btn primary" data-wseg="gerechten" style="justify-self:start">Naar Gerechten</button></div>
-  ${nl ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Je lunchbakjes met één afweeglijst en timers.</span></button>` : ""}`;
+  ${restCard()}
+  ${remindCard()}` : `<div class="card"><p style="margin:0">Kies eerst je avondeten. Daarna zet je hier per dag wat je eet.</p><button class="btn primary" data-wseg="gerechten" style="justify-self:start">Naar Gerechten</button></div>
+  ${nl ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Je lunchbakjes met één afweeglijst en timers.</span></button>` : ""}
+  ${trainSection()}
+  ${remindCard()}`;
   else body = snackSection();
   return `
   <header class="top"><div class="brand">Prep<span>maat</span></div><div class="sub">Planning</div></header>
@@ -11986,18 +11998,20 @@ function dinnerStore(r){
 function curSteps(){ if (UI.prep) return prepSteps(); const r = RID[UI.open]; return allSteps(r, factorFor(r)); }
 function renderPrep(){
   UI.view = "cook";
-  const steps = prepSteps(), i = UI.cook, s = steps[i], ids = UI.prep.ids, T = UI.timer;
+  const steps = prepSteps(), i = UI.cook, s = steps[i], ids = UI.prep.ids, T = curT(i);
   const timerHtml = s.min ? (() => {
     const left = T && T.step === i ? T.left : Math.round(s.min * 60), ring = T && T.step === i && T.left <= 0, running = T && T.step === i && T.running;
     return `<div class="timer ${ring ? "ring" : ""}"><b id="tleft">${ring ? "Klaar!" : mmss(left)}</b>
       <div class="row">${ring ? `<button class="btn primary" id="tstop">Oké</button>` : `<button class="btn primary" id="tgo">${running ? "Pauze" : (T && T.step === i ? "Verder" : "Start timer")}</button>${T && T.step === i ? `<button class="btn" id="treset">Opnieuw</button>` : ""}`}</div></div>`;
   })() : "";
-  const tBack = T ? (() => { const k = firstOpen(steps[T.step].ri); return k >= 0 ? k : T.step; })() : 0;
-  const otherT = T && T.step !== i && (T.running || T.left <= 0) && steps[T.step].ri !== s.ri ? `<button class="pill star num" data-goto="${tBack}">⏱ <span id="tother">${T.left <= 0 ? "Timer klaar!" : mmss(T.left)}</span> · ${esc(steps[T.step].r.name)} · terug</button>` : "";
+  const others = Object.entries(UI.timers || {}).filter(([k, t]) => +k !== i && (t.running || t.left <= 0)).map(([k, t]) => {
+    const ri = steps[+k].ri, fo = firstOpen(ri), go = ri === s.ri ? +k : (fo >= 0 ? fo : +k);
+    return `<button class="pill star num" data-goto="${go}">⏱ <span data-tother="${k}">${t.left <= 0 ? "klaar!" : mmss(t.left)}</span> · ${esc(steps[+k].r ? steps[+k].r.name : "")}</button>`; }).join("");
+  const otherT = others;
   const nextR = s.ri >= 0 && s.ri < ids.length - 1 ? firstOpen(s.ri + 1) : -1;
   const meanwhile = s.min >= 10 && nextR > 0 ? `<button class="btn small" data-meanwhile="${nextR}" style="justify-self:start">Intussen beginnen aan: ${esc(RID[ids[s.ri + 1]].name)}</button>` : "";
   const openEarlier = s.ri > 0 ? (() => { for (let ri = 0; ri < s.ri; ri++){ const k = firstOpen(ri); if (k >= 0) return [ri, k]; } return null; })() : null;
-  const back = openEarlier && !(T && T.running && steps[T.step].ri === openEarlier[0]) ? `<button class="btn small" data-goto="${openEarlier[1]}" style="justify-self:start">Terug naar ${esc(RID[ids[openEarlier[0]]].name)}</button>` : "";
+  const back = openEarlier && !Object.entries(UI.timers || {}).some(([k, t]) => t.running && steps[+k].ri === openEarlier[0]) ? `<button class="btn small" data-goto="${openEarlier[1]}" style="justify-self:start">Terug naar ${esc(RID[ids[openEarlier[0]]].name)}</button>` : "";
   const nDone = Object.values(UI.prep.done).filter(Boolean).length;
   const weigh = s.weigh ? ids.map(id => { const r = RID[id], f = prepF(r); return `<div class="label" style="margin-top:14px">${esc(r.name)}</div><ul class="ings cookings" style="margin-top:6px">${r.items.map(([k, q]) => { const g = id + "|" + k; return `<li><button data-got="${esc(g)}" class="${UI.got[g] ? "got" : ""}"><span class="tick" aria-hidden="true">${UI.got[g] ? "✓" : ""}</span><span class="amt">${esc(amtSplit(k, q*f)[0])}</span><span>${esc(amtSplit(k, q*f)[1])}</span></button></li>`; }).join("")}</ul>`; }).join("") : "";
   document.getElementById("sheet").innerHTML = `<div class="wrap" style="min-height:calc(100dvh - env(safe-area-inset-top, 0px));grid-template-rows:auto auto auto 1fr auto auto">
@@ -12067,6 +12081,195 @@ function dealCard(items){
     ${src}
   </section>`;
 }
+
+/* ============ Trainingsdagen: extra tussendoortje op dagen dat je sport ============ */
+function trainDays(){ if (Array.isArray(S.train)) return S.train; const E = (S.profile && S.profile.ext) || {}; return (E.trainDays || []).slice(); }
+function trainSnack(){ const id = S.trainSnack || "s_skyrbanaan"; return SID[id] && snackOk(SID[id]) ? SID[id] : SNACKS.find(snackOk); }
+function trainSection(){
+  const td = trainDays(), ts = trainSnack();
+  return `<section class="section"><div class="label">Wanneer sport je?</div>
+    <div class="chips">${DAYS.map((l, i) => `<button class="chip" data-train="${i}" aria-pressed="${td.includes(i)}">${td.includes(i) ? "💪 " : ""}${l}</button>`).join("")}</div>
+    ${td.length && ts ? `<p class="sub" style="margin:0">Op die dagen eet je iets extra voor je training of herstel: <b>${esc(ts.name.toLowerCase())}</b> (${macros(ts).k} kcal, ${macros(ts).p} g eiwit). Dat staat ${td.length}× op je boodschappenlijst.</p>
+    <div class="chips">${SNACKS.filter(snackOk).map(x => `<button class="chip" data-tsnack="${x.id}" aria-pressed="${x.id === ts.id}">${esc(x.name)}</button>`).join("")}</div>` : `<p class="ihint" style="margin:0">Tik je sportdagen aan. Dan krijg je op die dagen een extra tussendoortje, en het komt vanzelf op je lijst.</p>`}
+  </section>`;
+}
+/* ============ Prijsschatting per week ============
+   Gewone prijzen (geen aanbieding), ruwe gemiddelden van Nederlandse supermarkten in 2026.
+   g/ml: euro per kilo of liter. stuk: euro per stuk. Potjes en flessen: prijs per verpakking. */
+const PRICE = {
+  kipfilet:11, kipdij:11, gehakt:11, biefstuk:28, varkenshaas:16, varkensreepjes:12, runderreepjes:22, stoofvlees:16, kalkoen:14, kipgehakt:10,
+  zalm:28, kabeljauw:26, garnalen:25, koolvis:14, tonijn:13, gerooktezalm:40, rookworst:9, hamblokjes:12, spekreepjes:14, kipbeleg:22,
+  ei:0.33, kwark:2.6, skyr:4.4, huttenkase:6.5, kaas:12, kaasplak:11, kookroom:5, melk:1.25, feta:13, mozzarella:11, parmezaan:25, hummus:9,
+  rijst:3.3, pasta:3, spaghetti:3, mie:5, couscous:3.5, bulgur:4, orzo:4.5, risottorijst:4.5, lasagne:4, rijstnoedels:7, quinoa:9, havermout:2.4, linzen:4.5, gnocchi:4.5, paneermeel:4,
+  wraps:0.35, pita:0.3, burgerbol:0.45, brood:0.13,
+  krieltjes:2.5, aardappel:1.3, zoeteaardappel:3, broccoli:3, sperziebonen:5, paprika:0.7, ui:0.2, rodeui:0.25, knoflook:0.1, courgette:0.9, komkommer:0.85, tomaat:0.4,
+  cherrytomaat:6, spinazie:7, champignons:5, wokgroente:5, sla:9, limoen:0.45, citroen:0.45, avocado:1.2, paksoi:6, tauge:4, lenteui:0.15, aubergine:1.1,
+  bloemkool:3.5, wortel:1.8, doperwten:3.5, edamame:8, zuurkool:3, banaan:0.25, appel:0.45, roodfruit:7, boerenkool:4, spitskool:2.5, prei:0.8, spruitjes:5,
+  rodekool:3, pompoen:3, sugarsnaps:12, peterselie:20, basilicum:25, rucola:14, bietjes:4, witlof:5, andijvie:4,
+  kidney:2.2, mais:3.5, tomblokjes:2, passata:2.4, tompuree:5, kokosmelk:4, zwartebonen:3, kikkererwten:3, wittebonen:2.5, ananas:4, olijven:12, tofu:6,
+  whey:25, pindas:8
+};
+const POT = { fles: 3.5, pot: 2.5, pak: 2, doosje: 1.8, zakje: 2, zak: 3, potje: 1.6 };
+function itemPrice(it){
+  const k = it.id, d = DB[k], q = it.need > 0.01 ? it.need : it.q;
+  if (isPantry(k)){ const c = PANTRY[k] || "potje"; return { eur: k === "whey" ? 25 : k === "pindakaas" ? 3.5 : k === "olie" ? 7 : (POT[c] || 2), pantry: true }; }
+  const p = PRICE[k]; if (p === undefined) return { eur: d.c === "kruiden" ? 1.6 : 2, guess: true };
+  let amt = q;
+  if (d.pk && d.c !== "kruiden"){ const n = Math.max(1, Math.ceil(q / d.pk[0] - 0.15)); amt = n * d.pk[0]; }
+  else if (d.u === "stuk") amt = Math.max(1, Math.ceil(q - 0.1));
+  if (k === "brood") amt = Math.max(1, Math.ceil(q / 20 - 0.15)) * 20;
+  return { eur: d.u === "stuk" ? amt * p : amt / 1000 * p };
+}
+function weekPrice(items){
+  let tot = 0, pantry = 0, save = 0;
+  const today = DEALS ? isoDay(0) : null;
+  for (const it of items){
+    if (it.extra !== undefined || it.have || S.checks[it.id] === "skip") continue;
+    const pr = itemPrice(it); tot += pr.eur; if (pr.pantry) pantry += pr.eur;
+    if (DEALS){ const b = bestDeal(it.id, it.need || it.q, today); if (b) save += b.c.save; }
+  }
+  return { tot, pantry, save };
+}
+function priceCard(items){
+  const w = weekPrice(items); if (!w.tot) return "";
+  const nb = totalBakjes(), meals = nb + S.plan.diner.reduce((a, x) => a + x.n * (x.p || S.persons), 0) + (S.plan.ontbijt || []).reduce((a, x) => a + x.n * (x.p || 1), 0);
+  const net = w.tot - w.save;
+  return `<div class="pricebar"><div><b class="num">±${euro(net)}</b> <span class="sub">deze week${w.save > 0.5 ? `, met ±${euro(w.save)} korting` : ""}</span></div>
+    <div class="ihint num">${meals ? `Ongeveer ${euro((net - w.pantry) / meals)} per maaltijd. ` : ""}${w.pantry > 0.5 ? `Waarvan ±${euro(w.pantry)} aan potjes en flessen die weken meegaan. ` : ""}Schatting met gewone supermarktprijzen.</div></div>`;
+}
+/* ============ Herinneringen: een agendabestand (.ics) voor de komende 7 dagen ============ */
+function icsEvents(){
+  const ev = [], sch = weekSchedule(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const at = (off, h, m) => { const d = new Date(t0); d.setDate(d.getDate() + off); d.setHours(h, m, 0, 0); return d; };
+  const nl = totalLunches();
+  for (let off = 0; off < 7; off++){
+    const di = (todayIdx() + off) % 7, id = sch[di];
+    if (id && id !== "-") ev.push({ start: at(off, 17, 30), min: 15, title: "Koken: " + RID[id].name, desc: "Open Prepmaat > Vandaag > Nu koken. " + EP(id) + (EP(id) === 1 ? " persoon." : " personen.") });
+    if (nl && di + 1 < nl && di + 1 >= 3) ev.push({ start: at(off, 20, 0), min: 5, title: "Lunchbakje voor morgen uit de vriezer", desc: "Zet het in de koelkast, dan is het morgen ontdooid." });
+    if (trainDays().includes(di) && trainSnack()) ev.push({ start: at(off, 16, 0), min: 5, title: "Trainingsdag: " + trainSnack().name, desc: trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + ") });
+  }
+  const days = dayPlan(shopItems()); let shopOff = 0;
+  if (days){ const best = days.reduce((a, b) => b.save > a.save + 1.5 ? b : a, days[0]); shopOff = best.off; }
+  else shopOff = (5 - todayIdx() + 7) % 7;
+  if (shopCount()) ev.push({ start: at(shopOff, 10, 0), min: 60, title: "Boodschappen doen (" + shopCount() + " producten)", desc: "Open Prepmaat > Boodschappen > Start met winkelen." });
+  if (S.plan.lunch.length){ const off = (6 - todayIdx() + 7) % 7 || 0; ev.push({ start: at(off, 14, 0), min: 120, title: "Prepdag: lunchbakjes maken", desc: "Open Prepmaat > Planning > Weekkalender > Prepdag." }); }
+  return ev.sort((a, b) => a.start - b.start);
+}
+function icsText(){
+  const z = n => String(n).padStart(2, "0");
+  const f = d => d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + "T" + z(d.getHours()) + z(d.getMinutes()) + "00";
+  const esc2 = x => String(x).replace(/[\\,;]/g, m => "\\" + m).replace(/\n/g, "\\n");
+  const now = new Date(), lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Prepmaat//NL", "CALSCALE:GREGORIAN"];
+  icsEvents().forEach((e, i) => {
+    const end = new Date(e.start.getTime() + e.min * 60000);
+    lines.push("BEGIN:VEVENT", "UID:prepmaat-" + f(e.start) + "-" + i + "@prepmaat", "DTSTAMP:" + f(now), "DTSTART:" + f(e.start), "DTEND:" + f(end), "SUMMARY:" + esc2(e.title), "DESCRIPTION:" + esc2(e.desc),
+      "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc2(e.title), "TRIGGER:-PT0M", "END:VALARM", "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+function downloadIcs(){
+  const n = icsEvents().length; if (!n){ toast("Plan eerst iets in je week"); return; }
+  const blob = new Blob([icsText()], { type: "text/calendar" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = "prepmaat-week.ics"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(n + " herinneringen klaar. Open het bestand om ze in je agenda te zetten.");
+}
+function remindCard(){
+  const ev = icsEvents(); if (!ev.length) return "";
+  return `<section class="section"><div class="label">Herinneringen</div>
+    <div class="card" style="gap:8px"><p class="sub" style="margin:0">Zet ${ev.length} herinneringen voor de komende 7 dagen in de agenda van je telefoon, bijvoorbeeld:</p>
+    <ul class="deallist">${ev.slice(0, 4).map(e => `<li>${DAYS_LONG[(e.start.getDay() + 6) % 7]} ${String(e.start.getHours()).padStart(2, "0")}:${String(e.start.getMinutes()).padStart(2, "0")}: ${esc(e.title)}</li>`).join("")}</ul>
+    <button class="btn primary" id="ics" style="justify-self:start">Zet in mijn agenda</button>
+    <p class="ihint" style="margin:0">Je telefoon vraagt of je ze wilt toevoegen. Verander je je planning? Tik dan opnieuw.</p></div></section>`;
+}
+/* ============ Samen boodschappen doen: een gedeelde lijst via een link ============
+   Firestore: lists/{code} = { owner, items:[{i,l,h,w,z}], checks:{id:true}, u }.
+   De code is lang en willekeurig: alleen wie de link heeft kan de lijst zien. */
+const SHARE = { unsub: null, doc: null, code: null, lastSent: "" };
+function newCode(){ const a = "abcdefghjkmnpqrstuvwxyz23456789"; let c = ""; const r = crypto.getRandomValues(new Uint8Array(12)); r.forEach(x => c += a[x % a.length]); return c; }
+function shareCode(){ return S.joined || (S.share && S.share.code) || null; }
+function shareLink(code){ return location.origin + location.pathname.replace(/index\.html$/, "") + "#lijst=" + code; }
+function shareItems(){ return shopItems().filter(it => !it.have).slice(0, 150).map(it => ({ i: String(it.id).slice(0, 80), l: String(it.label).slice(0, 120), h: String(it.hint || "").slice(0, 160), w: String(it.where || "").slice(0, 80), z: it.z || "extra" })); }
+async function pushShare(force){
+  if (!CLOUD.on || !S.share || S.joined) return;
+  const items = shareItems(), key = JSON.stringify(items);
+  if (!force && key === SHARE.lastSent) return;
+  SHARE.lastSent = key;
+  try { await CLOUD.db.collection("lists").doc(S.share.code).set({ owner: CLOUD.uid, items, checks: Object.fromEntries(Object.entries(S.checks).filter(([k, v]) => v === true).slice(0, 200)), u: new Date().toISOString() }); }
+  catch(e){ console.warn(e); toast("Delen lukt nu niet. Probeer het later opnieuw."); }
+}
+function listenShare(){
+  const code = shareCode(); if (!CLOUD.on || !code || SHARE.code === code) return;
+  if (SHARE.unsub) SHARE.unsub();
+  SHARE.code = code;
+  SHARE.unsub = CLOUD.db.collection("lists").doc(code).onSnapshot(snap => {
+    SHARE.doc = snap.exists ? snap.data() : null;
+    if (SHARE.doc && !S.joined){ const rc = SHARE.doc.checks || {}; let ch = false; for (const it of SHARE.doc.items || []){ if (!!rc[it.i] !== !!S.checks[it.i]){ S.checks[it.i] = !!rc[it.i]; ch = true; } } if (ch) save(); }
+    if (S.tab === "lijst" && UI.view !== "home") render();
+  }, e => { console.warn(e); SHARE.doc = null; });
+}
+async function setShareCheck(id, val){
+  const code = shareCode(); if (!CLOUD.on || !code) return;
+  try { await CLOUD.db.collection("lists").doc(code).update(new firebase.firestore.FieldPath("checks", id), val, "u", new Date().toISOString()); } catch(e){ console.warn(e); }
+}
+async function startShare(){
+  if (!CLOUD.on){ toast("Samen delen werkt alleen als je online bent"); return; }
+  if (!S.share) S.share = { code: newCode() };
+  save(); await pushShare(true); listenShare();
+  const url = shareLink(S.share.code);
+  if (navigator.share) navigator.share({ title: "Onze boodschappenlijst", text: "Doe je mee met onze boodschappenlijst in Prepmaat? Wat jij afvinkt zie ik meteen.", url }).catch(() => {});
+  else copyLinkText(url);
+  render();
+}
+async function copyLinkText(url){ try { await navigator.clipboard.writeText(url); toast("Link gekopieerd. Stuur hem via WhatsApp."); } catch(e){ prompt("Kopieer deze link:", url); } }
+function stopShare(){ if (SHARE.unsub) SHARE.unsub(); SHARE.unsub = null; SHARE.code = null; SHARE.doc = null; S.share = null; S.joined = null; save(); render(); toast("Je deelt de lijst niet meer"); }
+function joinFromHash(){
+  const m = location.hash.match(/lijst=([a-z0-9]{8,20})/); if (!m) return;
+  if (!(S.share && S.share.code === m[1])) S.joined = m[1];
+  S.tab = "lijst"; save(); history.replaceState(null, "", location.pathname);
+}
+function shareBox(){
+  if (S.joined) return "";
+  if (!S.share) return `<button class="btn full homebtn" id="sharestart"><b>Samen boodschappen doen</b><span class="sub">Stuur je lijst naar je partner of huisgenoot. Wat de een afvinkt, ziet de ander meteen.</span></button>`;
+  return `<div class="card" style="gap:6px"><div class="row between"><b>👥 Je deelt deze lijst</b><button class="linkbtn" id="sharestop">Stoppen</button></div>
+    <p class="sub" style="margin:0">Afvinken gaat bij jullie allebei tegelijk. Verander je je planning, dan past de gedeelde lijst zich aan.</p>
+    <button class="btn small" id="sharelink" style="justify-self:start">Link nog een keer sturen</button></div>`;
+}
+function viewJoined(){
+  const d = SHARE.doc;
+  const head = `<header class="top"><h1 class="brand" style="font-size:26px">Boodschappen</h1><div class="sub">Gedeelde lijst</div></header>`;
+  if (!CLOUD.on || !d) return head + `<div class="card"><p style="margin:0">${CLOUD.on ? "De gedeelde lijst wordt geladen…" : "Even verbinding maken…"}</p><button class="btn small" id="sharestop" style="justify-self:start">Niet meer meedoen</button></div>`;
+  const items = d.items || [], ck = d.checks || {}, got = items.filter(it => ck[it.i]).length;
+  return head + `<div class="shopbar"><div class="row between"><b class="num">${got} van ${items.length} in het mandje</b><button class="btn small" id="sharestop">Stoppen</button></div><div class="progress"><i style="width:${items.length ? Math.round(got / items.length * 100) : 0}%"></i></div></div>
+  <div class="shop shopmode">${ZONES.map(([z, label]) => { const g = items.filter(it => it.z === z); if (!g.length) return "";
+    const ord = [...g.filter(it => !ck[it.i]), ...g.filter(it => ck[it.i])];
+    return `<div class="cat"><div class="label">${label}</div>${ord.map(it => `<button class="item ${ck[it.i] ? "done" : ""}" data-scheck="${esc(it.i)}"><span class="box">${ck[it.i] ? "✓" : ""}</span><span style="min-width:0"><span class="iname num">${esc(it.l)}</span>${it.h ? `<br><span class="ihint num">${esc(it.h)}</span>` : ""}${it.w ? `<br><span class="iwhere">📍 ${esc(it.w)}</span>` : ""}</span></button>`).join("")}</div>`; }).join("")}</div>
+  <p class="ihint" style="margin:0">Deze lijst is gedeeld met jou. Wat je afvinkt, ziet de ander meteen.</p>`;
+}
+
+/* ============ Feedback lezen (alleen voor de beheerder) ============ */
+async function loadFeedback(){
+  if (!CLOUD.on){ UI.fbList = { err: "offline" }; render(); return; }
+  UI.fbList = { loading: true }; render();
+  try { const snap = await CLOUD.db.collection("feedback").limit(300).get(); const arr = []; snap.forEach(d => arr.push(d.data())); arr.sort((a, b) => (b.d || "").localeCompare(a.d || "")); UI.fbList = { arr }; }
+  catch(e){ UI.fbList = { err: "denied" }; }
+  render();
+}
+function adminBox(){
+  const L = UI.fbList, uid = CLOUD.uid;
+  const ABOUT = Object.fromEntries(FB_ABOUT);
+  let inner = `<p class="sub" style="margin:0">Alleen voor de maker van de app. Anderen zien hier niets.</p><button class="btn small" id="loadfb" style="justify-self:start">Feedback laden</button>`;
+  if (L && L.loading) inner = `<p class="sub" style="margin:0">Laden…</p>`;
+  else if (L && L.err === "offline") inner += `<p class="sub" style="margin:0">Je bent niet online.</p>`;
+  else if (L && L.err === "denied") inner += `<p class="sub" style="margin:0">Dit toestel mag de feedback nog niet lezen. Zet deze code in Firebase bij <b>admins → list → uids</b>:</p><code class="uid">${esc(uid || "(nog niet online)")}</code>`;
+  else if (L && L.arr){
+    const n = L.arr.length, sc = L.arr.filter(x => x.score), avg = sc.length ? sc.reduce((a, x) => a + x.score, 0) / sc.length : 0;
+    inner = `<p style="margin:0"><b>${n}</b> ${n === 1 ? "bericht" : "berichten"}${sc.length ? ` · gemiddeld <b>★ ${nl1(avg)}</b>` : ""}</p>
+      <div class="fblist">${L.arr.map(x => `<div class="fbitem"><div class="row between"><small class="sub">${esc(x.d || "")} · ${esc(ABOUT[x.about] || x.about || "")} · ${esc(x.v || "")}</small>${x.score ? `<span class="pill star num">★ ${x.score}</span>` : ""}</div>${x.text ? `<p style="margin:0">${esc(x.text)}</p>` : ""}</div>`).join("") || `<p class="sub" style="margin:0">Nog geen feedback.</p>`}</div>
+      <button class="btn small" id="loadfb" style="justify-self:start">Vernieuwen</button>`;
+  }
+  return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback lezen</summary>${inner}</details>`;
+}
 /* ============ Weekkalender: welke avond eet je wat ============ */
 /* S.dayMap: 7 vakjes (ma t/m zo). null = automatisch, "-" = geen avondeten (vrij/uit eten), anders een recept-id */
 function weekSchedule(){
@@ -12089,7 +12292,7 @@ function weekStrip(){
   if (!totalDinners()) return "";
   const sch = weekSchedule(), t = todayIdx();
   const short = id => { const n = RID[id].name.split(/ met | en | op | in /)[0]; return n.length > 22 ? n.slice(0, 21) + "…" : n; };
-  return `<div class="row between" style="margin-top:6px"><div class="label">Welke avond wat?</div></div><div class="wk">${sch.map((id, i) => `<button class="wkday${i === t ? " now" : ""}${UI.dayPick === i ? " sel" : ""}" data-day="${i}"><b>${DAYS[i]}</b><span>${id && id !== "-" ? esc(short(id)) : `<i>vrij</i>`}</span>${id && id !== "-" && EP(id) > 1 ? `<small class="num">${EP(id)} pers.</small>` : ""}</button>`).join("")}</div>
+  return `<div class="row between" style="margin-top:6px"><div class="label">Welke avond wat?</div></div><div class="wk">${sch.map((id, i) => `<button class="wkday${i === t ? " now" : ""}${UI.dayPick === i ? " sel" : ""}" data-day="${i}"><b>${DAYS[i]}${trainDays().includes(i) ? " 💪" : ""}</b><span>${id && id !== "-" ? esc(short(id)) : `<i>vrij</i>`}</span>${id && id !== "-" && EP(id) > 1 ? `<small class="num">${EP(id)} pers.</small>` : ""}</button>`).join("")}</div>
   ${UI.dayPick !== undefined && UI.dayPick !== null ? `<div class="card" style="gap:8px"><div class="sub">Wat eet je op ${DAYS_LONG[UI.dayPick]}?</div><div class="chips">${S.plan.diner.filter(x => RID[x.id]).map(x => `<button class="chip" data-setday="${UI.dayPick}:${x.id}" aria-pressed="${sch[UI.dayPick] === x.id}">${esc(short(x.id))}</button>`).join("")}<button class="chip" data-setday="${UI.dayPick}:-" aria-pressed="${sch[UI.dayPick] === "-" || !sch[UI.dayPick]}">Niets (vrij of uit eten)</button></div></div>` : `<p class="ihint" style="margin:0">Tik op een dag om te kiezen wat je die avond eet. Je boodschappen veranderen daar niet door.</p>`}`;
 }
 function todayMenu(){
@@ -12103,6 +12306,7 @@ function todayMenu(){
     ${lu ? (t < totalLunches() ? `<div class="prow">${row("Lunch", lu.id, "Bakje uit de koelkast." + (t + 1 < totalLunches() && t + 1 >= 3 ? " Vanavond: bakje voor morgen van vriezer naar koelkast." : "") + (S.plan.lunch.length > 1 ? " Je hebt meerdere lunches: pak de oudste eerst." : ""))}</div>` : `<div class="prow"><div class="dmeal mrow"><small>Lunch</small><b>Vandaag geen lunchbakje gepland</b><small>Je bakjes zijn voor ${totalLunches()} ${totalLunches() === 1 ? "dag" : "dagen"}, vanaf maandag.</small></div></div>`) : ""}
     ${din && din !== "-" ? `<div class="prow">${row("Avondeten", din, EP(din) + (EP(din) === 1 ? " persoon" : " personen") + " · " + RID[din].time + " min")}<button class="btn small primary" data-cooknow="${din}" style="justify-self:start">Nu koken</button></div>`
       : `<div class="prow"><div class="dmeal mrow"><small>Avondeten</small><b>Vanavond niets gepland</b>${nxt ? `<small>Volgende: ${esc(RID[nxt[1]].name)} op ${nxt[0]}</small>` : ""}</div></div>`}
+    ${trainDays().includes(t) && trainSnack() ? `<div class="prow"><div class="dmeal mrow"><small>💪 Trainingsdag, extra</small><b>${esc(trainSnack().name)}</b><small>${esc(trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + "))}</small></div></div>` : ""}
     ${sn.length ? `<div class="prow"><div class="dmeal mrow"><small>Tussendoor</small>${sn.map(x => `<b>${esc(SID[x.id].name)}</b><small>${esc(SID[x.id].items.map(([k, q]) => fmt(k, q)).join(" + "))}</small>`).join("")}</div></div>` : ""}
   </div></section>`;
 }
@@ -12127,11 +12331,13 @@ function snackOk(s){
   if (P && P.allergies && P.allergies.length){ const ex = ALLERGY.filter(a => P.allergies.includes(a[0])).flatMap(a => a[2]); if (s.items.some(([k]) => ex.includes(k))) return false; }
   return !s.items.some(([k]) => p.noIng.includes(k));
 }
+function nPlanned(){ return S.plan.lunch.length + S.plan.diner.length + (S.plan.ontbijt || []).length + (S.plan.snack || []).length; }
 function snackPlan(){ return (S.plan.snack || []).filter(x => SID[x.id]); }
 /* Gemiddelde per dag (een week = 7 dagen) */
 function snackDay(){
   const t = { k:0, p:0, v:0, gv:0, fr:0 };
-  for (const x of snackPlan()){ const m = macros(SID[x.id]); t.k += m.kr * x.n / 7; t.p += m.pr * x.n / 7; t.v += m.vr * x.n / 7; t.gv += m.gvr * x.n / 7; t.fr += m.frr * x.n / 7; }
+  const td = trainDays(), ts = trainSnack(), list = snackPlan().slice(); if (td.length && ts) list.push({ id: ts.id, n: td.length });
+  for (const x of list){ const m = macros(SID[x.id]); t.k += m.kr * x.n / 7; t.p += m.pr * x.n / 7; t.v += m.vr * x.n / 7; t.gv += m.gvr * x.n / 7; t.fr += m.frr * x.n / 7; }
   return { k: Math.round(t.k / 10) * 10, p: Math.round(t.p), v: Math.round(t.v), gv: Math.round(t.gv), fr: Math.round(t.fr * 10) / 10 };
 }
 /* Wat de gekozen maaltijden op een gemiddelde dag geven */
@@ -12461,7 +12667,8 @@ function viewPrefs(){
     <p><b>Gaat anoniem online:</b> de sterren die je aan een gerecht geeft, foto's die je bij een gerecht zet en feedback die je verstuurt. Daar staat geen naam of e-mailadres bij. Foto's kan iedereen in de app zien, dus zet er geen mensen op.</p>
     <p>Wis je de gegevens van je browser of verwijder je de app, dan is wat op je telefoon stond weg.</p>
   </div></details>
-  <details class="section fold card"><summary class="label">Hoe rekent Prepmaat je doelen uit?</summary>${calcText()}</details>`;
+  <details class="section fold card"><summary class="label">Hoe rekent Prepmaat je doelen uit?</summary>${calcText()}</details>
+  ${adminBox()}`;
 }
 function rateRow(key, label, hint, val){
   return `<div class="rate"><div><b>${label}</b><div class="ihint">${hint}</div></div>
@@ -12526,6 +12733,8 @@ function ratingSummary(r){
 }
 
 function viewList(){
+  if (S.joined) return viewJoined();
+  setTimeout(() => pushShare(false), 0);
   const items = shopItems(), sel = myStores(), stores = sel.length ? shopStores(items) : [];
   const nl = totalLunches(), nd = totalDinners();
   const itemHtml = it => `<button class="item ${S.checks[it.id] ? "done" : ""}" data-check="${esc(it.id)}">
@@ -12559,6 +12768,8 @@ function viewList(){
   ${!items.length ? `<div class="card"><p style="margin:0">Je lijst is nog leeg. Kies eerst wat je deze week eet.</p><button class="btn primary" data-tab="week" style="justify-self:start">Naar Planning</button></div>` : `
   ${nCheck ? `<button class="btn full homebtn" id="homecheck"><b>1. Eerst thuis checken</b><span class="sub">${nCheck} dingen die je misschien al hebt. Duurt een minuut.</span></button>` : ""}
   <button class="btn primary full shopgo" id="shopstart"><b>${nCheck ? "2. " : ""}${got ? "Verder met winkelen" : "Start met winkelen"}</b><span>Grote vakjes, op volgorde van de winkel, scherm blijft aan</span></button>
+  ${priceCard(items)}
+  ${shareBox()}
   ${dealCard(items)}
   <details class="fold"><summary class="sub">Hoe werkt deze lijst?</summary><p class="sub" style="margin:6px 0 0">Voor ${totalBakjes()} ${totalBakjes() === 1 ? "lunchbakje" : "lunchbakjes"}, ${nd} keer avondeten${snackPlan().length ? " en je tussendoortjes" : ""}, met het aantal personen dat je per gerecht hebt gekozen. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p></details>
   ${got ? shopBar : ""}
@@ -12695,7 +12906,7 @@ function renderCook(){
   if (UI.prep) return renderPrep();
   UI.view = "cook";
   const r = RID[UI.open], f = factorFor(r), steps = allSteps(r, f), i = UI.cook, s = steps[i];
-  const T = UI.timer;
+  const T = curT(i);
   const timerHtml = s.min ? (() => {
     const left = T && T.step === i ? T.left : Math.round(s.min * 60);
     const ring = T && T.step === i && T.left <= 0;
@@ -12721,23 +12932,32 @@ function beep(){
   } catch(e){}
   try { navigator.vibrate && navigator.vibrate([300,150,300]); } catch(e){}
 }
+/* Meerdere timers tegelijk: UI.timers[stapnummer] = { left, running, end } */
+function curT(i){ const t = UI.timers && UI.timers[i]; return t ? Object.assign({ step: i }, t) : null; }
 function toggleTimer(){
   const s = curSteps()[UI.cook];
   try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume && audioCtx.resume(); } catch(e){}
-  if (!UI.timer || UI.timer.step !== UI.cook) UI.timer = { step: UI.cook, left: Math.round(s.min*60), running: false };
-  UI.timer.running = !UI.timer.running;
-  if (UI.timer.running){ UI.timer.end = Date.now() + UI.timer.left*1000; clearInterval(tick); tick = setInterval(onTick, 250); }
-  else clearInterval(tick);
+  UI.timers = UI.timers || {};
+  const t = UI.timers[UI.cook] = UI.timers[UI.cook] || { left: Math.round(s.min*60), running: false };
+  t.running = !t.running;
+  if (t.running) t.end = Date.now() + t.left*1000;
+  clearInterval(tick); if (Object.values(UI.timers).some(x => x.running)) tick = setInterval(onTick, 250);
   renderCook();
 }
 function onTick(){
-  const T = UI.timer; if (!T || !T.running) return;
-  T.left = Math.round((T.end - Date.now())/1000);
-  if (T.left <= 0){ T.left = 0; T.running = false; clearInterval(tick); beep(); if (UI.cook === T.step || UI.prep) renderCook(); else toast("Timer van stap " + (T.step+1) + " is klaar!"); return; }
-  const el = document.getElementById("tleft"); if (el && UI.cook === T.step) el.textContent = mmss(T.left);
-  const o = document.getElementById("tother"); if (o) o.textContent = mmss(T.left);
+  const all = UI.timers || {}; let rerender = false;
+  for (const [k, T] of Object.entries(all)){
+    if (!T.running) continue;
+    T.left = Math.round((T.end - Date.now())/1000);
+    if (T.left <= 0){ T.left = 0; T.running = false; beep(); rerender = true; if (UI.cook !== +k && !UI.prep) toast("Timer van stap " + (+k+1) + " is klaar!"); }
+  }
+  if (!Object.values(all).some(x => x.running)) clearInterval(tick);
+  if (rerender && UI.cook !== null){ renderCook(); return; }
+  const cur = all[UI.cook], el = document.getElementById("tleft"); if (el && cur) el.textContent = mmss(cur.left);
+  document.querySelectorAll("[data-tother]").forEach(o => { const t = all[o.dataset.tother]; if (t) o.textContent = t.left <= 0 ? "klaar!" : mmss(t.left); });
 }
-function stopTimer(){ clearInterval(tick); UI.timer = null; }
+function stopTimer(){ clearInterval(tick); UI.timers = {}; }
+function dropTimer(){ if (UI.timers) delete UI.timers[UI.cook]; }
 
 function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2200); }
 async function copyText(text){
@@ -12780,7 +13000,8 @@ document.addEventListener("click", (e) => {
   if (d.filter){ S.filter = d.filter; UI.rmax = 40; save(); render(); return; }
   if (d.rmore){ UI.rmax = (UI.rmax || 40) + 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, UI.rmax, "data-rmore"); return; }
   if (d.pmore){ UI.pmax = (UI.pmax || 50) + 50; document.getElementById("plist").innerHTML = pickerList(); return; }
-  if (d.check){ S.checks[d.check] = !S.checks[d.check]; save(); render(); return; }
+  if (d.check){ S.checks[d.check] = !S.checks[d.check]; save(); render(); if (S.share) setShareCheck(d.check, !!S.checks[d.check]); return; }
+  if (d.scheck){ const ck = (SHARE.doc && SHARE.doc.checks) || {}; const v = !ck[d.scheck]; if (SHARE.doc){ SHARE.doc.checks = Object.assign({}, ck, { [d.scheck]: v }); render(); } setShareCheck(d.scheck, v); return; }
   if (d.prepsel){ const a = UI.prepSel = UI.prepSel || [], i = a.indexOf(d.prepsel); i >= 0 ? a.splice(i, 1) : a.push(d.prepsel); renderPrepPick(); return; }
   if (d.meanwhile){ UI.prep.done[UI.cook] = true; UI.cook = +d.meanwhile; renderCook(); document.getElementById("sheet").scrollTop = 0; return; }
   if (d.goto !== undefined){ UI.prep.done[UI.cook] = UI.prep.done[UI.cook] || false; UI.cook = +d.goto; renderCook(); document.getElementById("sheet").scrollTop = 0; return; }
@@ -12793,6 +13014,8 @@ document.addEventListener("click", (e) => {
   if (d.addp){ const n = addToPlan(d.addp), r = RID[d.addp]; UI.clearArm = false; save(); render(); refreshSheet(); toast(`${r.name}: ${unitN(r.type, n)} in je week`); return; }
   if (d.pn){ const [id, dl] = d.pn.split(":"); setPlanN(id, +dl); save(); render(); refreshSheet(); return; }
   if (d.sn){ const [id, dl] = d.sn.split(":"), L = S.plan.snack, i = L.findIndex(x => x.id === id); if (i >= 0){ L[i].n = Math.min(14, L[i].n + +dl); if (L[i].n <= 0){ L.splice(i, 1); toast(SID[id].name + " is uit je week gehaald"); } } save(); render(); return; }
+  if (d.train !== undefined){ const a = S.train = trainDays(), i = a.indexOf(+d.train); i < 0 ? a.push(+d.train) : a.splice(i, 1); a.sort(); save(); render(); return; }
+  if (d.tsnack){ S.trainSnack = d.tsnack; save(); render(); return; }
   if (d.pseg){ UI.pseg = d.pseg; render(); window.scrollTo(0, 0); return; }
   if (d.wseg){ UI.wseg = d.wseg; UI.dayPick = null; render(); window.scrollTo(0, 0); return; }
   if (d.day !== undefined){ const i = +d.day; UI.dayPick = UI.dayPick === i ? null : i; render(); return; }
@@ -12817,6 +13040,11 @@ document.addEventListener("click", (e) => {
       else { UI.doneArm = false; UI.shop = false; releaseWake(); const left = shopDone(); save(); render(); window.scrollTo(0, 0); toast(left.length ? "Opgeslagen. Over voor volgende keer: " + left.slice(0, 3).join(", ") : "Opgeslagen. Je lijst is weer leeg afgevinkt."); } break;
     case "fillsnacks": { const n = fillSnacks(); save(); render(); toast(n ? n + (n === 1 ? " tussendoortje" : " tussendoortjes") + " gekozen en op je boodschappenlijst gezet" : "Je dag zit al vol"); break; }
     case "snackpick": UI.snackPick = !UI.snackPick; render(); break;
+    case "ics": downloadIcs(); break;
+    case "loadfb": loadFeedback(); break;
+    case "sharestart": startShare(); break;
+    case "sharelink": { const url = shareLink(S.share.code); if (navigator.share) navigator.share({ title: "Onze boodschappenlijst", url }).catch(() => {}); else copyLinkText(url); break; }
+    case "sharestop": stopShare(); break;
     case "shopstart": UI.shop = true; keepAwake(); render(); window.scrollTo(0, 0); break;
     case "shopstop": UI.shop = false; releaseWake(); render(); window.scrollTo(0, 0); break;
     case "autofill": { const n = autofill(); UI.insp = null; save(); render(); toast(n ? "Voorstellen toegevoegd. Pas ze gerust aan." : "Je week is al gevuld"); break; }
@@ -12854,8 +13082,8 @@ document.addEventListener("click", (e) => {
     case "showall": S.showAll = !S.showAll; save(); render(); break;
     case "resetprefs": S.prefs = defaultPrefs(); save(); render(); toast("Voorkeuren teruggezet"); break;
     case "tgo": toggleTimer(); break;
-    case "treset": stopTimer(); renderCook(); break;
-    case "tstop": stopTimer(); renderCook(); break;
+    case "treset": dropTimer(); renderCook(); break;
+    case "tstop": dropTimer(); renderCook(); break;
     case "copy": copyText(listAsText()); break;
     case "share": { const text = listAsText();
       if (navigator.share) navigator.share({ title: "Boodschappen", text }).catch(() => {});
@@ -12907,8 +13135,9 @@ document.addEventListener("input", (e) => {
 document.addEventListener("pointerdown", weightHover);
 document.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) weightHover(e); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (UI.cook !== null || (UI.shop && S.tab === "lijst"))) keepAwake(); });
+joinFromHash();
 render();
-if (!S.onboarded && !S.profile) openProfile();
+if (!S.onboarded && !S.profile && !S.joined) openProfile();
 initCloud();
 loadDeals();
 </script>
