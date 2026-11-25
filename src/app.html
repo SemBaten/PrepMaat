@@ -2817,7 +2817,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v28";
+const APP_VERSION = "v29";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3691,8 +3691,7 @@ function recipeMatches(){
 }
 function recipeListHtml(){
   const { list, hidden } = recipeMatches(), f = S.filter;
-  return `${hidden ? `<button class="btn small" id="showall" style="justify-self:start">${S.showAll ? "Verberg" : "Toon ook"} ${hidden} recept${hidden>1?"en":""} die niet bij je smaak passen</button>` : ""}
-  <div class="sub num">${list.length} ${list.length === 1 ? "recept" : "recepten"}</div>
+  return `<div class="sub num">${list.length} ${list.length === 1 ? "recept" : "recepten"}${hidden ? ` · <button class="linkbtn" id="showall" style="padding:0;font-size:inherit">${S.showAll ? "verberg" : "toon ook"} ${hidden} die niet bij je smaak passen</button>` : ""}</div>
   ${list.length ? list.slice(0, UI.rmax || 40).map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
       <span class="rtop"><span class="rhead"><span class="label">${typeLabel(r)} · ${esc(cuisineName(r.cuisine))}${r.spice ? " · " + SPICE[r.spice].toLowerCase() : ""}</span>
       <h3>${esc(r.name)}</h3></span>${thumbImg(r)}</span><p>${esc(r.short)}</p>
