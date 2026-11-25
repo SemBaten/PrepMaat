@@ -422,6 +422,26 @@ const DB = {
   rookworst:  {n:"magere rookworst", c:"vlees", u:"g", k:180, p:15, pk:[275,"rookworst van ±275 g"]},
   spitskool:  {n:"spitskool", c:"groente", u:"g", k:25, p:1.5, pk:[500,"spitskool van ±500 g"]},
   hamblokjes: {n:"hamblokjes", c:"vlees", u:"g", k:120, p:20, pk:[150,"bakje van ±150 g"]},
+  prei:       {n:"prei", pl:"preien", c:"groente", u:"stuk", g:200, k:30, p:1.5},
+  spruitjes:  {n:"spruitjes", c:"groente", u:"g", k:43, p:3.4, pk:[500,"zak van ±500 g"]},
+  rodekool:   {n:"rode kool (gesneden)", c:"groente", u:"g", k:30, p:1.4, pk:[350,"zak van ±350 g"]},
+  pompoen:    {n:"flespompoen", c:"groente", u:"g", k:40, p:1, pk:[1000,"flespompoen van ±1 kg"]},
+  sugarsnaps: {n:"sugarsnaps", c:"groente", u:"g", k:40, p:2.8, pk:[150,"bakje van ±150 g"]},
+  olijven:    {n:"zwarte olijven (uitgelekt)", c:"voorraad", u:"g", k:140, p:1, pk:[150,"pot (±150 g uitgelekt)"]},
+  wittebonen: {n:"witte bonen (uitgelekt)", c:"voorraad", u:"g", k:95, p:7, pk:[240,"blik (±240 g uitgelekt)"]},
+  gerooktezalm:{n:"gerookte zalm", c:"vis", u:"g", k:180, p:21, pk:[100,"pakje van ±100 g"]},
+  spekreepjes:{n:"magere spekreepjes", c:"vlees", u:"g", k:220, p:18, pk:[150,"bakje van ±150 g"]},
+  huttenkase: {n:"hüttenkäse", c:"zuivel", u:"g", k:95, p:12, pk:[200,"bakje van 200 g"]},
+  parmezaan:  {n:"Parmezaanse kaas (geraspt)", c:"zuivel", u:"g", k:400, p:35, pk:[100,"zakje van ±100 g"]},
+  quinoa:     {n:"quinoa (droog)", c:"voorraad", u:"g", k:360, p:14, pk:[400,"pak van ±400 g"]},
+  zoetechili: {n:"zoete chilisaus", c:"voorraad", u:"el", g:18, k:220, p:0.5},
+  sambal:     {n:"sambal oelek", c:"voorraad", u:"tl", g:5, k:50, p:1.5},
+  peterselie: {n:"verse peterselie", c:"groente", u:"g", k:36, p:3, pk:[30,"bosje of bakje (±30 g)"]},
+  basilicum:  {n:"verse basilicum", c:"groente", u:"g", k:23, p:3, pk:[30,"bosje of bakje (±30 g)"]},
+  rucola:     {n:"rucola", c:"groente", u:"g", k:25, p:2.6, pk:[75,"zak van ±75 g"]},
+  koolvis:    {n:"witvis (koolvis of pangasius)", c:"vis", u:"g", k:80, p:18, pk:[400,"pak van ±400 g"]},
+  bietjes:    {n:"gekookte rode bieten", c:"groente", u:"g", k:45, p:1.6, pk:[500,"vacuümpak van ±500 g"]},
+  witlof:     {n:"witlof", c:"groente", u:"g", k:17, p:1.2, pk:[500,"zak van ±500 g (±4 stronken)"]},
 };
 const CATS = [
   ["vlees","Vlees en kip"],["vis","Vis"],["groente","Groente en fruit"],["zuivel","Zuivel en eieren"],
@@ -433,6 +453,12 @@ const RICE = (z) => [
   `Kook de rijst. Spoel {rijst} 30 seconden in een zeef onder de kraan. Doe de rijst met {water:${z.w}} en {zout:${z.s}} in een pan met deksel. Breng aan de kook op hoog vuur.`,
   [`Zodra het kookt: zet het vuur op de laagste stand, doe het deksel erop en laat 12 minuten staan. Niet roeren en het deksel er niet af halen. Zet daarna het vuur uit en laat de rijst nog 10 minuten met deksel rusten.`, 12]
 ];
+const PASTA = (z) => [
+  `Breng een grote pan met ${z.l || 2} liter water en {zout:${z.s}} aan de kook.`,
+  [`Kook {${z.k || "pasta"}} zo lang als op de verpakking staat (meestal ${z.t || "10 tot 12"} minuten).${z.w ? " Schep er een kopje kookwater uit en giet af." : z.c ? " Giet af en spoel koud." : " Giet af."}`, z.m || 11]
+];
+const EGGS = (z) => [`Leg {ei${z.p ? ":" + z.p : ""}} in een steelpan, net onder water. Breng aan de kook en kook vanaf het koken ${z.m || 9} minuten${z.m && z.m < 8 ? ", dan is de dooier nog zacht" : ""}. Leg ze daarna in koud water en pel ze.`, z.m || 9];
+const COUS = (z) => [`Couscous: los {groentebouillon${z.b ? ":" + z.b : ""}} op in {water${z.w ? ":" + z.w : ""}} (kokend). Giet het over {couscous}, leg een bord erop en laat 5 minuten staan. Roer los met een vork.`, 5];
 const GAAR = "Check of de kip gaar is: snijd het dikste stukje doormidden. Het moet helemaal wit zijn, zonder roze.";
 
 /* ============ Recepten ============ */
@@ -2419,6 +2445,1854 @@ const R = [
     "Meng de appel met {havermout}, {kwark}, {melk} en {kaneel} in een bakje of pot. Schep {pindakaas} erop.",
     "Deksel erop en een nacht in de koelkast."
   ]}
+,
+/* ============ Avondeten d01: Hollands ============ */
+{ id:"spruitjesstamppot", type:"diner", serves:2, time:35, t:["varken","hollands",0],
+  name:"Spruitjesstamppot met spekjes", short:"Zelfs spruitjes-haters vinden deze lekker.",
+  items:[["aardappel",700],["zout",0.75],["spruitjes",400],["spekreepjes",150],["ui",1],["melk",100],["mosterd",2],["nootmuskaat",0.25],["peper",0.25],["kipfilet",200],["olie",0.5],["paprikapoeder",0.5]],
+  steps:[
+    "Schil {aardappel} en snijd in vieren. Haal het onderste puntje en de losse blaadjes van {spruitjes} en snijd ze doormidden.",
+    ["Doe de aardappelen in een pan, net onder water, met {zout:0.5}. Breng aan de kook en kook 20 minuten. Doe de spruitjes na 8 minuten erbij.",20],
+    "Snijd ondertussen {ui} fijn en {kipfilet} in blokjes van 2 cm. Bestrooi de kip met {paprikapoeder} en {zout:0.25}.",
+    ["Bak {spekreepjes} en de ui 5 minuten in een droge koekenpan tot de spekjes krokant zijn. Schep op een bord.",5],
+    ["Bak in {olie} de kip 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    "Giet de aardappelen en spruitjes af. Stamp met {melk}, {mosterd}, {nootmuskaat} en {peper}. Schep spekjes, ui en kip erdoor."
+  ]},
+{ id:"rodekoolgehakt", type:"diner", serves:2, time:40, t:["rund","hollands",0],
+  name:"Rode kool met appel, gehaktballen en aardappelen", short:"Echte winterkost uit de Hollandse keuken.",
+  items:[["aardappel",600],["zout",1],["rodekool",350],["appel",1],["azijn",1],["kaneel",0.25],["laurier",1],["kruidnagel",2],["water",100],["gehakt",300],["paneermeel",20],["ei",1],["nootmuskaat",0.25],["peper",0.25],["olie",1],["honing",0.5]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    "Schil {appel}, haal het klokhuis eruit en snijd in blokjes.",
+    ["Doe ondertussen {rodekool}, de appel, {water}, {azijn}, {honing}, {kaneel}, {laurier} en {kruidnagel} in een pan met deksel. Laat 20 minuten zachtjes stoven, af en toe roeren.",20],
+    "Meng {gehakt} met {paneermeel}, {ei}, {nootmuskaat}, {zout:0.5} en {peper}. Rol er met natte handen 6 balletjes van.",
+    ["Verhit {olie} in een koekenpan met deksel op middelhoog vuur. Bak de ballen rondom bruin (4 minuten), deksel erop en laat 10 minuten garen op laag vuur.",14],
+    "Snijd een bal door: van binnen mag geen roze meer zitten. Haal laurier en kruidnagels uit de rode kool. Giet de aardappelen af en eet alles samen."
+  ]},
+{ id:"witlofham", type:"diner", serves:2, time:50, t:["varken","hollands",0],
+  name:"Witlof met ham en kaas uit de oven", short:"Klassieke ovenschotel. Het bittere van witlof verdwijnt in de oven.",
+  items:[["aardappel",600],["zout",0.75],["witlof",500],["hamblokjes",150],["melk",100],["kookroom",150],["maizena",1],["nootmuskaat",0.25],["peper",0.25],["kaas",60]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    ["Snijd ondertussen het harde kegeltje onderaan uit {witlof} en halveer de stronken in de lengte. Kook ze 5 minuten in water. Laat goed uitlekken en knijp het vocht er voorzichtig uit.",5],
+    ["Saus: verwarm {kookroom} met {maizena} (eerst los geroerd in 2 el koud water), {nootmuskaat} en {peper}. Roer tot hij dikker wordt, 2 minuten.",2],
+    "Giet de aardappelen af en stamp met {melk} en {zout:0.25} tot puree. Smeer de puree in een ovenschaal.",
+    "Leg het witlof op de puree, strooi {hamblokjes} erover, giet de saus erover en strooi {kaas} erop.",
+    ["Bak 20 minuten tot de kaas goudbruin is.",20]
+  ]},
+{ id:"bietjesbal", type:"diner", serves:2, time:35, t:["rund","hollands",0],
+  name:"Bietjes met gehaktbal en gekookte aardappelen", short:"Zoals oma het maakte, maar dan in 35 minuten.",
+  items:[["aardappel",600],["zout",1],["gehakt",300],["paneermeel",20],["ei",1],["nootmuskaat",0.25],["peper",0.25],["olie",1],["bietjes",400],["ui",1],["azijn",1],["kruidnagel",1],["honing",0.5]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    "Meng ondertussen {gehakt} met {paneermeel}, {ei}, {nootmuskaat}, {zout:0.25} en {peper}. Vorm 2 grote ballen en druk ze iets plat.",
+    ["Verhit {olie:0.5} in een koekenpan met deksel op middelhoog vuur. Bak de ballen rondom bruin (5 minuten), deksel erop en laat 12 minuten garen op laag vuur. Halverwege keren.",17],
+    "Snijd een bal door: van binnen mag geen roze meer zitten.",
+    ["Bietjes: snijd {ui} fijn en {bietjes} in blokjes. Bak de ui 3 minuten in {olie:0.5}. Doe bieten, {azijn}, {honing}, {kruidnagel} en {zout:0.25} erbij en warm 5 minuten door. Haal de kruidnagel eruit.",8],
+    "Giet de aardappelen af en eet met de bietjes en de gehaktbal."
+  ]},
+{ id:"hetebliksem", type:"diner", serves:2, time:35, t:["varken","hollands",0],
+  name:"Hete bliksem met spekjes en kip", short:"Stamppot met appel: zoet en hartig tegelijk.",
+  items:[["aardappel",700],["appel",2],["zout",0.75],["spekreepjes",150],["ui",1],["kipfilet",200],["olie",0.5],["tijm",0.5],["peper",0.25],["sperziebonen",300]],
+  steps:[
+    "Schil {aardappel} en snijd in vieren. Schil {appel}, haal het klokhuis eruit en snijd in partjes.",
+    ["Kook de aardappelen in water met {zout:0.5} 20 minuten. Doe de appel de laatste 8 minuten erbij.",20],
+    ["Kook ondertussen {sperziebonen} (puntjes eraf) 7 minuten in water en giet af.",7],
+    ["Bak {spekreepjes} en {ui} (fijngesneden) 5 minuten in een droge koekenpan tot de spekjes krokant zijn. Schep op een bord.",5],
+    ["Snijd {kipfilet} in blokjes. Bak in {olie} met {tijm} en {zout:0.25} 6 minuten tot de kip helemaal wit is, zonder roze.",6],
+    "Giet aardappel en appel af en stamp grof met {peper}. Schep spekjes, ui en kip erdoor en eet met de sperziebonen."
+  ]},
+{ id:"bloemkoolkaas", type:"diner", serves:2, time:35, t:["rund","hollands",0],
+  name:"Bloemkool met kaassaus, gehaktbal en aardappelen", short:"Hollandse klassieker met een lichte kaassaus.",
+  items:[["aardappel",600],["zout",1],["bloemkool",600],["gehakt",300],["paneermeel",20],["ei",1],["nootmuskaat",0.5],["peper",0.25],["olie",1],["melk",250],["maizena",1.5],["kaas",50]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    "Meng {gehakt} met {paneermeel}, {ei}, {nootmuskaat:0.25}, {zout:0.25} en {peper}. Vorm 2 ballen en druk ze iets plat.",
+    ["Verhit {olie} in een koekenpan met deksel. Bak de ballen rondom bruin (5 minuten), deksel erop en laat 12 minuten garen op laag vuur.",17],
+    ["Snijd ondertussen {bloemkool} in roosjes en kook 8 minuten in water. Giet af.",8],
+    ["Kaassaus: roer {maizena} los in een beetje van de {melk}. Verwarm de rest van de melk, roer het maizenamengsel erdoor en laat 2 minuten zachtjes koken tot het dik is. Roer {kaas}, {nootmuskaat:0.25} en {zout:0.25} erdoor.",3],
+    "Snijd een gehaktbal door: geen roze meer = gaar. Giet de aardappelen af en schep de kaassaus over de bloemkool."
+  ]},
+{ id:"spinazieei", type:"diner", serves:2, time:30, t:["vega","hollands",0],
+  name:"Romige spinazie met eieren en aardappelen", short:"Vegetarisch, simpel en vol ijzer en eiwit.",
+  items:[["aardappel",700],["zout",0.75],["ei",5],["spinazie",600],["ui",1],["knoflook",1],["olie",0.5],["kookroom",150],["nootmuskaat",0.25],["peper",0.25],["kaas",40]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    EGGS({}),
+    ["Snijd ondertussen {ui} en {knoflook} fijn en bak ze 3 minuten in {olie} in een grote pan. Doe {spinazie} er in delen bij en roer tot alles geslonken is, 4 minuten.",7],
+    ["Giet het vocht weg. Roer {kookroom}, {nootmuskaat}, {zout:0.25}, {peper} en {kaas} erdoor en laat 2 minuten zachtjes koken.",2],
+    "Giet de aardappelen af. Eet met de romige spinazie en de gehalveerde eieren."
+  ]},
+{ id:"krokantevis", type:"diner", serves:2, time:40, t:["vis","hollands",0],
+  name:"Krokante witvis uit de oven met frietjes en remoulade", short:"Als kibbeling, maar dan uit de oven.",
+  items:[["aardappel",600],["olie",1.5],["zout",0.75],["paprikapoeder",1],["koolvis",400],["ei",1],["paneermeel",50],["peper",0.25],["kwark",100],["mosterd",1],["dille",0.5],["citroen",1],["sla",100],["komkommer",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op 2 bakplaten.",
+    ["Was {aardappel} en snijd in frietjes van 1 cm dik. Hussel met {olie:1}, {zout:0.25} en {paprikapoeder} en bak 30 minuten op de eerste bakplaat, halverwege omscheppen.",30],
+    "Snijd ondertussen {koolvis} in repen van 3 cm. Dep droog en bestrooi met {zout:0.25} en {peper}. Klop {ei} los in een diep bord en doe {paneermeel} op een ander bord.",
+    "Haal elke reep door het ei en daarna door het paneermeel. Leg ze op de tweede bakplaat en druppel {olie:0.5} erover.",
+    ["Zet de vis de laatste 15 minuten bij de frietjes in de oven. De vis is gaar als hij wit is en uit elkaar valt.",15],
+    "Remoulade: meng {kwark}, {mosterd}, {dille}, het sap van een halve {citroen} en {zout:0.25}. Snijd de rest van de citroen in partjes.",
+    "Eet met {sla} en {komkommer} in plakjes."
+  ]},
+{ id:"zalmpuree", type:"diner", serves:2, time:30, t:["vis","hollands",0],
+  name:"Gebakken zalm met spinaziepuree", short:"Romige groene puree met een krokant stukje zalm.",
+  items:[["aardappel",600],["zout",1],["spinazie",300],["melk",100],["nootmuskaat",0.25],["zalm",250],["peper",0.25],["olie",0.5],["citroen",0.5]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    "Doe {spinazie} de laatste 2 minuten bij de aardappelen, dan slinkt hij vanzelf.",
+    "Dep {zalm} droog en bestrooi met {zout:0.25} en {peper}.",
+    ["Verhit {olie} in een koekenpan op middelhoog vuur. Leg de zalm met het vel naar beneden erin en bak 4 minuten. Draai om en bak nog 2 minuten. Hij is gaar als hij in het midden niet meer glazig is.",6],
+    "Giet aardappelen en spinazie af. Stamp met {melk}, {nootmuskaat} en {zout:0.25} tot een groene puree. Knijp {citroen} uit over de zalm."
+  ]},
+{ id:"pompoensoep", type:"diner", serves:2, time:40, t:["kip","hollands",0],
+  name:"Pompoensoep met kip en brood", short:"Fluweelzachte soep die een hele maaltijd is.",
+  items:[["pompoen",800],["ui",1],["knoflook",2],["olie",1],["kerrie",1],["water",800],["bouillon",1],["zout",0.25],["kipfilet",300],["kookroom",100],["peper",0.25],["brood",4]],
+  steps:[
+    "Schil {pompoen} met een dunschiller, haal de pitten eruit met een lepel en snijd in blokjes van 3 cm. Snijd {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een soeppan. Bak ui en knoflook 3 minuten. Roer {kerrie} erdoor en bak 1 minuut.",4],
+    "Doe pompoen, {water}, {bouillon} (verkruimeld) en {zout} erbij. Leg {kipfilet} heel in de soep en breng aan de kook.",
+    ["Deksel erop en laat 15 minuten zachtjes koken tot de pompoen zacht is.",15],
+    GAAR,
+    "Haal de kip eruit. Pureer de soep glad met een staafmixer. Roer {kookroom} en {peper} erdoor.",
+    "Trek de kip in draadjes en doe hem terug in de soep. Eet met {brood}."
+  ]},
+{ id:"preischotel", type:"diner", serves:2, time:45, t:["rund","hollands",0],
+  name:"Prei-ovenschotel met gehakt en puree", short:"Gehakt met zachte prei onder een laag puree en kaas.",
+  items:[["aardappel",600],["zout",1],["melk",75],["nootmuskaat",0.25],["prei",2],["gehakt",300],["olie",0.5],["kerrie",1],["kookroom",100],["peper",0.25],["kaas",40]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Schil {aardappel}, snijd in vieren en kook ze in water met {zout:0.5} 20 minuten tot ze zacht zijn.",20],
+    "Snijd ondertussen {prei} in dunne ringen en spoel ze goed af in een vergiet. Tussen de lagen zit vaak zand.",
+    ["Verhit {olie} in een hapjespan op hoog vuur. Bak {gehakt} 5 minuten los tot er geen roze meer te zien is.",5],
+    ["Doe de prei en {kerrie} erbij en bak 5 minuten tot de prei zacht is. Roer {kookroom}, {zout:0.25} en {peper} erdoor. Schep in een ovenschaal.",5],
+    "Giet de aardappelen af, stamp met {melk}, {nootmuskaat} en {zout:0.25} tot puree. Smeer over het gehakt en strooi {kaas} erover.",
+    ["Bak 15 minuten tot de bovenkant goudbruin is.",15]
+  ]},
+{ id:"zuurkoolstamppot", type:"diner", serves:2, time:35, t:["varken","hollands",0],
+  name:"Zuurkoolstamppot met rookworst en ananas", short:"Snelle stamppot met een zoet randje.",
+  items:[["aardappel",700],["zout",0.5],["zuurkool",400],["rookworst",275],["ananas",100],["melk",75],["mosterd",2],["peper",0.25]],
+  steps:[
+    "Schil {aardappel} en snijd in vieren. Doe ze in een pan, net onder water, met {zout}. Spoel {zuurkool} kort af en leg hem bovenop de aardappelen.",
+    ["Deksel erop, breng aan de kook en kook 20 minuten.",20],
+    ["Leg ondertussen {rookworst} 10 minuten in een pan met heet water dat net niet kookt. Laat het niet koken, anders barst de worst open.",10],
+    "Giet aardappelen en zuurkool goed af. Stamp met {melk}, {mosterd} en {peper}. Roer {ananas} (uitgelekt) erdoor.",
+    "Snijd de rookworst in plakken en eet hem bij de stamppot."
+  ]},
+{ id:"kipappelmoes", type:"diner", serves:2, time:45, t:["kip","hollands",0],
+  name:"Kippendij met ovenfriet, appelmoes en sla", short:"Het lievelingseten van iedereen, maar dan uit de oven.",
+  items:[["aardappel",600],["olie",1.5],["zout",0.75],["paprikapoeder",1.5],["kipdij",400],["knoflookpoeder",0.5],["peper",0.25],["appel",2],["kaneel",0.25],["water",50],["sla",100],["komkommer",0.5],["azijn",1]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op 2 bakplaten.",
+    ["Was {aardappel} en snijd in frietjes van 1 cm. Hussel met {olie:1}, {zout:0.25} en {paprikapoeder:0.5} en bak 30 minuten op de eerste bakplaat, halverwege omscheppen.",30],
+    ["Wrijf {kipdij} in met {paprikapoeder:1}, {knoflookpoeder}, {zout:0.25}, {peper} en {olie:0.5}. Leg ze op de tweede bakplaat en bak 25 minuten mee.",25],
+    ["Appelmoes: schil ondertussen {appel}, snijd in stukjes en kook 10 minuten met {water} en {kaneel} in een pan met deksel. Prak fijn met een vork.",10],
+    GAAR,
+    "Sla: meng {sla} met {komkommer} in plakjes, {azijn} en {zout:0.25}."
+  ]},
+{ id:"sperziespek", type:"diner", serves:2, time:30, t:["varken","hollands",0],
+  name:"Sperziebonen met spekjes, kip en gebakken krieltjes", short:"Simpel boerenbord uit twee pannen.",
+  items:[["krieltjes",500],["olie",1.5],["zout",0.75],["rozemarijn",0.5],["sperziebonen",400],["spekreepjes",100],["ui",1],["kipfilet",250],["paprikapoeder",1],["peper",0.25]],
+  steps:[
+    ["Halveer {krieltjes}. Verhit {olie:1} in een koekenpan met deksel. Bak de krieltjes met {rozemarijn} en {zout:0.25} 10 minuten met deksel, daarna 10 minuten zonder, af en toe omscheppen.",20],
+    ["Kook ondertussen {sperziebonen} (puntjes eraf) 7 minuten in water met {zout:0.25}. Giet af.",7],
+    "Snijd {kipfilet} in blokjes en bestrooi met {paprikapoeder}, {zout:0.25} en {peper}.",
+    ["Bak {spekreepjes} en {ui} (fijngesneden) 4 minuten in een tweede pan. Doe de kip en {olie:0.5} erbij en bak 6 minuten tot de kip helemaal wit is, zonder roze.",10],
+    "Schep de sperziebonen door de spekjes en kip en eet met de krieltjes."
+  ]},
+{ id:"gehaktbrood", type:"diner", serves:2, time:55, t:["rund","hollands",0],
+  name:"Gehaktbrood met puree en worteltjes", short:"Eén groot gehaktbrood in de oven. Restje is lekker op brood.",
+  items:[["gehakt",350],["ui",1],["paneermeel",30],["ei",1],["mosterd",1],["paprikapoeder",1],["nootmuskaat",0.25],["zout",1],["peper",0.25],["aardappel",600],["melk",75],["wortel",400],["honing",0.5],["olie",0.5]],
+  steps:[
+    "Zet de oven aan op 190 °C (hetelucht 170 °C).",
+    "Snijd {ui} heel fijn. Meng met {gehakt}, {paneermeel}, {ei}, {mosterd}, {paprikapoeder}, {nootmuskaat:0.125}, {zout:0.5} en {peper}. Vorm er een langwerpig brood van en leg het in een ovenschaal.",
+    ["Bak 40 minuten in de oven. Prik met een mes in het midden: komt er helder vocht uit en is het binnenin niet meer roze, dan is hij gaar.",40],
+    ["Schil ondertussen {aardappel}, snijd in vieren en kook ze 20 minuten in water met {zout:0.25} tot ze zacht zijn.",20],
+    ["Schil {wortel} en snijd in schuine plakjes. Kook 10 minuten in water. Giet af en schep om met {honing} en {olie}.",10],
+    "Giet de aardappelen af en stamp met {melk}, {nootmuskaat:0.125} en {zout:0.25} tot puree. Laat het gehaktbrood 5 minuten rusten en snijd in plakken."
+  ]},
+{ id:"hartigetaart", type:"diner", serves:2, time:45, t:["varken","frans",0],
+  name:"Hartige taart zonder bodem met prei en ham", short:"Een quiche zonder deeg: makkelijker en lichter.",
+  items:[["prei",2],["olie",0.5],["ei",5],["melk",150],["kaas",60],["hamblokjes",150],["nootmuskaat",0.25],["peper",0.25],["zout",0.25],["sla",100],["cherrytomaat",200],["brood",2]],
+  steps:[
+    "Zet de oven aan op 190 °C (hetelucht 170 °C). Vet een ovenschaal of taartvorm (±22 cm) in met een beetje van de {olie}.",
+    "Snijd {prei} in dunne ringen en spoel ze goed af in een vergiet.",
+    ["Bak de prei 5 minuten in de rest van de olie in een koekenpan tot hij zacht is.",5],
+    "Klop {ei} met {melk}, {nootmuskaat}, {peper}, {zout} en de helft van de {kaas} los. Roer prei en {hamblokjes} erdoor en giet in de vorm. Strooi de rest van de kaas erover.",
+    ["Bak 30 minuten tot de taart in het midden stevig is. Prik met een mes: komt hij er schoon uit, dan is hij klaar.",30],
+    "Eet met {sla}, {cherrytomaat} (gehalveerd) en {brood}."
+  ]},
+{ id:"kipprei", type:"diner", serves:2, time:35, t:["kip","hollands",0],
+  name:"Kip-prei pannetje met rijst", short:"Romige kip met prei en champignons. Lekker mild.",
+  items:[["rijst",150],["water",225],["zout",0.75],["kipfilet",350],["prei",1],["champignons",250],["olie",1],["kookroom",150],["bouillon",0.5],["tijm",0.5],["peper",0.25],["maizena",0.5]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in blokjes van 2 cm, {prei} in ringen (goed afspoelen) en {champignons} in plakjes.",
+    ["Verhit {olie} in een hapjespan op hoog vuur. Bak de kip 5 minuten tot hij rondom wit is.",5],
+    ["Doe prei, champignons en {tijm} erbij en bak 5 minuten.",5],
+    ["Doe {kookroom}, {bouillon} (verkruimeld), {zout:0.5} en {peper} erbij. Roer {maizena} los in 2 el koud water en roer erdoor. Laat 3 minuten zachtjes koken.",3],
+    GAAR + " Eet met de rijst."
+  ]},
+{ id:"jachtschotel", type:"diner", serves:2, time:50, t:["rund","hollands",0],
+  name:"Jachtschotel met appel en puree", short:"Stoofje van rundvlees met ui en appel, onder een laag puree.",
+  items:[["stoofvlees",350],["olie",1],["ui",2],["appel",1],["laurier",1],["kruidnagel",2],["runderbouillon",1],["water",300],["azijn",1],["maizena",1],["peper",0.25],["zout",0.75],["aardappel",500],["melk",75],["kaas",30],["sperziebonen",300]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 2 cm en {ui} in halve ringen. Schil {appel} en snijd in blokjes.",
+    ["Verhit {olie} in een pan met deksel op hoog vuur. Bak het vlees 5 minuten rondom bruin. Doe de ui erbij en bak 3 minuten.",8],
+    ["Doe appel, {laurier}, {kruidnagel}, {water}, {runderbouillon} (verkruimeld), {azijn} en {peper} erbij. Deksel erop en laat 30 minuten heel zachtjes stoven.",30],
+    ["Kook ondertussen {aardappel} (geschild, in vieren) 20 minuten in water met {zout:0.5}. Kook {sperziebonen} 7 minuten in een tweede pan.",20],
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Haal laurier en kruidnagels eruit. Roer {maizena} los in 2 el koud water en roer door het stoofje. Schep in een ovenschaal.",
+    "Stamp de aardappelen met {melk} en {zout:0.25}. Smeer de puree erover en strooi {kaas} erop.",
+    ["Bak 10 minuten tot de bovenkant goudbruin is. Eet met de sperziebonen.",10]
+  ]},
+{ id:"kalkoenspruit", type:"diner", serves:2, time:35, t:["kip","hollands",0],
+  name:"Kalkoen met geroosterde spruitjes en zoete aardappel", short:"Alles op één bakplaat, met een honing-mosterdsaus.",
+  items:[["zoeteaardappel",500],["spruitjes",400],["olie",1.5],["zout",0.75],["peper",0.25],["kalkoen",350],["paprikapoeder",1],["honing",1],["mosterd",2]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Schil {zoeteaardappel} en snijd in blokjes van 2 cm. Haal het onderste puntje van {spruitjes} en halveer ze.",
+    ["Hussel de groente op de bakplaat met {olie:1}, {zout:0.5} en {peper}. Rooster 30 minuten, halverwege omscheppen.",30],
+    "Bestrooi ondertussen {kalkoen} met {paprikapoeder} en {zout:0.25}.",
+    ["Verhit {olie:0.5} in een koekenpan op middelhoog vuur. Bak de kalkoen 5 minuten per kant.",10],
+    "Snijd de dikste plek door: helemaal wit = gaar. Meng {honing} en {mosterd} en schep over de kalkoen. Snijd in plakken en eet met de groente."
+  ]},
+{ id:"kipwortelstamp", type:"diner", serves:2, time:35, t:["kip","hollands",0],
+  name:"Wortelstamppot met kip in jus", short:"Zoete wortels door de stamppot en kip met een snelle jus.",
+  items:[["aardappel",600],["wortel",400],["ui",1],["zout",0.75],["kipdij",400],["paprikapoeder",1],["peper",0.25],["olie",1],["bouillon",0.5],["water",150],["maizena",0.5],["melk",75],["nootmuskaat",0.25]],
+  steps:[
+    "Schil {aardappel} en snijd in vieren. Schil {wortel} en snijd in plakjes. Snijd {ui} in partjes.",
+    ["Kook aardappel, wortel en ui in water met {zout:0.5} 20 minuten.",20],
+    "Bestrooi ondertussen {kipdij} met {paprikapoeder}, {zout:0.25} en {peper}.",
+    ["Verhit {olie} in een koekenpan met deksel. Bak de kip 4 minuten per kant bruin. Giet {water} met {bouillon} (verkruimeld) erbij, deksel erop en laat 10 minuten zachtjes garen.",18],
+    "Haal de kip eruit. Roer {maizena} los in 1 el koud water en roer door het vocht tot een jus.",
+    GAAR,
+    "Giet de groente af en stamp met {melk} en {nootmuskaat}. Eet met de kip en de jus."
+  ]},
+{ id:"kibbelingsalade", type:"diner", serves:2, time:25, t:["vis","hollands",0],
+  name:"Gerookte zalm met krieltjes, ei en dillesaus", short:"Koude zomerse schotel zonder bakken of braden.",
+  items:[["krieltjes",500],["zout",0.5],["ei",3],["gerooktezalm",200],["kwark",150],["dille",1],["mosterd",1],["citroen",0.5],["peper",0.25],["sla",100],["komkommer",0.5],["rodeui",0.5]],
+  steps:[
+    ["Halveer {krieltjes} en kook ze 15 minuten in water met {zout:0.25} tot ze zacht zijn. Giet af en laat iets afkoelen.",15],
+    EGGS({}),
+    "Dillesaus: meng {kwark}, {dille}, {mosterd}, het sap van {citroen}, {zout:0.25} en {peper}.",
+    "Snijd {komkommer} in plakjes en {rodeui} in dunne ringen.",
+    "Verdeel {sla}, krieltjes, komkommer, ui, {gerooktezalm} en de gehalveerde eieren over 2 borden. Schep de dillesaus erover."
+  ]},
+{ id:"kipspinaziepasta", type:"diner", serves:2, time:30, t:["kip","hollands",0],
+  name:"Ovenpasta met kip, spinazie en kaas", short:"Romige pasta uit de oven, klaar in een half uur.",
+  items:[["zout",1.25],["pasta",180],["kipfilet",300],["olie",0.5],["knoflook",2],["spinazie",200],["kookroom",200],["nootmuskaat",0.25],["peper",0.25],["kaas",60]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ...PASTA({s:1}),
+    "Snijd ondertussen {kipfilet} in blokjes en {knoflook} fijn.",
+    ["Verhit {olie} in een hapjespan. Bak de kip 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    ["Doe knoflook en {spinazie} erbij en roer tot de spinazie geslonken is. Roer {kookroom}, {nootmuskaat}, {zout:0.25} en {peper} erdoor.",3],
+    "Meng met de pasta, schep in een ovenschaal en strooi {kaas} erover.",
+    ["Bak 12 minuten tot de kaas goudbruin is.",12]
+  ]},
+{ id:"vissoep", type:"diner", serves:2, time:30, t:["vis","hollands",0],
+  name:"Romige vissoep met prei en brood", short:"Snelle soep met witvis en garnalen.",
+  items:[["prei",1],["wortel",150],["aardappel",300],["olie",0.5],["water",700],["groentebouillon",1],["koolvis",300],["garnalen",100],["kookroom",100],["dille",0.5],["peper",0.25],["brood",4]],
+  steps:[
+    "Snijd {prei} in ringen (goed afspoelen), {wortel} in plakjes en {aardappel} (geschild) in blokjes van 1 cm.",
+    ["Verhit {olie} in een soeppan. Bak prei en wortel 3 minuten.",3],
+    "Doe de aardappel, {water} en {groentebouillon} (verkruimeld) erbij en breng aan de kook.",
+    ["Laat 12 minuten zachtjes koken tot de aardappel zacht is.",12],
+    "Snijd {koolvis} in stukken van 3 cm.",
+    ["Doe vis, {garnalen}, {kookroom}, {dille} en {peper} erbij en laat 4 minuten zachtjes garen. Niet hard laten koken.",4],
+    "De vis is gaar als hij wit is en uit elkaar valt. Eet met {brood}."
+  ]},
+{ id:"slavinken", type:"diner", serves:2, time:35, t:["varken","hollands",0],
+  name:"Gehaktrolletjes in spek met rodekool-salade en krieltjes", short:"Zelfgemaakte slavinken: gehakt met een randje spek.",
+  items:[["gehakt",250],["paneermeel",15],["ei",1],["nootmuskaat",0.25],["peper",0.25],["zout",0.5],["spekreepjes",50],["olie",1],["krieltjes",500],["rodekool",200],["appel",1],["azijn",1],["honing",0.5]],
+  steps:[
+    "Meng {gehakt} met {paneermeel}, {ei}, {nootmuskaat}, {zout:0.25} en {peper}. Vorm 4 langwerpige rolletjes en druk {spekreepjes} eromheen.",
+    ["Halveer {krieltjes}. Bak ze in {olie:0.5} met {zout:0.25} in een koekenpan met deksel 10 minuten, daarna 10 minuten zonder deksel.",20],
+    ["Bak de rolletjes in {olie:0.5} in een tweede pan 4 minuten rondom bruin. Deksel erop en laat 10 minuten garen op laag vuur.",14],
+    "Snijd een rolletje door: geen roze meer = gaar.",
+    "Salade: meng {rodekool} met {appel} (geraspt), {azijn} en {honing}."
+  ]}
+,
+/* ============ Avondeten d02: Italiaans ============ */
+{ id:"puttanesca", type:"diner", serves:2, time:25, t:["vis","italiaans",1],
+  name:"Pasta puttanesca met tonijn en olijven", short:"Pittige tomatensaus uit de voorraadkast.",
+  items:[["zout",1],["spaghetti",180],["olie",0.5],["knoflook",3],["chili",0.25],["tomblokjes",400],["olijven",60],["oregano",0.5],["tonijn",224],["peterselie",15],["peper",0.25]],
+  steps:[
+    ...PASTA({s:1, k:"spaghetti"}),
+    ["Snijd ondertussen {knoflook} in plakjes. Verhit {olie} in een hapjespan en bak knoflook en {chili} 1 minuut.",1],
+    ["Doe {tomblokjes}, {olijven} (gehalveerd), {oregano} en {peper} erbij. Laat 8 minuten pruttelen.",8],
+    "Laat {tonijn} uitlekken en roer hem door de saus. Laat 1 minuut warm worden.",
+    "Meng de spaghetti door de saus en strooi {peterselie} (fijngehakt) erover."
+  ]},
+{ id:"pompoenrisotto", type:"diner", serves:2, time:45, t:["varken","italiaans",0],
+  name:"Pompoenrisotto met spekjes en Parmezaan", short:"Romig, oranje en heel herfstig. Wel 20 minuten roeren.",
+  items:[["pompoen",400],["groentebouillon",1],["water",800],["spekreepjes",100],["ui",1],["knoflook",1],["olie",0.5],["risottorijst",180],["parmezaan",30],["peper",0.25],["spinazie",100],["kipfilet",150],["zout",0.25]],
+  steps:[
+    "Los {groentebouillon} op in {water} (heet) en houd het warm op laag vuur. Schil {pompoen} en snijd in blokjes van 1 cm. Snijd {ui} en {knoflook} fijn en {kipfilet} in kleine blokjes.",
+    ["Bak {spekreepjes} en de kip 5 minuten in een droge hapjespan tot de kip helemaal wit is. Schep op een bord.",5],
+    ["Bak in {olie} ui, knoflook en pompoen 4 minuten.",4],
+    ["Doe {risottorijst} erbij en roer 1 minuut.",1],
+    ["Giet een soeplepel bouillon erbij. Roer tot het bijna weg is, dan de volgende lepel. Zo 18 tot 20 minuten door tot de rijst zacht is en de pompoen uit elkaar valt.",19],
+    "Roer spek, kip, {spinazie}, {parmezaan}, {zout} en {peper} erdoor. Deksel erop en 2 minuten laten staan."
+  ]},
+{ id:"piccata", type:"diner", serves:2, time:30, t:["kip","italiaans",0],
+  name:"Kip piccata met citroen, pasta en broccoli", short:"Dunne kipfilet in een frisse citroensaus.",
+  items:[["zout",1.25],["pasta",160],["broccoli",300],["kipfilet",350],["maizena",1],["peper",0.25],["olie",1],["knoflook",1],["citroen",1],["bouillon",0.5],["water",150],["peterselie",15]],
+  steps:[
+    ...PASTA({s:1}),
+    "Doe {broccoli} in roosjes de laatste 4 minuten bij de pasta.",
+    "Snijd {kipfilet} horizontaal door tot dunne lappen. Bestrooi met {zout:0.25}, {peper} en {maizena:0.5}.",
+    ["Verhit {olie} in een koekenpan op middelhoog vuur. Bak de kip 3 minuten per kant. Schep op een bord.",6],
+    ["Bak {knoflook} (fijngesneden) 30 seconden. Giet {water} met {bouillon} (verkruimeld) en het sap van {citroen} erbij. Roer {maizena:0.5} los in 1 el koud water en roer erdoor. Laat 1 minuut koken.",1.5],
+    "Leg de kip terug in de saus en strooi {peterselie} (fijngehakt) erover.",
+    GAAR + " Eet met de pasta en broccoli."
+  ]},
+{ id:"pestognocchi", type:"diner", serves:2, time:20, t:["kip","italiaans",0],
+  name:"Gnocchi met pesto, kip en sperziebonen", short:"Klaar in 20 minuten, en iedereen vindt het lekker.",
+  items:[["sperziebonen",250],["gnocchi",500],["kipfilet",300],["zout",0.5],["peper",0.25],["olie",1],["pesto",2],["cherrytomaat",200],["parmezaan",20]],
+  steps:[
+    "Breng een pan water aan de kook. Haal de puntjes van {sperziebonen} en snijd ze doormidden.",
+    ["Kook de sperziebonen 5 minuten. Doe {gnocchi} erbij en kook nog 2 minuten tot ze bovenkomen. Giet af.",7],
+    "Snijd {kipfilet} in blokjes. Bestrooi met {zout} en {peper}.",
+    ["Verhit {olie} in een hapjespan. Bak de kip 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    "Doe gnocchi, bonen, {cherrytomaat} (gehalveerd) en {pesto} erbij en schep 1 minuut om. Strooi {parmezaan} erover."
+  ]},
+{ id:"saltimbocca", type:"diner", serves:2, time:35, t:["kip","italiaans",0],
+  name:"Kalkoen saltimbocca met ham en basilicum", short:"Kalkoen, ham en basilicum in één hapje. Met krieltjes en salade.",
+  items:[["krieltjes",500],["olie",1.5],["zout",0.5],["rozemarijn",0.5],["kalkoen",300],["basilicum",15],["hamblokjes",75],["peper",0.25],["water",100],["citroen",0.5],["rucola",75],["cherrytomaat",200]],
+  steps:[
+    ["Halveer {krieltjes}. Bak ze in {olie:1} met {rozemarijn} en {zout:0.25} in een pan met deksel 10 minuten, daarna 10 minuten zonder deksel.",20],
+    "Snijd ondertussen {kalkoen} in 4 dunne lappen. Sla ze plat tussen bakpapier. Bestrooi met {peper} en {zout:0.25}, leg op elke lap een paar blaadjes {basilicum} en druk {hamblokjes} erop.",
+    ["Verhit {olie:0.5} in een koekenpan op middelhoog vuur. Bak de lappen 3 minuten met de ham naar beneden, draai om en bak nog 2 minuten.",5],
+    ["Giet {water} en het sap van {citroen} in de pan en laat 1 minuut inkoken.",1],
+    "Snijd een lap door: helemaal wit = gaar. Eet met de krieltjes, {rucola} en {cherrytomaat}."
+  ]},
+{ id:"pastaforno", type:"diner", serves:2, time:40, t:["rund","italiaans",0],
+  name:"Pasta al forno met gehakt en mozzarella", short:"Pasta uit de oven met een korstje gesmolten kaas.",
+  items:[["zout",1.5],["pasta",160],["olie",0.5],["gehakt",250],["ui",1],["knoflook",2],["courgette",1],["passata",500],["italiaans",1],["peper",0.25],["mozzarella",125]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ...PASTA({s:1, t:"8 tot 10", m:9}),
+    ["Verhit ondertussen {olie} in een hapjespan op hoog vuur. Bak {gehakt} 5 minuten los tot er geen roze meer te zien is.",5],
+    ["Doe {ui}, {knoflook} (fijngesneden) en {courgette} (blokjes) erbij en bak 4 minuten. Roer {passata}, {italiaans}, {zout:0.5} en {peper} erdoor en laat 5 minuten pruttelen.",9],
+    "Meng de pasta door de saus, schep in een ovenschaal en leg {mozzarella} in stukjes erop.",
+    ["Bak 15 minuten tot de kaas bubbelt.",15]
+  ]},
+{ id:"zalmrucola", type:"diner", serves:2, time:20, t:["vis","italiaans",0],
+  name:"Pasta met gerookte zalm, citroen en rucola", short:"Frisse pasta zonder koken van de vis.",
+  items:[["zout",1],["pasta",180],["doperwten",150],["kookroom",150],["citroen",1],["peper",0.5],["gerooktezalm",200],["rucola",75],["dille",0.5]],
+  steps:[
+    ...PASTA({s:1, w:1}),
+    "Doe {doperwten} de laatste 3 minuten bij de pasta.",
+    ["Verwarm {kookroom} met het sap en het geraspte geel van de schil van {citroen}, {dille} en {peper} 2 minuten in de lege pan.",2],
+    "Doe pasta en erwten erbij met 3 el kookwater en schep om. Scheur {gerooktezalm} in reepjes en schep die erdoor met {rucola}."
+  ]},
+{ id:"kipcaprese", type:"diner", serves:2, time:35, t:["kip","italiaans",0],
+  name:"Kip caprese met quinoa", short:"Kip met tomaat, mozzarella en verse basilicum uit de oven.",
+  items:[["quinoa",140],["water",280],["zout",0.75],["kipfilet",350],["peper",0.25],["italiaans",1],["olie",1],["tomaat",2],["mozzarella",125],["basilicum",15],["courgette",1],["azijn",1]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Spoel {quinoa} af in een zeef. Kook met {water} en {zout:0.25} 15 minuten in een pan met deksel. Laat daarna 5 minuten staan.",15],
+    "Leg ondertussen {kipfilet} in een ovenschaal. Bestrooi met {italiaans}, {zout:0.25} en {peper} en druppel {olie:0.5} erover. Leg {courgette} in plakjes eromheen.",
+    "Leg {tomaat} en {mozzarella} in plakjes dakpansgewijs op de kip.",
+    ["Bak 25 minuten.",25],
+    GAAR,
+    "Strooi {basilicum} erover. Meng de quinoa met {olie:0.5}, {azijn} en {zout:0.25}."
+  ]},
+{ id:"kiporzo", type:"diner", serves:2, time:30, t:["kip","italiaans",0],
+  name:"Orzo uit één pan met kip en spinazie", short:"Romige orzo zonder room, met maar één pan afwas.",
+  items:[["kipfilet",300],["zout",0.5],["peper",0.25],["olie",1],["ui",1],["knoflook",2],["orzo",160],["bouillon",1],["water",500],["spinazie",150],["cherrytomaat",200],["parmezaan",30],["citroen",0.5]],
+  steps:[
+    "Snijd {kipfilet} in blokjes. Bestrooi met {zout:0.25} en {peper}. Snijd {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een hapjespan met deksel. Bak de kip 5 minuten tot hij rondom wit is. Schep op een bord.",5],
+    ["Bak ui en knoflook 2 minuten. Doe {orzo} erbij en roer 1 minuut.",3],
+    ["Giet {water} met {bouillon} (verkruimeld) erbij. Deksel erop en laat 10 minuten zachtjes koken. Roer af en toe, de orzo plakt snel.",10],
+    "Doe de kip, {spinazie} en {cherrytomaat} (gehalveerd) erbij en roer 2 minuten tot de spinazie geslonken is.",
+    "Roer {parmezaan}, het sap van {citroen} en {zout:0.25} erdoor. " + GAAR
+  ]},
+{ id:"fagioli", type:"diner", serves:2, time:30, t:["varken","italiaans",0],
+  name:"Pasta e fagioli met spekjes", short:"Italiaanse bonensoep met pasta. Dik, warm en vullend.",
+  items:[["spekreepjes",100],["ui",1],["wortel",150],["knoflook",2],["olie",0.5],["tompuree",35],["tomblokjes",400],["water",600],["groentebouillon",1],["rozemarijn",0.5],["wittebonen",240],["pasta",120],["parmezaan",30],["peper",0.25]],
+  steps:[
+    "Snijd {ui}, {knoflook} en {wortel} fijn.",
+    ["Bak {spekreepjes} 3 minuten in {olie} in een soeppan. Doe ui, wortel en knoflook erbij en bak 4 minuten. Roer {tompuree} erdoor.",7],
+    "Doe {tomblokjes}, {water}, {groentebouillon} (verkruimeld), {rozemarijn} en de helft van de {wittebonen} (afgespoeld) erbij. Breng aan de kook.",
+    ["Doe {pasta} erbij en kook 11 minuten tot de pasta zacht is. Roer af en toe.",11],
+    "Prak de andere helft van de bonen met een vork en roer ze erdoor: zo wordt de soep dik. Strooi {parmezaan} en {peper} erover."
+  ]},
+{ id:"pompoenpasta", type:"diner", serves:2, time:35, t:["kip","italiaans",0],
+  name:"Penne met romige pompoensaus en kip", short:"De saus is gepureerde pompoen: romig zonder veel room.",
+  items:[["pompoen",400],["ui",1],["knoflook",2],["olie",1],["water",200],["groentebouillon",0.5],["zout",1.25],["pasta",180],["kipfilet",250],["nootmuskaat",0.25],["kookroom",100],["parmezaan",30],["peper",0.25],["spinazie",100]],
+  steps:[
+    "Schil {pompoen} en snijd in blokjes. Snijd {ui} en {knoflook} fijn.",
+    ["Bak ui en knoflook 3 minuten in {olie:0.5}. Doe pompoen, {water} en {groentebouillon} erbij en kook 15 minuten met deksel tot de pompoen zacht is.",18],
+    ...PASTA({s:1}),
+    ["Snijd {kipfilet} in blokjes en bak ze in {olie:0.5} met {zout:0.25} 6 minuten tot ze helemaal wit zijn, zonder roze.",6],
+    "Pureer de pompoen met {kookroom}, {nootmuskaat} en {peper} met een staafmixer tot een gladde saus.",
+    "Meng pasta, kip, {spinazie} en saus. Strooi {parmezaan} erover."
+  ]},
+{ id:"spinazielasagne", type:"diner", serves:2, time:55, t:["kip","italiaans",0],
+  name:"Kip-spinazielasagne", short:"Lichte lasagne met kip, spinazie en een witte saus van kwark.",
+  items:[["kipgehakt",300],["olie",0.5],["ui",1],["knoflook",2],["passata",500],["italiaans",1],["zout",0.75],["peper",0.25],["spinazie",300],["kwark",200],["ei",1],["nootmuskaat",0.25],["lasagne",125],["mozzarella",125]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Bak {kipgehakt} met {ui} en {knoflook} (fijngesneden) 7 minuten in {olie} tot het gehakt helemaal wit is, zonder roze.",7],
+    ["Roer {passata}, {italiaans}, {zout:0.5} en {peper} erdoor en laat 5 minuten pruttelen.",5],
+    ["Laat {spinazie} in een andere pan slinken (2 minuten) en knijp het vocht eruit.",2],
+    "Witte saus: meng {kwark}, {ei}, {nootmuskaat}, {zout:0.25} en de spinazie.",
+    "Bouw in een ovenschaal: saus, {lasagne}, witte saus. Herhaal en eindig met saus. Leg {mozzarella} in stukjes erop.",
+    ["Bak 30 minuten. Prik met een mes: gaat hij makkelijk door de bladen, dan is hij klaar.",30]
+  ]},
+{ id:"tonijnsteak", type:"diner", serves:2, time:30, t:["vis","italiaans",0],
+  name:"Witvis met tomaat-olijvensaus en couscous", short:"Vis die in de saus gaart: hij droogt niet uit.",
+  items:[["olie",1],["ui",1],["knoflook",2],["tomblokjes",400],["olijven",50],["oregano",0.5],["zout",0.5],["peper",0.25],["koolvis",400],["groentebouillon",0.5],["water",190],["couscous",150],["basilicum",10],["courgette",1]],
+  steps:[
+    "Snijd {ui} en {knoflook} fijn en {courgette} in blokjes.",
+    ["Verhit {olie} in een hapjespan met deksel. Bak ui, knoflook en courgette 5 minuten.",5],
+    ["Doe {tomblokjes}, {olijven} (gehalveerd), {oregano}, {zout:0.25} en {peper} erbij. Laat 5 minuten pruttelen.",5],
+    ["Leg {koolvis} in de saus, bestrooi met {zout:0.25}, deksel erop en laat 8 minuten zachtjes garen. De vis is gaar als hij wit is en uit elkaar valt.",8],
+    COUS({}),
+    "Strooi {basilicum} over de vis en eet met de couscous."
+  ]},
+{ id:"kipparmigiana", type:"diner", serves:2, time:40, t:["kip","italiaans",0],
+  name:"Kip parmigiana uit de oven met spaghetti", short:"Krokante kip met tomatensaus en gesmolten kaas.",
+  items:[["kipfilet",300],["ei",1],["paneermeel",40],["parmezaan",20],["zout",1.5],["peper",0.25],["olie",1],["passata",300],["italiaans",1],["knoflook",1],["mozzarella",125],["spaghetti",140],["sla",100]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {kipfilet} horizontaal door tot dunne lappen. Bestrooi met {zout:0.25} en {peper}. Klop {ei} los. Meng {paneermeel} met {parmezaan}.",
+    "Haal de lappen door het ei en daarna door het paneermeel. Leg ze op de bakplaat en druppel {olie:0.5} erover.",
+    ["Bak 12 minuten.",12],
+    "Saus: meng {passata}, {italiaans}, {knoflook} (geperst), {olie:0.5} en {zout:0.25}.",
+    ["Schep 3 el saus op elke lap, leg {mozzarella} in plakjes erop en bak nog 8 minuten.",8],
+    ...PASTA({s:1, k:"spaghetti"}),
+    "Warm de rest van de saus 3 minuten op en meng met de spaghetti. " + GAAR + " Eet met {sla}."
+  ]},
+{ id:"gnocchipompoen", type:"diner", serves:2, time:35, t:["vega","italiaans",0],
+  name:"Geroosterde gnocchi met pompoen, spinazie en feta", short:"Vegetarisch van de bakplaat. Gnocchi worden krokant.",
+  items:[["gnocchi",500],["pompoen",400],["rodeui",1],["olie",1.5],["zout",0.5],["peper",0.25],["rozemarijn",0.5],["kikkererwten",240],["spinazie",100],["feta",100]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Schil {pompoen} en snijd in blokjes van 2 cm. Snijd {rodeui} in partjes. Spoel {kikkererwten} af en dep ze droog.",
+    "Hussel pompoen, ui, kikkererwten en {gnocchi} (rauw, uit het pak) met {olie}, {zout}, {peper} en {rozemarijn} op de bakplaat.",
+    ["Rooster 25 minuten, halverwege omscheppen, tot de gnocchi goudbruin en de pompoen zacht is.",25],
+    "Schep {spinazie} erdoor: die slinkt door de warmte. Verkruimel {feta} erover."
+  ]},
+{ id:"spaghettivongole", type:"diner", serves:2, time:20, t:["vis","italiaans",1],
+  name:"Spaghetti met garnalen, courgette en citroen", short:"Licht en snel, met een beetje pit.",
+  items:[["zout",1.25],["spaghetti",180],["courgette",1],["knoflook",3],["olie",1],["chili",0.25],["garnalen",300],["citroen",1],["peterselie",15],["peper",0.25]],
+  steps:[
+    ...PASTA({s:1, k:"spaghetti", w:1}),
+    "Rasp {courgette} grof en snijd {knoflook} in dunne plakjes. Dep {garnalen} droog.",
+    ["Verhit {olie} in een grote koekenpan. Bak knoflook, {chili} en de courgette 3 minuten.",3],
+    ["Doe de garnalen erbij en bak 3 minuten tot ze roze zijn.",3],
+    "Doe spaghetti, 4 el kookwater, het sap en het geraspte geel van de schil van {citroen}, {peterselie} (fijngehakt), {zout:0.25} en {peper} erbij. Schep om."
+  ]},
+{ id:"kipmarsala", type:"diner", serves:2, time:35, t:["kip","italiaans",0],
+  name:"Kip met champignon-roomsaus en tagliatelle", short:"Romige champignonsaus, Italiaans geïnspireerd.",
+  items:[["zout",1.25],["pasta",160],["kipfilet",350],["peper",0.25],["olie",1],["champignons",250],["knoflook",2],["tijm",0.5],["kookroom",150],["bouillon",0.5],["water",100],["spinazie",100],["parmezaan",20]],
+  steps:[
+    ...PASTA({s:1}),
+    "Snijd {kipfilet} in reepjes en bestrooi met {zout:0.25} en {peper}. Snijd {champignons} in plakjes en {knoflook} fijn.",
+    ["Verhit {olie} in een hapjespan op hoog vuur. Bak de kip 5 minuten tot hij rondom wit is. Schep op een bord.",5],
+    ["Bak champignons, knoflook en {tijm} 5 minuten.",5],
+    ["Doe {kookroom}, {water} met {bouillon} (verkruimeld) en de kip erbij. Laat 3 minuten zachtjes koken. Roer {spinazie} erdoor.",3],
+    GAAR + " Meng met de pasta en strooi {parmezaan} erover."
+  ]},
+{ id:"italiaansesoep", type:"diner", serves:2, time:35, t:["rund","italiaans",0],
+  name:"Italiaanse soep met gehaktballetjes en orzo", short:"Kleine balletjes in heldere tomatensoep.",
+  items:[["gehakt",250],["paneermeel",15],["parmezaan",30],["italiaans",1.5],["peper",0.25],["zout",0.25],["olie",0.5],["ui",1],["wortel",150],["courgette",1],["tomblokjes",400],["water",700],["runderbouillon",1],["orzo",100],["spinazie",100]],
+  steps:[
+    "Meng {gehakt} met {paneermeel}, {parmezaan:15}, {italiaans:0.5}, {zout} en {peper}. Rol er 20 kleine balletjes van.",
+    "Snijd {ui}, {wortel} en {courgette} in kleine blokjes.",
+    ["Bak de groente 4 minuten in {olie} in een soeppan.",4],
+    "Doe {tomblokjes}, {water}, {runderbouillon} (verkruimeld) en {italiaans:1} erbij en breng aan de kook.",
+    ["Laat de balletjes en {orzo} in de soep glijden en kook 10 minuten zachtjes.",10],
+    "Snijd een balletje door: geen roze meer = gaar. Roer {spinazie} erdoor en strooi {parmezaan:15} erover."
+  ]},
+{ id:"bruschettakip", type:"diner", serves:2, time:30, t:["kip","italiaans",0],
+  name:"Bruschetta-kip met krieltjes en rucola", short:"Gebakken kip met een frisse tomaat-basilicumsalsa.",
+  items:[["krieltjes",500],["olie",1.5],["zout",0.75],["kipfilet",350],["italiaans",1],["peper",0.25],["tomaat",2],["rodeui",0.5],["knoflook",1],["basilicum",15],["azijn",1],["rucola",75]],
+  steps:[
+    ["Halveer {krieltjes}. Bak ze in {olie:1} met {zout:0.25} in een koekenpan met deksel 10 minuten, daarna 10 minuten zonder deksel.",20],
+    "Snijd ondertussen {kipfilet} horizontaal door. Bestrooi met {italiaans}, {zout:0.25} en {peper}.",
+    ["Verhit {olie:0.5} in een tweede pan op middelhoog vuur. Bak de kip 4 minuten per kant.",8],
+    GAAR,
+    "Salsa: snijd {tomaat} in kleine blokjes en {rodeui} heel fijn. Meng met {knoflook} (geperst), {basilicum} (gescheurd), {azijn} en {zout:0.25}.",
+    "Schep de salsa over de kip. Eet met de krieltjes en {rucola}."
+  ]},
+{ id:"aubergineparm", type:"diner", serves:2, time:50, t:["vega","italiaans",0],
+  name:"Aubergine parmigiana met witte bonen", short:"Laagjes aubergine, tomaat en kaas. Vegetarisch en vullend.",
+  items:[["aubergine",2],["olie",1.5],["zout",0.75],["passata",500],["knoflook",2],["italiaans",1],["wittebonen",240],["mozzarella",125],["parmezaan",30],["basilicum",15],["brood",2]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op 2 bakplaten.",
+    ["Snijd {aubergine} in plakken van 1 cm. Leg ze op de bakplaten, bestrijk met {olie} en bestrooi met {zout:0.5}. Bak 20 minuten tot ze zacht en goudbruin zijn.",20],
+    "Saus: meng {passata}, {knoflook} (geperst), {italiaans}, {zout:0.25} en {wittebonen} (afgespoeld).",
+    "Zet de oven op 200 °C. Bouw in een ovenschaal: saus, aubergine, {mozzarella} (stukjes), en zo verder. Eindig met saus en strooi {parmezaan} erover.",
+    ["Bak 25 minuten tot het bubbelt.",25],
+    "Strooi {basilicum} erover en eet met {brood}."
+  ]},
+{ id:"risottoerwt", type:"diner", serves:2, time:40, t:["vis","italiaans",0],
+  name:"Risotto met garnalen, doperwten en citroen", short:"Fris en romig. Heel geschikt als je tijd hebt om te roeren.",
+  items:[["groentebouillon",1],["water",800],["ui",1],["knoflook",1],["olie",1],["risottorijst",180],["doperwten",200],["garnalen",250],["citroen",1],["parmezaan",30],["peper",0.25],["zout",0.25]],
+  steps:[
+    "Los {groentebouillon} op in {water} (heet) en houd het warm op laag vuur. Snijd {ui} en {knoflook} fijn.",
+    ["Bak ui en knoflook 3 minuten in {olie:0.5}. Doe {risottorijst} erbij en roer 1 minuut.",4],
+    ["Giet een soeplepel bouillon erbij. Roer tot het bijna weg is, dan de volgende lepel. Zo 18 tot 20 minuten door tot de rijst zacht is.",19],
+    ["Doe {doperwten} de laatste 3 minuten erbij.",3],
+    ["Bak ondertussen {garnalen} 3 minuten in {olie:0.5} tot ze roze zijn.",3],
+    "Roer garnalen, het sap en het geraspte geel van de schil van {citroen}, {parmezaan}, {zout} en {peper} door de risotto."
+  ]},
+{ id:"ossobucokip", type:"diner", serves:2, time:50, t:["kip","italiaans",0],
+  name:"Kipdij-stoof met tomaat, olijven en puree", short:"Stoofje van kip met olijven, op een bedje van aardappelpuree.",
+  items:[["kipdij",400],["zout",1],["peper",0.25],["olie",1],["ui",1],["wortel",150],["knoflook",2],["tomblokjes",400],["olijven",50],["rozemarijn",0.5],["water",100],["aardappel",500],["melk",75],["parmezaan",20]],
+  steps:[
+    "Bestrooi {kipdij} met {zout:0.25} en {peper}. Snijd {ui}, {wortel} en {knoflook} fijn.",
+    ["Verhit {olie} in een pan met deksel. Bak de kip 3 minuten per kant bruin. Doe groente erbij en bak 3 minuten.",9],
+    ["Doe {tomblokjes}, {olijven}, {rozemarijn}, {water} en {zout:0.25} erbij. Deksel erop en laat 25 minuten zachtjes stoven.",25],
+    ["Kook ondertussen {aardappel} (geschild, in vieren) 20 minuten in water met {zout:0.25}.",20],
+    "Stamp de aardappelen met {melk}, {parmezaan} en {zout:0.25} tot puree.",
+    GAAR
+  ]},
+{ id:"pizzabrood", type:"diner", serves:2, time:25, t:["kip","italiaans",0],
+  name:"Pita-pizza's met kip, paprika en mozzarella", short:"Pitabroodjes als bodem: binnen 25 minuten pizza.",
+  items:[["pita",4],["passata",150],["oregano",1],["kipfilet",200],["zout",0.25],["olie",0.5],["paprika",1],["champignons",125],["mozzarella",125],["rucola",50]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {kipfilet} in kleine blokjes, {paprika} in reepjes en {champignons} in plakjes.",
+    ["Bak de kip in {olie} met {zout} 5 minuten tot hij helemaal wit is, zonder roze.",5],
+    "Snijd {pita} open zodat je 8 rondjes hebt. Leg ze op de bakplaat. Smeer {passata} erop en strooi {oregano} erover.",
+    "Verdeel kip, paprika, champignons en {mozzarella} (stukjes) erover.",
+    ["Bak 10 minuten tot de kaas gesmolten is. Leg {rucola} erop.",10]
+  ]},
+{ id:"tonijnlasagne", type:"diner", serves:2, time:35, t:["vis","italiaans",0],
+  name:"Snelle tonijn-courgettepasta uit de oven", short:"Voorraadkastmaaltijd met een knapperig kaaskorstje.",
+  items:[["zout",1.25],["pasta",160],["courgette",1],["ui",1],["olie",0.5],["passata",500],["italiaans",1],["tonijn",224],["kwark",100],["kaas",50],["peper",0.25]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ...PASTA({s:1}),
+    ["Bak {ui} (fijngesneden) en {courgette} (blokjes) 5 minuten in {olie}.",5],
+    "Roer {passata}, {italiaans}, {zout:0.25}, {peper} en uitgelekte {tonijn} erdoor. Meng met de pasta en {kwark} en schep in een ovenschaal.",
+    ["Strooi {kaas} erover en bak 12 minuten.",12]
+  ]}
+,
+/* ============ Avondeten d03: Aziatisch ============ */
+{ id:"sesamkip", type:"diner", serves:2, time:30, t:["kip","aziatisch",0],
+  name:"Sesamkip met broccoli en rijst", short:"Krokante kip in een zoete sesamsaus.",
+  items:[["rijst",150],["water",225],["zout",0.25],["kipfilet",350],["maizena",1.5],["sojasaus",3],["honing",1.5],["azijn",1],["knoflook",2],["gember",0.5],["olie",1],["broccoli",300],["sesam",1.5],["lenteui",2]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in blokjes van 2 cm en hussel met {maizena:1} en {sojasaus:1}.",
+    "Saus: meng {sojasaus:2}, {honing}, {azijn}, {knoflook} (geperst), {gember}, {maizena:0.5} en 4 el water.",
+    ["Kook {broccoli} in roosjes 4 minuten in water. Giet af.",4],
+    ["Verhit {olie} in een wok op hoog vuur. Bak de kip 6 minuten tot hij goudbruin en helemaal wit is, zonder roze.",6],
+    ["Giet de saus erbij (eerst even roeren) en bak 1 minuut tot hij glanst. Schep de broccoli erdoor.",1],
+    "Strooi {sesam} en {lenteui} (ringetjes) erover. Eet met de rijst."
+  ]},
+{ id:"massaman", type:"diner", serves:2, time:50, t:["rund","aziatisch",1],
+  name:"Massaman-curry met rundvlees en aardappel", short:"Milde Thaise curry met pindakaas. Rund wordt mals.",
+  items:[["stoofvlees",350],["olie",1],["ui",1],["currypasta",1.5],["kaneel",0.25],["kokosmelk",400],["water",150],["aardappel",400],["pindakaas",1],["vissaus",1],["honing",0.5],["sperziebonen",200],["limoen",0.5],["pindas",20]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 2 cm, {ui} in partjes en {aardappel} (geschild) in blokjes van 3 cm.",
+    ["Verhit {olie} in een pan met deksel op hoog vuur. Bak het vlees 5 minuten bruin. Doe ui, {currypasta} en {kaneel} erbij en bak 1 minuut.",6],
+    ["Giet {kokosmelk} en {water} erbij. Deksel erop en laat 20 minuten zachtjes stoven.",20],
+    ["Doe de aardappel erbij en laat nog 20 minuten stoven tot vlees en aardappel zacht zijn. Doe {sperziebonen} (gehalveerd) de laatste 7 minuten erbij.",20],
+    "Roer {pindakaas}, {vissaus}, {honing} en het sap van {limoen} erdoor. Strooi {pindas} (grof gehakt) erover."
+  ]},
+{ id:"ramen", type:"diner", serves:2, time:30, t:["kip","japans",0],
+  name:"Noedelsoep met kip, ei en paksoi", short:"Snelle ramen-achtige soep. Warm en troostend.",
+  items:[["ei",2],["water",1000],["bouillon",1],["sojasaus",2],["gember",0.5],["knoflook",2],["kipfilet",300],["mie",125],["paksoi",250],["champignons",125],["lenteui",2],["sesam",1]],
+  steps:[
+    EGGS({m:7}),
+    "Breng {water} met {bouillon}, {sojasaus}, {gember} en {knoflook} (geperst) aan de kook.",
+    ["Leg {kipfilet} heel in de bouillon en laat 12 minuten zachtjes koken.",12],
+    GAAR,
+    "Haal de kip eruit en snijd in plakjes. Snijd {paksoi} in stukken en {champignons} in plakjes.",
+    ["Doe {mie}, paksoi en champignons in de bouillon en kook 4 minuten.",4],
+    "Verdeel over 2 kommen met de kip en de gehalveerde eieren. Strooi {lenteui} en {sesam} erover."
+  ]},
+{ id:"japansecurry", type:"diner", serves:2, time:40, t:["kip","japans",0],
+  name:"Japanse curry met kip, wortel en aardappel", short:"Zoete, dikke curry. Heel anders dan Indiase curry.",
+  items:[["rijst",150],["water",625],["zout",0.5],["kipdij",350],["olie",1],["ui",1],["wortel",150],["aardappel",250],["kerrie",2],["maizena",1.5],["bouillon",1],["sojasaus",1],["honing",1],["appel",0.5]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipdij} in blokjes, {ui} in partjes en {wortel} en {aardappel} (geschild) in blokjes van 2 cm. Rasp {appel} grof.",
+    ["Verhit {olie} in een pan met deksel. Bak kip en ui 5 minuten.",5],
+    ["Doe wortel, aardappel, appel, {water:400}, {bouillon} (verkruimeld) en {zout:0.25} erbij. Deksel erop en laat 15 minuten zachtjes koken.",15],
+    ["Meng {kerrie}, {maizena}, {sojasaus} en {honing} met 3 el koud water. Roer het door de curry en laat 3 minuten koken tot hij dik is.",3],
+    GAAR + " Eet met de rijst."
+  ]},
+{ id:"loempiabowl", type:"diner", serves:2, time:25, t:["rund","aziatisch",1],
+  name:"Loempiabowl met gehakt en spitskool", short:"Alle smaak van een loempia, maar dan in een kom.",
+  items:[["rijst",150],["water",225],["zout",0.25],["gehakt",300],["olie",0.5],["knoflook",2],["gember",0.5],["spitskool",300],["wortel",150],["sojasaus",2],["zoetechili",2],["lenteui",2],["sesam",1]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {spitskool} in dunne reepjes, rasp {wortel} grof en snijd {knoflook} fijn.",
+    ["Verhit {olie} in een wok op hoog vuur. Bak {gehakt} 5 minuten los tot er geen roze meer te zien is.",5],
+    ["Doe knoflook, {gember}, kool en wortel erbij en bak 4 minuten tot de kool net zacht is.",4],
+    "Roer {sojasaus} en {zoetechili} erdoor. Strooi {lenteui} en {sesam} erover en eet met de rijst."
+  ]},
+{ id:"rendang", type:"diner", serves:2, time:60, t:["rund","aziatisch",1],
+  name:"Rundvlees in kokos-kerriesaus (rendang-stijl)", short:"Lang gestoofd rundvlees vol kruiden. Tijd, maar weinig werk.",
+  items:[["stoofvlees",350],["olie",1],["ui",1],["knoflook",3],["gember",1],["kerrie",1],["koriander",1],["komijn",0.5],["kurkuma",0.5],["kaneel",0.25],["sambal",1],["kokosmelk",400],["laurier",1],["ketjap",1],["zout",0.5],["rijst",150],["water",225],["sperziebonen",250]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 3 cm. Snijd {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een pan met deksel. Bak het vlees 5 minuten bruin. Doe ui, knoflook, {gember}, {kerrie}, {koriander}, {komijn}, {kurkuma}, {kaneel} en {sambal} erbij en bak 2 minuten.",7],
+    ["Giet {kokosmelk} erbij met {laurier}, {ketjap} en {zout:0.25}. Deksel half erop en laat 45 minuten zachtjes stoven tot het vlees mals is en de saus dik. Roer af en toe.",45],
+    ...RICE({w:225,s:0.25}),
+    ["Kook ondertussen {sperziebonen} 7 minuten in water. Giet af.",7],
+    "Haal het laurierblad eruit en eet met de rijst en bonen."
+  ]},
+{ id:"gadogado", type:"diner", serves:2, time:30, t:["vega","aziatisch",1],
+  name:"Gado-gado met ei, tofu en pindasaus", short:"Indonesische groenteschotel met warme pindasaus.",
+  items:[["krieltjes",300],["zout",0.25],["ei",3],["tofu",200],["olie",0.5],["sperziebonen",200],["tauge",150],["komkommer",0.5],["pindakaas",3],["ketjap",1],["sambal",1],["limoen",0.5],["knoflook",1],["water",100]],
+  steps:[
+    ["Halveer {krieltjes} en kook ze 15 minuten in water met {zout}. Doe {sperziebonen} (gehalveerd) de laatste 6 minuten erbij en {tauge} de laatste minuut. Giet af.",15],
+    EGGS({}),
+    ["Dep ondertussen {tofu} droog, snijd in blokjes en bak 6 minuten in {olie} tot hij goudbruin is.",6],
+    ["Pindasaus: verwarm {pindakaas}, {ketjap}, {sambal}, het sap van {limoen}, {knoflook} (geperst) en {water} in een steelpan. Roer 2 minuten tot een gladde saus.",2],
+    "Verdeel krieltjes, groente, {komkommer} in plakjes, tofu en de gehalveerde eieren over 2 borden en schep de pindasaus erover."
+  ]},
+{ id:"sambalgoreng", type:"diner", serves:2, time:30, t:["kip","aziatisch",2],
+  name:"Sambal goreng boontjes met kip en rijst", short:"Pittige boontjes uit de Indische keuken.",
+  items:[["rijst",150],["water",225],["zout",0.5],["kipfilet",300],["sperziebonen",400],["ui",1],["knoflook",2],["olie",1],["sambal",1],["ketjap",1],["kokosmelk",100],["laurier",1]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Haal de puntjes van {sperziebonen} en snijd in stukjes van 3 cm. Snijd {kipfilet} in reepjes en {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een wok. Bak ui, knoflook en {sambal} 2 minuten. Doe de kip erbij en bak 5 minuten tot hij helemaal wit is, zonder roze.",7],
+    ["Doe de bonen, {kokosmelk}, {ketjap}, {laurier} en {zout:0.25} erbij. Deksel erop en laat 8 minuten zachtjes koken.",8],
+    "Haal het laurierblad eruit en eet met de rijst."
+  ]},
+{ id:"miegoreng", type:"diner", serves:2, time:25, t:["vis","aziatisch",1],
+  name:"Mie goreng met garnalen en ei", short:"Gebakken mie zoals bij de toko, met garnalen.",
+  items:[["mie",150],["garnalen",250],["ei",2],["olie",1],["ui",1],["knoflook",2],["wokgroente",400],["ketjap",2],["sojasaus",1],["sambal",1],["komkommer",0.5]],
+  steps:[
+    "Breng een pan water aan de kook voor de mie.",
+    ["Kook {mie} zo lang als op de verpakking staat (meestal 4 minuten). Giet af.",4],
+    ["Klop {ei} los en bak in {olie:0.25} tot een dun omeletje (2 minuten). Rol op en snijd in reepjes.",2],
+    ["Verhit {olie:0.75} in een wok op hoog vuur. Bak {ui} en {knoflook} (fijngesneden) en {sambal} 1 minuut. Doe {garnalen} erbij en bak 2 minuten tot ze roze zijn.",3],
+    ["Doe {wokgroente} erbij en bak 3 minuten. Doe mie, {ketjap} en {sojasaus} erbij en bak 2 minuten.",5],
+    "Leg de omeletreepjes erop en eet met {komkommer} in plakjes."
+  ]},
+{ id:"mapotofu", type:"diner", serves:2, time:25, t:["rund","aziatisch",2],
+  name:"Mapo tofu met gehakt en rijst", short:"Zachte tofu in een pittige saus met gehakt. Chinese klassieker.",
+  items:[["rijst",150],["water",325],["zout",0.25],["tofu",375],["gehakt",150],["olie",0.5],["knoflook",3],["gember",0.5],["sambal",1],["sojasaus",2],["maizena",1],["lenteui",3],["broccoli",250]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {tofu} in blokjes van 2 cm. Snijd {knoflook} fijn en {lenteui} in ringetjes.",
+    ["Kook {broccoli} in roosjes 4 minuten. Giet af.",4],
+    ["Verhit {olie} in een wok. Bak {gehakt} 4 minuten los tot er geen roze meer te zien is. Doe knoflook, {gember} en {sambal} erbij en bak 1 minuut.",5],
+    ["Doe {water:100}, {sojasaus} en de tofu erbij en laat 4 minuten zachtjes koken. Voorzichtig roeren, tofu breekt snel.",4],
+    "Roer {maizena} los in 2 el koud water, roer erdoor en laat 1 minuut koken. Strooi lente-ui erover. Eet met rijst en broccoli."
+  ]},
+{ id:"chowmein", type:"diner", serves:2, time:25, t:["rund","aziatisch",0],
+  name:"Chow mein met runderreepjes", short:"Chinese gebakken noedels met veel groente.",
+  items:[["mie",150],["runderreepjes",300],["maizena",0.5],["sojasaus",3],["oestersaus",1],["olie",1],["ui",1],["knoflook",2],["wortel",100],["paprika",1],["tauge",150],["paksoi",200],["honing",0.5]],
+  steps:[
+    "Breng een pan water aan de kook voor de mie. Hussel {runderreepjes} met {maizena} en {sojasaus:1}.",
+    "Saus: meng {sojasaus:2}, {oestersaus}, {honing} en 3 el water. Snijd {ui}, {paprika} en {wortel} in reepjes, {paksoi} in stukken en {knoflook} fijn.",
+    ["Kook {mie} zo lang als op de verpakking staat (meestal 4 minuten). Giet af en spoel kort koud.",4],
+    ["Verhit {olie:0.5} in een wok op het hoogste vuur. Bak het vlees 2 minuten. Schep op een bord.",2],
+    ["Bak in {olie:0.5} ui, knoflook, wortel en paprika 3 minuten. Doe paksoi en {tauge} erbij en bak 1 minuut.",4],
+    "Doe mie, vlees en saus erbij en schep 1 minuut om tot alles warm is."
+  ]},
+{ id:"pho", type:"diner", serves:2, time:35, t:["rund","aziatisch",0],
+  name:"Snelle pho met rundvlees en rijstnoedels", short:"Vietnamese noedelsoep met kaneel en verse kruiden.",
+  items:[["water",1200],["runderbouillon",1],["ui",1],["gember",1],["kaneel",0.25],["kruidnagel",2],["vissaus",1.5],["honing",0.5],["rijstnoedels",120],["runderreepjes",250],["tauge",150],["lenteui",2],["basilicum",10],["limoen",1],["sambal",1]],
+  steps:[
+    "Snijd {ui} in partjes.",
+    ["Breng {water} met {runderbouillon}, de ui, {gember}, {kaneel}, {kruidnagel}, {vissaus} en {honing} aan de kook en laat 20 minuten zachtjes trekken.",20],
+    ["Week {rijstnoedels} zoals op de verpakking staat (meestal 4 minuten in kokend water). Giet af en verdeel over 2 grote kommen.",4],
+    "Haal ui en kruidnagels uit de bouillon. Leg {runderreepjes} rauw op de noedels en giet de kokende bouillon erover. Het vlees gaart in 1 minuut.",
+    "Check: het vlees mag niet meer rood zijn. Zo nodig 1 minuut in de pan meekoken.",
+    "Doe {tauge}, {lenteui}, {basilicum} en partjes {limoen} erbij. Roer naar wens {sambal} erdoor."
+  ]},
+{ id:"krapow", type:"diner", serves:2, time:25, t:["kip","aziatisch",2],
+  name:"Thaise basilicumkip met rijst en gebakken ei", short:"Pad krapow: snel, pittig en heel populair in Thailand.",
+  items:[["rijst",150],["water",225],["zout",0.25],["kipgehakt",350],["olie",1],["knoflook",4],["sambal",1],["sperziebonen",200],["oestersaus",1],["sojasaus",1],["vissaus",0.5],["honing",0.5],["basilicum",20],["ei",2]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {knoflook} fijn en {sperziebonen} in stukjes van 1 cm. Meng {oestersaus}, {sojasaus}, {vissaus} en {honing}.",
+    ["Verhit {olie:0.5} in een wok op hoog vuur. Bak knoflook en {sambal} 30 seconden. Doe {kipgehakt} erbij en bak 5 minuten tot het helemaal wit is, zonder roze.",5.5],
+    ["Doe de bonen en de saus erbij en bak 3 minuten. Roer {basilicum} erdoor.",3],
+    ["Bak {ei} in {olie:0.5} in een koekenpan in 3 minuten tot spiegeleieren met een krokant randje.",3],
+    "Schep rijst en kip op 2 borden en leg een ei erop."
+  ]},
+{ id:"redcurrypompoen", type:"diner", serves:2, time:35, t:["kip","aziatisch",1],
+  name:"Rode curry met kip en pompoen", short:"Zoete pompoen in romige Thaise curry.",
+  items:[["rijst",150],["water",225],["zout",0.25],["kipfilet",300],["pompoen",300],["paprika",1],["olie",0.5],["currypasta",1.5],["kokosmelk",400],["vissaus",1],["honing",0.5],["limoen",0.5],["basilicum",10]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Schil {pompoen} en snijd in blokjes van 2 cm. Snijd {kipfilet} in reepjes en {paprika} in stukjes.",
+    ["Verhit {olie} in een hapjespan. Bak {currypasta} 1 minuut. Giet {kokosmelk} erbij en doe de pompoen erin. Laat 10 minuten zachtjes koken.",11],
+    ["Doe kip en paprika erbij en laat 7 minuten koken.",7],
+    "Roer {vissaus}, {honing} en het sap van {limoen} erdoor. " + GAAR + " Strooi {basilicum} erover en eet met de rijst."
+  ]},
+{ id:"tomkha", type:"diner", serves:2, time:30, t:["kip","aziatisch",1],
+  name:"Tom kha kai: Thaise kokossoep met kip", short:"Romige, frisse soep met limoen. Met rijstnoedels erin.",
+  items:[["kokosmelk",400],["water",400],["bouillon",1],["gember",1],["currypasta",0.5],["kipfilet",300],["champignons",200],["vissaus",1],["limoen",1],["honing",0.5],["rijstnoedels",100],["cherrytomaat",150],["basilicum",10]],
+  steps:[
+    "Snijd {kipfilet} in dunne reepjes en {champignons} in plakjes.",
+    ["Breng {kokosmelk}, {water}, {bouillon}, {gember} en {currypasta} aan de kook. Doe kip en champignons erin en laat 8 minuten zachtjes koken.",8],
+    ["Week ondertussen {rijstnoedels} zoals op de verpakking staat (meestal 4 minuten). Giet af.",4],
+    "Doe {cherrytomaat} (gehalveerd), {vissaus}, {honing} en het sap van {limoen} erbij.",
+    GAAR + " Verdeel de noedels over 2 kommen, schep de soep erover en strooi {basilicum} erop."
+  ]},
+{ id:"yakisoba", type:"diner", serves:2, time:25, t:["varken","japans",0],
+  name:"Yakisoba met varkensreepjes en kool", short:"Japanse gebakken noedels met een zoete saus.",
+  items:[["mie",150],["varkensreepjes",300],["olie",1],["ui",1],["spitskool",250],["wortel",100],["paprika",1],["sojasaus",2],["oestersaus",1],["bbqsaus",1],["honing",0.5],["lenteui",2],["sesam",1]],
+  steps:[
+    "Breng een pan water aan de kook voor de mie. Snijd {ui}, {spitskool}, {wortel} en {paprika} in dunne reepjes.",
+    "Saus: meng {sojasaus}, {oestersaus}, {bbqsaus}, {honing} en 2 el water.",
+    ["Kook {mie} zo lang als op de verpakking staat (meestal 4 minuten). Giet af.",4],
+    ["Verhit {olie} in een wok op hoog vuur. Bak {varkensreepjes} 4 minuten. Doe de groente erbij en bak 4 minuten.",8],
+    "Doe mie en saus erbij en schep 1 minuut om. Check: het vlees mag van binnen niet meer rood zijn. Strooi {lenteui} en {sesam} erover."
+  ]},
+{ id:"zalmpoke", type:"diner", serves:2, time:30, t:["vis","japans",0],
+  name:"Pokébowl met gebakken zalm en edamame", short:"Kleurrijke rijstbowl met een sesam-sojadressing.",
+  items:[["rijst",150],["water",225],["zout",0.25],["zalm",250],["sojasaus",2],["honing",0.5],["edamame",150],["komkommer",0.5],["wortel",100],["avocado",1],["azijn",1],["sesam",1],["lenteui",2]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    ["Kook {edamame} 4 minuten. Giet af en spoel koud.",4],
+    ["Bak {zalm} in een droge koekenpan met anti-aanbaklaag 4 minuten op het vel en 2 minuten op de andere kant. Gaar als hij niet meer glazig is. Snijd in blokjes.",6],
+    "Dressing: meng {sojasaus}, {honing} en {azijn}.",
+    "Snijd {komkommer} en {avocado} in blokjes en rasp {wortel}.",
+    "Verdeel rijst, zalm, edamame en groente over 2 kommen. Giet de dressing erover en strooi {sesam} en {lenteui} erop."
+  ]},
+{ id:"gochujangkipoven", type:"diner", serves:2, time:40, t:["kip","aziatisch",2],
+  name:"Koreaanse gochujang-kipdijen met rijst en komkommersalade", short:"Kleverige pittige kip uit de oven.",
+  items:[["kipdij",400],["gochujang",2],["sojasaus",1],["honing",1],["knoflook",2],["sesam",1],["rijst",150],["water",225],["zout",0.5],["komkommer",1],["azijn",1],["broccoli",250],["olie",0.5]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier in een ovenschaal.",
+    "Meng {gochujang}, {sojasaus}, {honing} en {knoflook} (geperst). Hussel {kipdij} erdoor en leg in de schaal.",
+    ["Bak 25 minuten. Leg {broccoli} in roosjes met {olie} de laatste 12 minuten ernaast.",25],
+    ...RICE({w:225,s:0.25}),
+    "Komkommersalade: snijd {komkommer} in dunne plakjes en meng met {azijn} en {zout:0.25}.",
+    GAAR + " Strooi {sesam} over de kip."
+  ]},
+{ id:"tofuketjap", type:"diner", serves:2, time:30, t:["vega","aziatisch",0],
+  name:"Tofu in ketjapsaus met paksoi en rijst", short:"Krokante tofu in zoete ketjap. Vegetarisch en snel.",
+  items:[["rijst",150],["water",225],["zout",0.25],["tofu",375],["maizena",1],["olie",1.5],["knoflook",2],["gember",0.5],["ketjap",2],["sojasaus",1],["paksoi",300],["edamame",150],["sesam",1]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Dep {tofu} droog, snijd in blokjes van 2 cm en hussel met {maizena}.",
+    ["Verhit {olie:1} in een wok op hoog vuur. Bak de tofu 8 minuten tot hij rondom goudbruin is. Schep op een bord.",8],
+    ["Bak in {olie:0.5} {knoflook} (fijn) en {gember} 30 seconden. Doe {paksoi} (in stukken) en {edamame} erbij en bak 3 minuten.",3.5],
+    "Doe tofu, {ketjap} en {sojasaus} erbij en schep 1 minuut om. Strooi {sesam} erover en eet met de rijst."
+  ]},
+{ id:"kipcashew", type:"diner", serves:2, time:25, t:["kip","aziatisch",0],
+  name:"Kip met pinda's, paprika en sugarsnaps", short:"Snelle Chinese wok met knapperige groente.",
+  items:[["rijst",150],["water",225],["zout",0.25],["kipfilet",350],["maizena",1],["sojasaus",3],["olie",1],["ui",1],["paprika",1],["sugarsnaps",150],["oestersaus",1],["honing",0.5],["pindas",30]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in blokjes en hussel met {maizena:0.5} en {sojasaus:1}. Snijd {ui} en {paprika} in stukjes.",
+    "Saus: meng {sojasaus:2}, {oestersaus}, {honing}, {maizena:0.5} en 4 el water.",
+    ["Verhit {olie} in een wok op hoog vuur. Bak de kip 5 minuten tot hij helemaal wit is, zonder roze.",5],
+    ["Doe ui, paprika en {sugarsnaps} erbij en bak 3 minuten.",3],
+    "Giet de saus erbij en bak 1 minuut tot hij glanst. Strooi {pindas} erover en eet met de rijst."
+  ]},
+{ id:"bulgogi", type:"diner", serves:2, time:30, t:["rund","aziatisch",0],
+  name:"Bulgogi: Koreaans rundvlees met rijst en kimchi-salade", short:"Zoet gemarineerd vlees met een frisse, pittige kool.",
+  items:[["runderreepjes",300],["sojasaus",2],["honing",1],["knoflook",2],["sesam",1],["appel",0.5],["rijst",150],["water",225],["zout",0.5],["olie",1],["ui",1],["spitskool",200],["azijn",1],["chili",0.25],["lenteui",2]],
+  steps:[
+    "Marinade: rasp {appel} en meng met {sojasaus}, {honing}, {knoflook} (geperst) en de helft van de {sesam}. Hussel {runderreepjes} erdoor en laat 10 minuten staan.",
+    ...RICE({w:225,s:0.25}),
+    "Snelle kimchi-salade: snijd {spitskool} in dunne reepjes en meng met {azijn}, {chili} en {zout:0.25}.",
+    ["Verhit {olie} in een wok op het hoogste vuur. Bak {ui} (halve ringen) 2 minuten. Doe het vlees met marinade erbij en bak 3 minuten tot het niet meer rood is.",5],
+    "Strooi {lenteui} en de rest van de sesam erover. Eet met de rijst en de koolsalade."
+  ]},
+{ id:"garnalentempura", type:"diner", serves:2, time:30, t:["vis","aziatisch",1],
+  name:"Garnalen in zoete chilisaus met rijst en broccoli", short:"Kleverige zoet-pittige garnalen in 10 minuten.",
+  items:[["rijst",150],["water",225],["zout",0.25],["garnalen",300],["maizena",1],["olie",1],["knoflook",2],["zoetechili",3],["sojasaus",1],["limoen",0.5],["broccoli",300],["sesam",1],["lenteui",2]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    ["Kook {broccoli} in roosjes 4 minuten. Giet af.",4],
+    "Dep {garnalen} droog en hussel met {maizena}.",
+    ["Verhit {olie} in een wok op hoog vuur. Bak de garnalen 3 minuten tot ze roze en krokant zijn.",3],
+    "Doe {knoflook} (fijn), {zoetechili}, {sojasaus} en het sap van {limoen} erbij en schep 1 minuut om.",
+    "Strooi {sesam} en {lenteui} erover. Eet met rijst en broccoli."
+  ]},
+{ id:"katsudon", type:"diner", serves:2, time:35, t:["varken","japans",0],
+  name:"Varkenshaas-katsu met ei op rijst", short:"Krokant vlees met ui en ei in een zoete bouillon.",
+  items:[["varkenshaas",300],["paneermeel",40],["ei",3],["zout",0.5],["olie",1],["rijst",150],["water",325],["ui",1],["sojasaus",2],["honing",1],["lenteui",2],["spinazie",150]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {varkenshaas} in 6 plakken en sla ze plat tot 1 cm. Bestrooi met {zout:0.25}. Klop {ei:1} los. Haal het vlees door het ei en dan door {paneermeel}.",
+    ["Leg op de bakplaat, druppel {olie} erover en bak 15 minuten. Na 8 minuten omdraaien.",15],
+    ...RICE({w:225,s:0.25}),
+    ["Doe {ui} (halve ringen), {water:100}, {sojasaus} en {honing} in een koekenpan en laat 4 minuten zachtjes koken. Leg het vlees in plakken erop, klop {ei:2} los en giet dat eromheen, deksel erop en laat 2 minuten garen.",6],
+    ["Laat {spinazie} 1 minuut slinken in een andere pan.",1],
+    "Schep rijst in 2 kommen met vlees, ei en saus erop en de spinazie ernaast. Strooi {lenteui} erover."
+  ]}
+,
+/* ============ Avondeten d04: Indiaas, Midden-Oosten, Grieks, Turks ============ */
+{ id:"korma", type:"diner", serves:2, time:35, t:["kip","indiaas",0],
+  name:"Kip korma met rijst", short:"De mildste Indiase curry: romig en een beetje zoet.",
+  items:[["rijst",150],["water",225],["zout",0.75],["kipfilet",350],["olie",1],["ui",1],["knoflook",2],["gember",1],["garam",1.5],["kurkuma",0.5],["koriander",1],["kokosmelk",200],["kwark",100],["pindakaas",1],["honing",0.5],["sperziebonen",250]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in blokjes, {ui} en {knoflook} fijn. Haal de puntjes van {sperziebonen} en halveer ze.",
+    ["Verhit {olie} in een hapjespan. Bak de ui 4 minuten. Roer knoflook, {gember}, {garam}, {kurkuma} en {koriander} erdoor en bak 1 minuut.",5],
+    ["Doe de kip erbij en bak 4 minuten. Giet {kokosmelk} erbij met de sperziebonen, {pindakaas}, {honing} en {zout:0.5}. Laat 8 minuten zachtjes koken.",12],
+    "Zet het vuur uit en roer {kwark} erdoor. " + GAAR + " Eet met de rijst."
+  ]},
+{ id:"saagkip", type:"diner", serves:2, time:35, t:["kip","indiaas",1],
+  name:"Saag kip: kip in spinaziecurry", short:"Groene curry vol spinazie, met naan van een wrap.",
+  items:[["kipfilet",350],["olie",1],["ui",1],["knoflook",3],["gember",1],["garam",1.5],["komijn",1],["chili",0.25],["tomaat",1],["spinazie",400],["kookroom",100],["zout",0.75],["rijst",150],["water",225]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in blokjes, {ui}, {knoflook} en {tomaat} fijn.",
+    ["Verhit {olie} in een hapjespan. Bak de ui 4 minuten. Doe knoflook, {gember}, {garam}, {komijn} en {chili} erbij en bak 1 minuut.",5],
+    ["Doe kip en tomaat erbij en bak 6 minuten.",6],
+    ["Doe {spinazie} er in delen bij tot hij geslonken is. Roer {kookroom} en {zout:0.5} erdoor en laat 3 minuten pruttelen. Pureer de saus kort met een staafmixer als je hem glad wilt.",4],
+    GAAR + " Eet met de rijst."
+  ]},
+{ id:"aloogobi", type:"diner", serves:2, time:40, t:["vega","indiaas",1],
+  name:"Aloo gobi met kikkererwten en raita", short:"Indiase bloemkool en aardappel met kruiden. Vegetarisch.",
+  items:[["aardappel",300],["bloemkool",500],["kikkererwten",240],["olie",1.5],["ui",1],["knoflook",2],["gember",1],["kurkuma",1],["komijn",1],["garam",1],["chili",0.25],["tomblokjes",400],["zout",0.75],["kwark",250],["komkommer",0.5],["pita",2]],
+  steps:[
+    "Schil {aardappel} en snijd in blokjes van 2 cm. Snijd {bloemkool} in roosjes en {ui} en {knoflook} fijn. Spoel {kikkererwten} af.",
+    ["Verhit {olie} in een grote pan met deksel. Bak ui 3 minuten. Doe knoflook, {gember}, {kurkuma}, {komijn}, {garam} en {chili} erbij en bak 1 minuut.",4],
+    ["Doe aardappel, bloemkool, kikkererwten, {tomblokjes}, {zout:0.5} en 100 ml water erbij. Deksel erop en laat 20 minuten zachtjes garen tot de aardappel zacht is. Roer af en toe.",20],
+    "Raita: rasp {komkommer}, knijp het vocht eruit en meng met {kwark} en {zout:0.25}.",
+    ["Verwarm {pita} 2 minuten in de broodrooster.",2]
+  ]},
+{ id:"roganjosh", type:"diner", serves:2, time:60, t:["rund","indiaas",1],
+  name:"Rogan josh: Indiase runderstoof", short:"Mals rundvlees in een dikke, kruidige tomatensaus.",
+  items:[["stoofvlees",350],["olie",1],["ui",1],["knoflook",3],["gember",1],["paprikapoeder",2],["garam",1.5],["komijn",1],["kaneel",0.25],["chili",0.25],["tompuree",35],["tomblokjes",400],["water",375],["zout",0.75],["kwark",100],["rijst",150],["spinazie",150]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 3 cm en {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een pan met deksel op hoog vuur. Bak het vlees 5 minuten bruin. Doe ui erbij en bak 3 minuten.",8],
+    ["Roer knoflook, {gember}, {paprikapoeder}, {garam}, {komijn}, {kaneel}, {chili} en {tompuree} erdoor en bak 1 minuut.",1],
+    ["Doe {tomblokjes}, {water:150} en {zout:0.5} erbij. Deksel erop en laat 45 minuten zachtjes stoven tot het vlees mals is. Kook ondertussen de rijst.",45],
+    ...RICE({w:225,s:0.25}),
+    "Roer {spinazie} door de stoof tot hij slinkt. Schep {kwark} erop bij het eten."
+  ]},
+{ id:"madras", type:"diner", serves:2, time:35, t:["kip","indiaas",2],
+  name:"Kip madras met rijst", short:"Een pittige curry voor wie van pit houdt.",
+  items:[["rijst",150],["water",225],["zout",0.75],["kipdij",400],["olie",1],["ui",1],["knoflook",3],["gember",1],["kerrie",2],["komijn",1],["chili",0.5],["tomblokjes",400],["kokosmelk",100],["limoen",0.5],["sperziebonen",200]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipdij} in blokjes, {ui} en {knoflook} fijn en {sperziebonen} in stukjes.",
+    ["Verhit {olie} in een hapjespan. Bak ui 4 minuten. Doe knoflook, {gember}, {kerrie}, {komijn} en {chili} erbij en bak 1 minuut.",5],
+    ["Doe de kip erbij en bak 4 minuten. Doe {tomblokjes}, {kokosmelk}, bonen en {zout:0.5} erbij en laat 12 minuten zachtjes koken.",16],
+    GAAR + " Knijp {limoen} erboven uit en eet met de rijst."
+  ]},
+{ id:"linzendahlei", type:"diner", serves:2, time:35, t:["vega","indiaas",1],
+  name:"Linzendahl met spinazie en gekookt ei", short:"Vullende vegetarische dahl met veel eiwit door de eieren.",
+  items:[["linzen",150],["olie",1],["ui",1],["knoflook",2],["gember",1],["kurkuma",1],["komijn",1],["garam",1],["chili",0.25],["tomblokjes",400],["water",500],["groentebouillon",1],["spinazie",200],["ei",4],["zout",0.25],["pita",2]],
+  steps:[
+    "Spoel {linzen} af. Snijd {ui} en {knoflook} fijn.",
+    ["Verhit {olie} in een pan. Bak ui 4 minuten. Doe knoflook, {gember}, {kurkuma}, {komijn}, {garam} en {chili} erbij en bak 1 minuut.",5],
+    ["Doe linzen, {tomblokjes}, {water} en {groentebouillon} erbij. Laat 18 minuten zachtjes koken met het deksel half op de pan, af en toe roeren.",18],
+    EGGS({}),
+    "Roer {spinazie} en {zout} door de dahl tot de spinazie geslonken is. Leg de gehalveerde eieren erop. Eet met {pita}."
+  ]},
+{ id:"kipbiryanidiner", type:"diner", serves:2, time:40, t:["kip","indiaas",1],
+  name:"Snelle kip-pulao met erwten en pinda's", short:"Geurige rijst met kip uit één pan.",
+  items:[["kipfilet",300],["olie",1],["ui",1],["knoflook",2],["gember",0.5],["garam",1.5],["kurkuma",0.5],["laurier",1],["rijst",150],["water",300],["bouillon",0.5],["doperwten",150],["pindas",20],["kwark",150],["komkommer",0.5],["zout",0.5]],
+  steps:[
+    "Snijd {kipfilet} in blokjes en {ui} in dunne halve ringen. Spoel {rijst} 30 seconden in een zeef.",
+    ["Verhit {olie} in een pan met deksel. Bak de ui 5 minuten goudbruin. Doe kip, {knoflook} (fijn), {gember}, {garam} en {kurkuma} erbij en bak 4 minuten.",9],
+    "Doe rijst, {water}, {bouillon} (verkruimeld), {laurier} en {zout:0.25} erbij en breng aan de kook.",
+    ["Vuur op de laagste stand, deksel erop en laat 12 minuten garen. Strooi {doperwten} erover, deksel weer erop, vuur uit en laat 10 minuten staan.",12],
+    "Check of de rijst zacht is en de kip helemaal wit. Strooi {pindas} erover.",
+    "Raita: rasp {komkommer}, knijp het vocht eruit en meng met {kwark} en {zout:0.25}."
+  ]},
+{ id:"garnalenmasala", type:"diner", serves:2, time:30, t:["vis","indiaas",1],
+  name:"Garnalen masala met rijst", short:"Garnalen in een snelle tomaat-kruidensaus.",
+  items:[["rijst",150],["water",225],["zout",0.75],["garnalen",300],["olie",1],["ui",1],["knoflook",2],["gember",0.5],["garam",1],["kurkuma",0.5],["paprikapoeder",1],["chili",0.25],["tomblokjes",400],["kookroom",100],["spinazie",150],["citroen",0.5]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {ui} en {knoflook} fijn. Dep {garnalen} droog.",
+    ["Verhit {olie} in een hapjespan. Bak ui 4 minuten. Doe knoflook, {gember}, {garam}, {kurkuma}, {paprikapoeder} en {chili} erbij en bak 1 minuut.",5],
+    ["Doe {tomblokjes} en {zout:0.5} erbij en laat 6 minuten pruttelen.",6],
+    ["Doe garnalen, {kookroom} en {spinazie} erbij en laat 3 minuten zachtjes koken tot de garnalen roze zijn.",3],
+    "Knijp {citroen} erboven uit en eet met de rijst."
+  ]},
+{ id:"tandooriovenkip", type:"diner", serves:2, time:40, t:["kip","indiaas",1],
+  name:"Tandoori-kipdijen uit de oven met bloemkool", short:"Gemarineerd in kwark en kruiden, alles op één bakplaat.",
+  items:[["kipdij",400],["kwark",100],["paprikapoeder",2],["garam",1],["komijn",1],["kurkuma",0.5],["gember",0.5],["knoflook",2],["citroen",1],["zout",0.75],["bloemkool",500],["olie",1],["rodeui",1],["pita",2],["komkommer",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Meng {kwark:100} met {paprikapoeder}, {garam}, {komijn}, {kurkuma}, {gember}, {knoflook} (geperst), het sap van een halve {citroen} en {zout:0.5}. Hussel {kipdij} erdoor.",
+    "Snijd {bloemkool} in roosjes en {rodeui} in partjes. Hussel met {olie} en {zout:0.25}.",
+    ["Leg kip en groente op de bakplaat en bak 30 minuten.",30],
+    GAAR,
+    "Eet met {pita}, {komkommer} in plakjes en partjes van de rest van de citroen."
+  ]},
+{ id:"falafel", type:"diner", serves:2, time:40, t:["vega","midden-oosten",0],
+  name:"Falafel uit de oven met hummus en pita", short:"Zelfgemaakt van kikkererwten uit blik. Vegetarisch.",
+  items:[["kikkererwten",480],["ui",0.5],["knoflook",2],["peterselie",30],["komijn",1.5],["koriander",1],["zout",0.5],["maizena",2],["olie",1.5],["pita",4],["hummus",100],["tomaat",2],["komkommer",0.5],["sla",75],["kwark",150],["citroen",0.5]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier op een bakplaat.",
+    "Spoel {kikkererwten} af en dep ze heel goed droog. Doe ze met {ui}, {knoflook}, {peterselie}, {komijn}, {koriander}, {zout:0.25} en {maizena} in een hakmolen of prak heel fijn met een vork.",
+    "Vorm er 16 balletjes van en druk ze iets plat. Leg ze op de bakplaat en bestrijk met {olie}.",
+    ["Bak 25 minuten, na 12 minuten omdraaien.",25],
+    "Saus: meng {kwark}, het sap van {citroen} en {zout:0.25}.",
+    "Vul {pita} met {hummus}, falafel, {sla}, {tomaat} en {komkommer} in stukjes en de saus."
+  ]},
+{ id:"koftaburger", type:"diner", serves:2, time:30, t:["rund","midden-oosten",0],
+  name:"Kofta-burgers in pita met tzatziki", short:"Kruidige gehaktburgers met een frisse knoflooksaus.",
+  items:[["gehakt",300],["ui",0.5],["komijn",1],["koriander",1],["kaneel",0.25],["peterselie",15],["zout",0.5],["peper",0.25],["olie",0.5],["pita",4],["kwark",150],["komkommer",0.5],["knoflook",1],["dille",0.5],["tomaat",2],["sla",75]],
+  steps:[
+    "Rasp {ui} fijn. Meng met {gehakt}, {komijn}, {koriander}, {kaneel}, {peterselie} (fijngehakt), {zout:0.25} en {peper}. Vorm 4 platte burgers.",
+    ["Verhit {olie} in een koekenpan op middelhoog vuur. Bak de burgers 4 minuten per kant.",8],
+    "Snijd een burger door: geen roze meer = gaar.",
+    "Tzatziki: rasp {komkommer}, knijp het vocht eruit en meng met {kwark}, {knoflook} (geperst), {dille} en {zout:0.25}.",
+    ["Rooster {pita} 2 minuten en snijd ze open.",2],
+    "Vul de pita's met {sla}, {tomaat} in plakjes, een burger en tzatziki."
+  ]},
+{ id:"griekseovenkip", type:"diner", serves:2, time:50, t:["kip","grieks",0],
+  name:"Griekse kip met citroen-aardappelen uit de oven", short:"Kipdijen en aardappelpartjes met citroen en oregano.",
+  items:[["kipdij",400],["aardappel",500],["citroen",1],["olie",1.5],["oregano",1.5],["knoflook",3],["zout",1],["peper",0.25],["bouillon",0.5],["water",100],["sperziebonen",250],["feta",50]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    "Was {aardappel} en snijd in partjes. Meng het sap van {citroen} met {olie}, {oregano}, {knoflook} (geperst), {zout:0.75} en {peper}.",
+    "Hussel {kipdij} en aardappel in een ovenschaal door de marinade. Giet {water} met {bouillon} (verkruimeld) erbij.",
+    ["Bak 40 minuten, halverwege omscheppen, tot de aardappels zacht en goudbruin zijn.",40],
+    ["Kook ondertussen {sperziebonen} 7 minuten in water met {zout:0.25}. Giet af en verkruimel {feta} erover.",7],
+    GAAR
+  ]},
+{ id:"karniyarik", type:"diner", serves:2, time:50, t:["rund","turks",0],
+  name:"Gevulde aubergines met gehakt en bulgur", short:"Turkse ovenschotel: aubergine gevuld met kruidig gehakt.",
+  items:[["aubergine",2],["olie",1],["zout",0.75],["gehakt",250],["ui",1],["knoflook",2],["paprika",1],["komijn",1],["paprikapoeder",1],["kaneel",0.25],["tomblokjes",400],["bulgur",100],["groentebouillon",0.5],["water",200],["kwark",150],["peterselie",15]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Halveer {aubergine} in de lengte en kerf het vruchtvlees in. Bestrijk met {olie:0.5}, bestrooi met {zout:0.25} en bak 20 minuten met de snijkant naar boven.",20],
+    ["Bak ondertussen {gehakt} 5 minuten los in {olie:0.5} tot er geen roze meer te zien is. Doe {ui}, {knoflook} en {paprika} (fijn) erbij en bak 3 minuten. Roer {komijn}, {paprikapoeder}, {kaneel} en de helft van de {tomblokjes} erdoor.",8],
+    ["Bulgur: breng {water} met {groentebouillon} aan de kook, doe {bulgur} erin en laat met deksel 12 minuten garen op laag vuur.",12],
+    "Druk het vruchtvlees van de aubergines aan de kant om een kuiltje te maken. Vul ze met het gehakt en schep de rest van de tomaat eromheen. Bestrooi met {zout:0.25}.",
+    ["Bak nog 15 minuten.",15],
+    "Meng {kwark} met {zout:0.25}. Strooi {peterselie} over de aubergines en eet met bulgur en kwark."
+  ]},
+{ id:"marokgehakt", type:"diner", serves:2, time:35, t:["rund","midden-oosten",0],
+  name:"Marokkaanse gehaktballetjes met couscous", short:"Balletjes in tomaat met kaneel en komijn.",
+  items:[["gehakt",300],["paneermeel",15],["komijn",1.5],["kaneel",0.5],["paprikapoeder",1],["zout",0.75],["olie",1],["ui",1],["knoflook",2],["tomblokjes",400],["kikkererwten",240],["courgette",1],["groentebouillon",0.5],["water",190],["couscous",130],["peterselie",15]],
+  steps:[
+    "Meng {gehakt} met {paneermeel}, {komijn:0.5}, {kaneel:0.25}, {zout:0.25} en 2 el water. Rol er 16 balletjes van.",
+    ["Verhit {olie} in een hapjespan. Bak de balletjes 5 minuten rondom bruin. Doe {ui} en {knoflook} (fijn) en {courgette} (blokjes) erbij en bak 3 minuten.",8],
+    ["Doe {tomblokjes}, {kikkererwten} (afgespoeld), {komijn:1}, {kaneel:0.25}, {paprikapoeder} en {zout:0.5} erbij. Deksel erop en laat 10 minuten pruttelen.",10],
+    COUS({}),
+    "Snijd een balletje door: geen roze meer = gaar. Strooi {peterselie} erover en eet met de couscous."
+  ]},
+{ id:"fattoush", type:"diner", serves:2, time:25, t:["kip","midden-oosten",0],
+  name:"Fattoush: Libanese broodsalade met kip", short:"Frisse salade met krokante pitastukjes en kip.",
+  items:[["kipfilet",350],["komijn",1],["paprikapoeder",1],["zout",0.75],["olie",1.5],["pita",2],["sla",150],["tomaat",2],["komkommer",1],["rodeui",0.5],["peterselie",15],["citroen",1],["feta",50]],
+  steps:[
+    "Snijd {kipfilet} in reepjes. Bestrooi met {komijn}, {paprikapoeder} en {zout:0.5}.",
+    ["Scheur {pita} in stukjes en rooster ze 4 minuten in een droge koekenpan tot ze krokant zijn. Schep op een bord.",4],
+    ["Bak de kip in {olie:0.5} 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    "Snijd {tomaat} en {komkommer} in blokjes en {rodeui} in dunne ringen. Dressing: meng {olie:1}, het sap van {citroen} en {zout:0.25}.",
+    "Meng {sla}, groente, {peterselie}, pitastukjes en dressing. Leg de kip erop en verkruimel {feta} erover."
+  ]},
+{ id:"shakshukakip", type:"diner", serves:2, time:30, t:["vega","midden-oosten",1],
+  name:"Groene shakshuka met spinazie en feta", short:"Eieren gegaard in spinazie en courgette. Vegetarisch.",
+  items:[["olie",1],["ui",1],["knoflook",2],["courgette",1],["spinazie",300],["komijn",1],["chili",0.25],["zout",0.5],["ei",5],["feta",75],["kikkererwten",240],["brood",3]],
+  steps:[
+    "Snijd {ui} en {knoflook} fijn en rasp {courgette} grof. Spoel {kikkererwten} af.",
+    ["Verhit {olie} in een grote koekenpan met deksel. Bak ui, knoflook en courgette 5 minuten. Doe {komijn}, {chili} en kikkererwten erbij.",5],
+    ["Doe {spinazie} in delen erbij tot hij geslonken is. Roer {zout:0.25} erdoor.",3],
+    ["Maak 5 kuiltjes, breek er {ei} in en bestrooi met {zout:0.25}. Deksel erop en laat 6 minuten garen tot het eiwit gestold is.",6],
+    "Verkruimel {feta} erover en eet met {brood}."
+  ]},
+{ id:"kipsouvlaki", type:"diner", serves:2, time:30, t:["kip","grieks",0],
+  name:"Kip-souvlaki met Griekse salade en rijst", short:"Gemarineerde kip met citroen en oregano.",
+  items:[["kipfilet",350],["citroen",1],["oregano",1],["knoflook",1],["olie",1.5],["zout",1],["rijst",150],["water",225],["tomaat",2],["komkommer",0.5],["rodeui",0.5],["olijven",40],["feta",60],["kwark",100]],
+  steps:[
+    "Snijd {kipfilet} in blokjes van 3 cm. Meng met het sap van een halve {citroen}, {oregano}, {knoflook} (geperst), {olie:0.5} en {zout:0.5}.",
+    ...RICE({w:225,s:0.25}),
+    ["Bak de kip in een hete koekenpan 7 minuten, regelmatig keren.",7],
+    GAAR,
+    "Salade: snijd {tomaat}, {komkommer} en {rodeui} in stukken. Meng met {olijven}, {feta} in blokjes, {olie:1}, het sap van de rest van de citroen en {zout:0.25}.",
+    "Eet met de rijst en {kwark} als saus."
+  ]},
+{ id:"giouvetsi", type:"diner", serves:2, time:45, t:["rund","grieks",0],
+  name:"Giouvetsi: orzo uit de oven met rundvlees", short:"Griekse ovenschotel met orzo, tomaat en kaneel.",
+  items:[["gehakt",300],["olie",0.5],["ui",1],["knoflook",2],["kaneel",0.25],["oregano",1],["tomblokjes",400],["runderbouillon",1],["water",400],["orzo",150],["zout",0.25],["feta",60],["sla",100]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Bak {gehakt} in {olie} in een ovenvaste pan 5 minuten los tot er geen roze meer te zien is. Doe {ui} en {knoflook} (fijn) erbij en bak 3 minuten.",8],
+    "Roer {kaneel}, {oregano}, {tomblokjes}, {water}, {runderbouillon} (verkruimeld), {zout} en {orzo} erdoor. Breng aan de kook. Geen ovenvaste pan? Schep alles nu in een ovenschaal.",
+    ["Zet in de oven en bak 25 minuten, na 12 minuten roeren, tot de orzo zacht is.",25],
+    "Verkruimel {feta} erover en eet met {sla}."
+  ]},
+{ id:"turksekip", type:"diner", serves:2, time:35, t:["kip","turks",1],
+  name:"Turkse kip-sis met bulgur en yoghurtsaus", short:"Gekruide kipspiesjes uit de pan.",
+  items:[["kipfilet",350],["paprikapoeder",1.5],["komijn",1],["chili",0.25],["tompuree",35],["olie",1],["zout",1],["paprika",1],["rodeui",1],["bulgur",130],["water",260],["groentebouillon",0.5],["kwark",150],["knoflook",1],["peterselie",15],["tomaat",1]],
+  steps:[
+    "Snijd {kipfilet} in blokjes van 3 cm. Meng met {paprikapoeder}, {komijn}, {chili}, {tompuree}, {olie:0.5} en {zout:0.5}. Snijd {paprika} en {rodeui} in stukken.",
+    ["Bulgur: breng {water} met {groentebouillon} aan de kook, doe {bulgur} erin en laat met deksel 12 minuten garen op laag vuur.",12],
+    ["Bak kip, paprika en ui in {olie:0.5} in een hete grillpan of koekenpan 8 minuten, regelmatig keren.",8],
+    GAAR,
+    "Saus: meng {kwark}, {knoflook} (geperst) en {zout:0.25}. Meng de bulgur met {tomaat} in blokjes, {peterselie} en {zout:0.25}."
+  ]},
+{ id:"moussakavega", type:"diner", serves:2, time:55, t:["vega","grieks",0],
+  name:"Linzen-moussaka met aubergine", short:"Vegetarische moussaka met een kwark-kaaslaag.",
+  items:[["aubergine",1],["olie",1],["zout",0.75],["linzen",120],["ui",1],["knoflook",2],["kaneel",0.25],["oregano",1],["tomblokjes",400],["water",250],["groentebouillon",0.5],["kwark",250],["ei",1],["nootmuskaat",0.25],["kaas",50]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier op een bakplaat.",
+    ["Snijd {aubergine} in plakken van 1 cm, bestrijk met {olie:0.5}, bestrooi met {zout:0.25} en bak 20 minuten.",20],
+    ["Bak ondertussen {ui} en {knoflook} (fijn) 3 minuten in {olie:0.5}. Doe {linzen} (afgespoeld), {kaneel}, {oregano}, {tomblokjes}, {water}, {groentebouillon} en {zout:0.25} erbij en kook 15 minuten tot de linzen zacht zijn.",18],
+    "Witte saus: meng {kwark}, {ei}, {nootmuskaat} en {zout:0.25}.",
+    "Bouw in een ovenschaal: linzen, aubergine, linzen, aubergine. Smeer de witte saus erover en strooi {kaas} erop.",
+    ["Bak 25 minuten tot de bovenkant goudbruin is.",25]
+  ]},
+{ id:"zalmdukkah", type:"diner", serves:2, time:30, t:["vis","midden-oosten",0],
+  name:"Zalm met komijn, couscous en geroosterde wortel", short:"Kruidige zalm met zoete wortels uit de oven.",
+  items:[["wortel",400],["olie",1],["komijn",1.5],["honing",0.5],["zout",0.75],["zalm",250],["paprikapoeder",0.5],["groentebouillon",0.5],["water",190],["couscous",150],["citroen",0.5],["peterselie",15],["kwark",100]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier op een bakplaat.",
+    ["Schil {wortel}, snijd in repen en hussel met {olie}, {komijn:1}, {honing} en {zout:0.25}. Rooster 15 minuten.",15],
+    "Bestrooi ondertussen {zalm} met {komijn:0.5}, {paprikapoeder} en {zout:0.25}.",
+    ["Leg de zalm naast de wortels en bak alles nog 12 minuten. De zalm is gaar als hij niet meer glazig is.",12],
+    COUS({}),
+    "Meng de couscous met {peterselie}, het sap van {citroen} en {zout:0.25}. Eet met {kwark} als saus."
+  ]},
+{ id:"libanesekip", type:"diner", serves:2, time:35, t:["kip","midden-oosten",0],
+  name:"Kip shish tawook met knoflooksaus en rijst", short:"Libanese kip, gemarineerd in kwark en citroen.",
+  items:[["kipfilet",350],["kwark",250],["citroen",1],["paprikapoeder",1],["knoflook",3],["zout",1],["olie",1],["rijst",150],["water",225],["tomaat",2],["komkommer",0.5],["peterselie",15]],
+  steps:[
+    "Snijd {kipfilet} in blokjes. Meng {kwark:100}, het sap van een halve {citroen}, {paprikapoeder}, {knoflook:1} (geperst) en {zout:0.5}. Hussel de kip erdoor en laat 10 minuten staan.",
+    ...RICE({w:225,s:0.25}),
+    ["Bak de kip in {olie} in een hete koekenpan 7 minuten, regelmatig keren.",7],
+    GAAR,
+    "Knoflooksaus: meng {kwark:150} met {knoflook:2} (geperst), het sap van de rest van de citroen en {zout:0.25}.",
+    "Salade: snijd {tomaat} en {komkommer} in blokjes en meng met {peterselie}."
+  ]},
+{ id:"kikkerstoof", type:"diner", serves:2, time:35, t:["vega","midden-oosten",0],
+  name:"Kikkererwtenstoof met zoete aardappel en ei", short:"Warme, kruidige stoof. Vegetarisch en vullend.",
+  items:[["zoeteaardappel",400],["ui",1],["knoflook",2],["olie",1],["komijn",1],["kaneel",0.25],["paprikapoeder",1],["kikkererwten",480],["tomblokjes",400],["groentebouillon",0.5],["water",150],["spinazie",150],["zout",0.25],["ei",3],["kwark",100]],
+  steps:[
+    "Schil {zoeteaardappel} en snijd in blokjes van 2 cm. Snijd {ui} en {knoflook} fijn. Spoel {kikkererwten} af.",
+    ["Verhit {olie} in een pan. Bak ui 3 minuten. Doe knoflook, {komijn}, {kaneel} en {paprikapoeder} erbij en bak 1 minuut.",4],
+    ["Doe zoete aardappel, kikkererwten, {tomblokjes}, {water} en {groentebouillon} erbij. Deksel erop en laat 15 minuten zachtjes koken.",15],
+    EGGS({}),
+    "Roer {spinazie} en {zout} erdoor. Leg de gehalveerde eieren erop en schep {kwark} erbij."
+  ]},
+{ id:"kofteoven", type:"diner", serves:2, time:40, t:["rund","turks",0],
+  name:"Turkse kofte met aardappel en paprika uit de oven", short:"Izmir köfte: gehaktrolletjes met groente in tomaat.",
+  items:[["gehakt",300],["ui",1],["komijn",1],["paprikapoeder",1],["zout",1],["peper",0.25],["aardappel",400],["paprika",2],["tomblokjes",400],["tompuree",35],["olie",1],["kwark",100],["peterselie",15]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    "Rasp {ui:0.5} fijn en meng met {gehakt}, {komijn}, {paprikapoeder:0.5}, {zout:0.5} en {peper}. Vorm 8 rolletjes.",
+    "Schil {aardappel} en snijd in plakjes van ½ cm. Snijd {paprika} en de rest van de {ui:0.5} in repen.",
+    "Leg aardappel, paprika, ui en kofte om en om in een ovenschaal. Meng {tomblokjes} met {tompuree}, {paprikapoeder:0.5}, {olie} en {zout:0.5} en giet erover.",
+    ["Bak 35 minuten tot de aardappel zacht is.",35],
+    "Snijd een rolletje door: geen roze meer = gaar. Strooi {peterselie} erover en eet met {kwark}."
+  ]}
+,
+/* ============ Avondeten d05: Mexicaans, Amerikaans, Spaans, Frans, Caribisch ============ */
+{ id:"burritogehakt", type:"diner", serves:2, time:30, t:["rund","mexicaans",1],
+  name:"Burrito's met gehakt, rijst en bonen", short:"Stevig gevulde wraps. Eén is al bijna genoeg.",
+  items:[["rijst",80],["water",120],["zout",0.5],["gehakt",250],["olie",0.5],["ui",1],["paprika",1],["komijn",1],["paprikapoeder",1],["chili",0.25],["kidney",125],["tomblokjes",200],["wraps",4],["kaas",40],["sla",50],["kwark",100]],
+  steps:[
+    ...RICE({w:120,s:0.25}),
+    ["Bak {gehakt} in {olie} 5 minuten los tot er geen roze meer te zien is. Doe {ui} en {paprika} (fijn) erbij en bak 3 minuten.",8],
+    ["Roer {komijn}, {paprikapoeder}, {chili}, {kidney} (afgespoeld), {tomblokjes} en {zout:0.25} erdoor en laat 5 minuten inkoken.",5],
+    ["Verwarm {wraps} elk 30 seconden in een droge pan.",2],
+    "Vul de wraps met rijst, gehakt, {sla} in reepjes, {kaas} en {kwark}. Vouw de zijkanten naar binnen en rol strak op."
+  ]},
+{ id:"zoeteaardappelchili", type:"diner", serves:2, time:40, t:["vega","mexicaans",1],
+  name:"Chili met zoete aardappel en zwarte bonen", short:"Vegetarische chili die net zo vult als met vlees.",
+  items:[["olie",1],["ui",1],["knoflook",2],["paprika",1],["zoeteaardappel",300],["komijn",1.5],["paprikapoeder",1.5],["chili",0.25],["kaneel",0.25],["tomblokjes",400],["zwartebonen",240],["kidney",250],["groentebouillon",0.5],["water",200],["zout",0.25],["kwark",150],["kaas",40],["limoen",0.5]],
+  steps:[
+    "Snijd {ui}, {knoflook} en {paprika} fijn. Schil {zoeteaardappel} en snijd in blokjes van 1,5 cm.",
+    ["Verhit {olie} in een pan. Bak ui, knoflook en paprika 5 minuten. Roer {komijn}, {paprikapoeder}, {chili} en {kaneel} erdoor en bak 1 minuut.",6],
+    ["Doe zoete aardappel, {tomblokjes}, {zwartebonen} en {kidney} (afgespoeld), {water}, {groentebouillon} en {zout} erbij. Deksel erop en laat 20 minuten zachtjes koken.",20],
+    "Knijp {limoen} erboven uit. Schep {kwark} en {kaas} erop."
+  ]},
+{ id:"burritobowlkip", type:"diner", serves:2, time:35, t:["kip","mexicaans",1],
+  name:"Burrito bowl met kip en limoenrijst", short:"Alles van een burrito, maar dan in een kom.",
+  items:[["rijst",150],["water",225],["zout",0.75],["limoen",1],["kipfilet",300],["komijn",1],["paprikapoeder",1],["oregano",0.5],["chili",0.25],["olie",1],["zwartebonen",240],["mais",140],["tomaat",2],["rodeui",0.5],["avocado",1],["kwark",100],["sla",50]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kipfilet} in reepjes en bestrooi met {komijn}, {paprikapoeder}, {oregano}, {chili} en {zout:0.25}.",
+    ["Bak de kip in {olie} 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    ["Warm {zwartebonen} en {mais} (afgespoeld) 2 minuten op in dezelfde pan.",2],
+    "Salsa: snijd {tomaat} en {rodeui} fijn en meng met {zout:0.25}. Roer het sap van een halve {limoen} door de rijst.",
+    "Verdeel rijst, kip, bonen, salsa, {sla}, {avocado} in plakjes en {kwark} over 2 kommen. Partjes van de rest van de limoen erbij."
+  ]},
+{ id:"fajitaplaat", type:"diner", serves:2, time:30, t:["rund","mexicaans",1],
+  name:"Fajita's van de bakplaat met runderreepjes", short:"Vlees en paprika samen in de oven. Weinig afwas.",
+  items:[["runderreepjes",300],["paprika",2],["rodeui",1],["olie",1],["komijn",1],["paprikapoeder",1.5],["knoflookpoeder",0.5],["chili",0.25],["zout",0.5],["wraps",4],["kwark",100],["tomaat",1],["sla",50],["limoen",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Meng {komijn}, {paprikapoeder}, {knoflookpoeder}, {chili} en {zout} in een kommetje. Snijd {paprika} en {rodeui} in reepjes en hussel met {olie:0.5} en de helft van het kruidenmengsel.",
+    ["Rooster de groente 12 minuten.",12],
+    "Hussel {runderreepjes} met {olie:0.5} en de rest van het kruidenmengsel.",
+    ["Leg het vlees bij de groente en bak nog 6 minuten. Het vlees mag niet meer rood zijn.",6],
+    ["Verwarm {wraps} 1 minuut in de oven.",1],
+    "Vul met vlees, groente, {sla}, {tomaat} in blokjes en {kwark}. Knijp {limoen} erboven uit."
+  ]},
+{ id:"bonenquesadilla", type:"diner", serves:2, time:25, t:["vega","mexicaans",0],
+  name:"Quesadilla's met zwarte bonen, maïs en kaas", short:"Krokant en kaasachtig. Vegetarisch.",
+  items:[["zwartebonen",240],["mais",140],["rodeui",0.5],["paprika",1],["komijn",1],["paprikapoeder",1],["zout",0.25],["wraps",4],["kaas",80],["kwark",150],["tomaat",2],["sla",75],["limoen",0.5]],
+  steps:[
+    "Spoel {zwartebonen} en {mais} af. Prak de bonen half fijn. Snijd {rodeui} en {paprika} heel fijn en meng alles met {komijn}, {paprikapoeder} en {zout}.",
+    "Verdeel het mengsel en {kaas} over de helft van elke {wraps} en vouw dicht.",
+    ["Bak ze 2 voor 2 in een droge koekenpan, 3 minuten per kant, tot de kaas gesmolten is.",12],
+    "Snijd in punten. Meng {kwark} met het sap van {limoen}. Eet met {sla} en {tomaat} in stukjes."
+  ]},
+{ id:"gevuldepaprika", type:"diner", serves:2, time:50, t:["rund","mexicaans",0],
+  name:"Gevulde paprika's met gehakt en rijst", short:"Paprika als bakje, gevuld met kruidig gehakt.",
+  items:[["rijst",80],["water",120],["zout",0.75],["paprika",4],["gehakt",250],["olie",0.5],["ui",1],["knoflook",1],["komijn",1],["paprikapoeder",1],["tomblokjes",400],["mais",140],["kaas",50],["sla",75]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ...RICE({w:120,s:0.25}),
+    "Snijd de kapjes van {paprika} en haal de zaadjes eruit.",
+    ["Bak {gehakt} in {olie} 5 minuten los tot er geen roze meer te zien is. Doe {ui} en {knoflook} (fijn) erbij en bak 3 minuten. Roer {komijn}, {paprikapoeder}, de helft van de {tomblokjes}, {mais} en {zout:0.25} erdoor.",8],
+    "Meng de rijst erdoor. Vul de paprika's, zet ze in een ovenschaal en giet de rest van de tomaat eromheen met {zout:0.25}. Strooi {kaas} erop.",
+    ["Bak 30 minuten tot de paprika zacht is.",30],
+    "Eet met {sla}."
+  ]},
+{ id:"nachoschotel", type:"diner", serves:2, time:30, t:["rund","mexicaans",1],
+  name:"Nachoschotel met gehakt, bonen en kaas", short:"Zelfgemaakte chips uit wraps, met alles erop.",
+  items:[["wraps",4],["olie",1],["gehakt",250],["ui",1],["komijn",1],["paprikapoeder",1],["chili",0.25],["zout",0.5],["kidney",125],["tomblokjes",200],["kaas",60],["tomaat",2],["avocado",1],["kwark",100],["limoen",0.5]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Snijd {wraps} in punten, bestrijk met {olie:0.5} en bak 8 minuten op bakpapier tot ze krokant zijn.",
+    ["Bak {gehakt} in {olie:0.5} 5 minuten los tot er geen roze meer te zien is. Doe {ui} (fijn), {komijn}, {paprikapoeder}, {chili}, {kidney} (afgespoeld), {tomblokjes} en {zout:0.25} erbij en laat 5 minuten inkoken.",10],
+    "Leg de chips in een ovenschaal, schep het gehakt erover en strooi {kaas} erop.",
+    ["Bak 8 minuten tot de kaas gesmolten is.",8],
+    "Guacamole: prak {avocado} met het sap van {limoen} en {zout:0.25}. Schep guacamole, {tomaat} in blokjes en {kwark} erop."
+  ]},
+{ id:"bbqkipdij", type:"diner", serves:2, time:45, t:["kip","amerikaans",0],
+  name:"BBQ-kipdijen met zoete aardappel en coleslaw", short:"Kleverige barbecuekip uit de oven.",
+  items:[["zoeteaardappel",500],["olie",1],["paprikapoeder",1.5],["zout",0.75],["kipdij",400],["bbqsaus",3],["spitskool",200],["wortel",100],["kwark",100],["mosterd",1],["azijn",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {zoeteaardappel} in partjes en hussel met {olie}, {paprikapoeder:0.5} en {zout:0.25}.",
+    "Bestrooi {kipdij} met {paprikapoeder:1} en {zout:0.25} en leg naast de zoete aardappel.",
+    ["Bak 20 minuten. Smeer {bbqsaus} op de kip en bak nog 10 minuten.",30],
+    GAAR,
+    "Coleslaw: snijd {spitskool} heel fijn, rasp {wortel} en meng met {kwark}, {mosterd}, {azijn} en {zout:0.25}."
+  ]},
+{ id:"sloppyjoes", type:"diner", serves:2, time:25, t:["rund","amerikaans",0],
+  name:"Sloppy joes met gehakt en salade", short:"Zachte broodjes met saus-gehakt. Lekker rommelig.",
+  items:[["gehakt",300],["olie",0.5],["ui",1],["paprika",1],["knoflook",1],["tompuree",35],["tomblokjes",200],["bbqsaus",1],["mosterd",1],["paprikapoeder",1],["zout",0.5],["burgerbol",2],["sla",100],["komkommer",0.5],["tomaat",1],["azijn",1]],
+  steps:[
+    ["Bak {gehakt} in {olie} 5 minuten los tot er geen roze meer te zien is. Doe {ui}, {paprika} en {knoflook} (fijn) erbij en bak 4 minuten.",9],
+    ["Roer {tompuree}, {tomblokjes}, {bbqsaus}, {mosterd}, {paprikapoeder} en {zout:0.25} erdoor. Laat 6 minuten inkoken tot het dik is.",6],
+    "Rooster {burgerbol} en schep het gehakt erop.",
+    "Salade: meng {sla}, {komkommer} en {tomaat} in stukjes met {azijn} en {zout:0.25}."
+  ]},
+{ id:"macncheese", type:"diner", serves:2, time:30, t:["varken","amerikaans",0],
+  name:"Mac and cheese met broccoli en ham", short:"Romige kaaspasta, lichter gemaakt met melk en broccoli.",
+  items:[["zout",1],["pasta",160],["broccoli",300],["melk",300],["maizena",1.5],["mosterd",1],["nootmuskaat",0.25],["kaas",80],["hamblokjes",150],["peper",0.25],["paneermeel",15]],
+  steps:[
+    "Zet de grill van de oven aan, of de oven op 230 °C.",
+    ...PASTA({s:1}),
+    "Doe {broccoli} in kleine roosjes de laatste 4 minuten bij de pasta.",
+    ["Kaassaus: roer {maizena} los in een beetje van de {melk}. Verwarm de rest van de melk, roer het mengsel erdoor en laat 2 minuten koken tot het dik is. Roer {mosterd}, {nootmuskaat}, {peper} en 60 g van de {kaas} erdoor.",3],
+    "Meng pasta, broccoli, {hamblokjes} en kaassaus. Schep in een ovenschaal en strooi de rest van de kaas en {paneermeel} erover.",
+    ["Zet 5 minuten onder de grill tot het goudbruin is.",5]
+  ]},
+{ id:"caesardiner", type:"diner", serves:2, time:25, t:["kip","amerikaans",0],
+  name:"Caesarsalade met kip, ei en croutons", short:"De klassieker, met een lichte dressing van kwark.",
+  items:[["kipfilet",300],["paprikapoeder",0.5],["zout",0.5],["olie",1],["brood",3],["ei",2],["sla",200],["kwark",100],["mosterd",1],["citroen",0.5],["knoflook",1],["parmezaan",30],["peper",0.25],["cherrytomaat",150]],
+  steps:[
+    EGGS({}),
+    "Bestrooi {kipfilet} met {paprikapoeder} en {zout:0.25}.",
+    ["Bak de kip in {olie:0.5} 5 minuten per kant.",10],
+    GAAR,
+    ["Snijd {brood} in blokjes en bak 4 minuten in {olie:0.5} tot ze krokant zijn.",4],
+    "Dressing: meng {kwark}, {mosterd}, het sap van {citroen}, {knoflook} (geperst), de helft van de {parmezaan}, {zout:0.25} en {peper}.",
+    "Meng {sla} met de dressing. Leg kip in plakken, croutons, eieren, {cherrytomaat} en de rest van de parmezaan erop."
+  ]},
+{ id:"chilimac", type:"diner", serves:2, time:30, t:["rund","amerikaans",1],
+  name:"Chili mac: pasta met chili en kaas", short:"Chili con carne en pasta in één pan.",
+  items:[["gehakt",250],["olie",0.5],["ui",1],["paprika",1],["komijn",1],["paprikapoeder",1],["chili",0.25],["tomblokjes",400],["kidney",125],["water",400],["runderbouillon",0.5],["pasta",150],["kaas",50],["zout",0.25]],
+  steps:[
+    ["Bak {gehakt} in {olie} in een grote pan 5 minuten los tot er geen roze meer te zien is. Doe {ui} en {paprika} (fijn) erbij en bak 3 minuten.",8],
+    "Roer {komijn}, {paprikapoeder}, {chili}, {tomblokjes}, {kidney} (afgespoeld), {water}, {runderbouillon} en {zout} erdoor. Breng aan de kook.",
+    ["Doe {pasta} rauw erbij. Deksel erop en laat 12 minuten zachtjes koken, af en toe roeren, tot de pasta zacht is.",12],
+    "Strooi {kaas} erover, deksel erop en laat 2 minuten smelten."
+  ]},
+{ id:"buffalobloemkool", type:"diner", serves:2, time:35, t:["vega","amerikaans",2],
+  name:"Buffalo-bloemkool met eieren en zoete aardappel", short:"Pittige bloemkool uit de oven, met een koele dip.",
+  items:[["bloemkool",500],["zoeteaardappel",400],["olie",1.5],["paprikapoeder",1],["knoflookpoeder",0.5],["zout",0.5],["sambal",1],["honing",0.5],["ei",4],["kwark",150],["dille",0.5],["wortel",100]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op 2 bakplaten.",
+    "Snijd {bloemkool} in roosjes en {zoeteaardappel} in partjes. Hussel met {olie}, {paprikapoeder}, {knoflookpoeder} en {zout:0.25}.",
+    ["Rooster 25 minuten. Meng {sambal} met {honing} en schep dat de laatste 5 minuten over de bloemkool.",25],
+    EGGS({}),
+    "Dip: meng {kwark}, {dille} en {zout:0.25}. Eet met {wortel} in staafjes."
+  ]},
+{ id:"cajunzalm", type:"diner", serves:2, time:30, t:["vis","amerikaans",1],
+  name:"Cajun-zalm met rijst en maïs-salsa", short:"Kruidige zalm met een frisse salsa.",
+  items:[["rijst",150],["water",225],["zout",0.75],["zalm",250],["paprikapoeder",1.5],["knoflookpoeder",0.5],["oregano",0.5],["cayenne",0.125],["olie",0.5],["mais",140],["paprika",1],["rodeui",0.5],["limoen",1],["sla",75]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Meng {paprikapoeder}, {knoflookpoeder}, {oregano}, {cayenne} en {zout:0.25} en wrijf {zalm} ermee in.",
+    ["Bak de zalm in {olie} 4 minuten op het vel en 2 minuten op de andere kant. Gaar als hij niet meer glazig is.",6],
+    "Salsa: meng {mais} (afgespoeld), {paprika} en {rodeui} fijngesneden met het sap van {limoen} en {zout:0.25}.",
+    "Eet met de rijst en {sla}."
+  ]},
+{ id:"paella", type:"diner", serves:2, time:45, t:["kip","spaans",0],
+  name:"Paella met kip en garnalen", short:"Saffraan-achtige rijst uit één pan, met paprika en erwten.",
+  items:[["kipfilet",200],["garnalen",150],["olie",1],["ui",1],["knoflook",2],["paprika",1],["paprikapoeder",2],["kurkuma",0.5],["rijst",150],["tomblokjes",200],["water",400],["bouillon",1],["doperwten",150],["citroen",1],["zout",0.25]],
+  steps:[
+    "Snijd {kipfilet} in blokjes, {ui} en {knoflook} fijn en {paprika} in reepjes. Spoel {rijst} af.",
+    ["Verhit {olie} in een grote koekenpan met deksel. Bak de kip 4 minuten. Doe ui, knoflook en paprika erbij en bak 3 minuten.",7],
+    "Roer {paprikapoeder}, {kurkuma}, de rijst, {tomblokjes}, {water}, {bouillon} (verkruimeld) en {zout} erdoor. Breng aan de kook.",
+    ["Vuur laag, deksel erop en laat 15 minuten garen. Niet roeren.",15],
+    ["Leg {garnalen} en {doperwten} erop, deksel erop en laat nog 5 minuten garen.",5],
+    "Check: rijst zacht, kip helemaal wit, garnalen roze. Leg partjes {citroen} erop."
+  ]},
+{ id:"tortillaespanola", type:"diner", serves:2, time:40, t:["vega","spaans",0],
+  name:"Spaanse tortilla met salade", short:"Dikke omelet met aardappel en ui. Vegetarisch.",
+  items:[["aardappel",400],["ui",1],["olie",1.5],["zout",0.75],["ei",6],["paprikapoeder",0.5],["peper",0.25],["sla",100],["tomaat",2],["komkommer",0.5],["azijn",1],["brood",2]],
+  steps:[
+    "Schil {aardappel} en snijd in dunne plakjes. Snijd {ui} in dunne halve ringen.",
+    ["Verhit {olie:1} in een koekenpan met deksel (±24 cm). Bak aardappel en ui met {zout:0.25} 15 minuten met deksel op middelhoog vuur, af en toe omscheppen, tot de aardappel zacht is.",15],
+    "Klop {ei} los met {zout:0.25}, {paprikapoeder} en {peper}. Schep de aardappel erdoor.",
+    ["Giet alles terug in de pan met {olie:0.5}. Deksel erop en bak 10 minuten op laag vuur tot de bovenkant bijna gestold is.",10],
+    ["Leg een bord op de pan, keer om en schuif de tortilla terug. Bak nog 3 minuten.",3],
+    "Salade: {sla}, {tomaat} en {komkommer} met {azijn} en {zout:0.25}. Eet met {brood}."
+  ]},
+{ id:"spaansekip", type:"diner", serves:2, time:45, t:["kip","spaans",0],
+  name:"Spaanse kip met paprika, olijven en krieltjes", short:"Ovenschotel met gerookte paprika en olijven.",
+  items:[["kipdij",400],["krieltjes",500],["paprika",2],["rodeui",1],["knoflook",3],["olijven",50],["paprikapoeder",2],["oregano",0.5],["olie",1.5],["zout",0.75],["citroen",0.5],["peterselie",15]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    "Halveer {krieltjes}. Snijd {paprika} en {rodeui} in stukken. Pel {knoflook}.",
+    "Hussel {kipdij}, krieltjes, groente, knoflook en {olijven} in een ovenschaal met {olie}, {paprikapoeder}, {oregano} en {zout}.",
+    ["Bak 40 minuten, halverwege omscheppen.",40],
+    GAAR + " Knijp {citroen} erboven uit en strooi {peterselie} erover."
+  ]},
+{ id:"bravas", type:"diner", serves:2, time:40, t:["rund","spaans",1],
+  name:"Patatas bravas met gehaktballetjes en salade", short:"Tapas als hoofdgerecht.",
+  items:[["aardappel",500],["olie",1.5],["zout",0.75],["paprikapoeder",2],["gehakt",250],["komijn",0.5],["knoflook",2],["tomblokjes",400],["chili",0.25],["kwark",100],["sla",100]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    ["Snijd {aardappel} in blokjes van 2 cm, hussel met {olie:1}, {paprikapoeder:1} en {zout:0.25} en bak 30 minuten.",30],
+    "Meng ondertussen {gehakt} met {komijn}, {zout:0.25} en 1 teen van de {knoflook} (geperst). Rol er 12 balletjes van.",
+    ["Bak de balletjes in {olie:0.5} 5 minuten rondom bruin. Doe {tomblokjes}, {chili}, {paprikapoeder:1}, de rest van de knoflook en {zout:0.25} erbij en laat 10 minuten pruttelen.",15],
+    "Snijd een balletje door: geen roze meer = gaar. Schep de saus over de aardappels en zet er {kwark} en {sla} bij."
+  ]},
+{ id:"coqauvin", type:"diner", serves:2, time:55, t:["kip","frans",0],
+  name:"Franse kipstoof met champignons en spekjes", short:"Coq au vin zonder wijn: zacht gestoofd en vol smaak.",
+  items:[["kipdij",400],["spekreepjes",75],["ui",1],["wortel",150],["champignons",250],["knoflook",2],["tompuree",35],["tijm",0.5],["laurier",1],["bouillon",1],["water",300],["azijn",1],["maizena",1],["aardappel",500],["zout",0.5],["peterselie",15]],
+  steps:[
+    ["Bak {spekreepjes} 3 minuten in een pan met deksel. Doe {kipdij} erbij en bak 3 minuten per kant.",9],
+    ["Doe {ui} (partjes), {wortel} (plakjes), {champignons} en {knoflook} erbij en bak 3 minuten. Roer {tompuree} erdoor.",3],
+    ["Doe {tijm}, {laurier}, {water}, {bouillon} (verkruimeld) en {azijn} erbij. Deksel erop en laat 30 minuten zachtjes stoven.",30],
+    ["Kook ondertussen {aardappel} (geschild, in vieren) 20 minuten in water met {zout}.",20],
+    "Roer {maizena} los in 2 el koud water en roer door de stoof. Laat 1 minuut koken. Haal het laurierblad eruit.",
+    GAAR + " Strooi {peterselie} erover."
+  ]},
+{ id:"steakpeper", type:"diner", serves:2, time:40, t:["rund","frans",0],
+  name:"Biefstuk met pepersaus en ovenfriet", short:"Bistroklassieker, gewoon thuis.",
+  items:[["aardappel",600],["olie",1.5],["zout",0.75],["biefstuk",300],["peper",1],["kookroom",100],["bouillon",0.5],["water",50],["sla",100],["tomaat",1],["azijn",1]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C).",
+    ["Snijd {aardappel} in frietjes van 1 cm, hussel met {olie:1} en {zout:0.25} en bak 30 minuten op bakpapier, halverwege omscheppen.",30],
+    "Haal {biefstuk} 20 minuten van tevoren uit de koelkast. Dep droog en bestrooi met {zout:0.25} en de helft van de {peper}.",
+    ["Bak in {olie:0.5} op het hoogste vuur 2½ minuut per kant (medium). Laat 5 minuten rusten onder folie.",5],
+    ["Pepersaus: giet {kookroom}, {water} met {bouillon} en de rest van de peper in de pan en laat 2 minuten inkoken.",2],
+    "Sla: meng {sla} en {tomaat} met {azijn} en {zout:0.25}."
+  ]},
+{ id:"vispapillotefr", type:"diner", serves:2, time:35, t:["vis","frans",0],
+  name:"Zalm met prei-roomsaus en krieltjes", short:"Zachte prei met zalm. Licht en Frans.",
+  items:[["krieltjes",500],["zout",0.75],["prei",2],["olie",0.5],["kookroom",150],["dille",0.5],["mosterd",1],["zalm",250],["peper",0.25],["citroen",0.5]],
+  steps:[
+    ["Halveer {krieltjes} en kook ze 15 minuten in water met {zout:0.25}.",15],
+    "Snijd {prei} in dunne ringen en spoel af.",
+    ["Bak de prei in {olie} 6 minuten op middelhoog vuur tot hij zacht is. Roer {kookroom}, {dille}, {mosterd} en {zout:0.25} erdoor.",6],
+    "Bestrooi {zalm} met {zout:0.25} en {peper} en leg hem in de prei.",
+    ["Deksel erop en laat 8 minuten zachtjes garen. De zalm is gaar als hij niet meer glazig is.",8],
+    "Knijp {citroen} erboven uit en eet met de krieltjes."
+  ]},
+{ id:"surinaamsekip", type:"diner", serves:2, time:45, t:["kip","caribisch",1],
+  name:"Surinaamse kip-kerrie met aardappel en boontjes", short:"Roti-vulling, gegeten met een warme wrap.",
+  items:[["kipdij",400],["kerrie",2],["komijn",0.5],["knoflook",3],["ui",1],["olie",1],["tompuree",35],["aardappel",300],["water",300],["bouillon",0.5],["sperziebonen",250],["sambal",1],["zout",0.5],["ei",2],["wraps",2]],
+  steps:[
+    "Snijd {kipdij} in stukken en hussel met {kerrie:1}, {knoflook} (geperst) en {zout:0.25}. Snijd {ui} fijn en {aardappel} (geschild) in blokjes.",
+    ["Verhit {olie} in een pan. Bak ui 3 minuten, doe {kerrie:1}, {komijn} en {tompuree} erbij en bak 1 minuut. Doe kip erbij en bak 4 minuten.",8],
+    ["Doe aardappel, {water}, {bouillon} en {sambal} erbij. Deksel erop en laat 15 minuten zachtjes koken.",15],
+    ["Doe {sperziebonen} (in stukjes van 5 cm) erbij en kook nog 8 minuten.",8],
+    EGGS({}),
+    "Roer {zout:0.25} erdoor. " + GAAR + " Warm {wraps} 30 seconden in een droge pan en eet met de kerrie en de gehalveerde eieren."
+  ]},
+{ id:"caribischecurry", type:"diner", serves:2, time:35, t:["vis","caribisch",1],
+  name:"Caribische viscurry met rijst en bonen", short:"Kokoscurry met witvis, kidneybonen en limoen.",
+  items:[["rijst",120],["water",180],["zout",0.75],["kidney",125],["olie",1],["ui",1],["paprika",1],["knoflook",2],["kerrie",1.5],["tijm",0.5],["cayenne",0.125],["kokosmelk",200],["tomblokjes",200],["koolvis",350],["limoen",1]],
+  steps:[
+    ...RICE({w:180,s:0.25}),
+    "Snijd {ui}, {paprika} en {knoflook} fijn. Snijd {koolvis} in stukken van 4 cm.",
+    ["Verhit {olie} in een hapjespan. Bak ui, paprika en knoflook 4 minuten. Roer {kerrie}, {tijm} en {cayenne} erdoor en bak 1 minuut.",5],
+    ["Doe {kokosmelk}, {tomblokjes}, {kidney} (afgespoeld) en {zout:0.5} erbij en laat 5 minuten pruttelen.",5],
+    ["Leg de vis erin, deksel erop en laat 6 minuten zachtjes garen. Niet roeren.",6],
+    "De vis is gaar als hij wit is en uit elkaar valt. Knijp {limoen} erboven uit en eet met de rijst."
+  ]},
+{ id:"bigos", type:"diner", serves:2, time:50, t:["varken","oost-europees",0],
+  name:"Bigos: Poolse zuurkoolstoof met rookworst", short:"Hartige stoof van zuurkool, worst en champignons.",
+  items:[["zuurkool",400],["rookworst",200],["spekreepjes",75],["ui",1],["champignons",200],["tompuree",35],["paprikapoeder",1],["laurier",1],["water",200],["appel",1],["aardappel",500],["zout",0.25],["peper",0.25]],
+  steps:[
+    "Spoel {zuurkool} kort af. Snijd {ui} fijn, {champignons} in plakjes, {rookworst} in plakken en {appel} (geschild) in blokjes.",
+    ["Bak {spekreepjes} en ui 4 minuten. Doe champignons erbij en bak 3 minuten.",7],
+    ["Doe zuurkool, worst, appel, {tompuree}, {paprikapoeder}, {laurier}, {water} en {peper} erbij. Deksel erop en laat 30 minuten zachtjes stoven.",30],
+    ["Kook ondertussen {aardappel} (geschild, in vieren) 20 minuten in water met {zout}.",20],
+    "Haal het laurierblad eruit en eet met de aardappelen."
+  ]},
+{ id:"paprikash", type:"diner", serves:2, time:40, t:["kip","oost-europees",0],
+  name:"Kip paprikash met tagliatelle", short:"Hongaarse kip in een romige paprikasaus.",
+  items:[["kipdij",400],["zout",1.5],["olie",1],["ui",2],["paprika",1],["knoflook",1],["paprikapoeder",3],["tompuree",35],["bouillon",0.5],["water",200],["kwark",100],["maizena",1],["pasta",150],["peterselie",15]],
+  steps:[
+    "Snijd {kipdij} in stukken en bestrooi met {zout:0.25}. Snijd {ui} en {paprika} in reepjes en {knoflook} fijn.",
+    ["Verhit {olie} in een pan. Bak de kip 5 minuten. Doe ui, paprika en knoflook erbij en bak 5 minuten.",10],
+    ["Roer {paprikapoeder} en {tompuree} erdoor. Doe {water} en {bouillon} erbij, deksel erop en laat 15 minuten zachtjes stoven.",15],
+    ...PASTA({s:1}),
+    "Roer {maizena} los in {kwark} en roer het door de saus met {zout:0.25}. Laat 1 minuut zachtjes warm worden, niet koken.",
+    GAAR + " Strooi {peterselie} erover en eet met de pasta."
+  ]}
+,
+/* ============ Avondeten d06: vegetarisch en vis ============ */
+{ id:"halloumibowl", type:"diner", serves:2, time:30, t:["vega","midden-oosten",0],
+  name:"Quinoabowl met geroosterde groente, feta en ei", short:"Kleurrijke vegetarische bowl uit de oven.",
+  items:[["quinoa",130],["water",260],["zout",0.75],["paprika",1],["courgette",1],["rodeui",1],["kikkererwten",240],["olie",1.5],["komijn",1],["paprikapoeder",1],["ei",2],["feta",75],["citroen",0.5],["kwark",100]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {paprika}, {courgette} en {rodeui} in stukken. Spoel {kikkererwten} af. Hussel alles met {olie:1}, {komijn}, {paprikapoeder} en {zout:0.25}.",
+    ["Rooster 25 minuten.",25],
+    ["Spoel ondertussen {quinoa} af en kook met {water} en {zout:0.25} 15 minuten met deksel. Laat 5 minuten staan.",15],
+    EGGS({m:8}),
+    "Meng de quinoa met {olie:0.5}, het sap van {citroen} en {zout:0.25}. Verdeel met de groente, gehalveerde eieren, {feta} en {kwark} over 2 kommen."
+  ]},
+{ id:"linzenburger", type:"diner", serves:2, time:35, t:["vega","amerikaans",0],
+  name:"Bonenburgers met zoete-aardappelpartjes", short:"Zelfgemaakte vegaburgers van zwarte bonen.",
+  items:[["zoeteaardappel",400],["olie",1.5],["zout",0.75],["paprikapoeder",1.5],["zwartebonen",240],["paneermeel",40],["ei",1],["komijn",1],["ui",0.5],["burgerbol",2],["kaasplak",40],["sla",50],["tomaat",1],["kwark",100],["mosterd",1]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    ["Snijd {zoeteaardappel} in partjes, hussel met {olie:1}, {paprikapoeder:1} en {zout:0.25} en bak 25 minuten.",25],
+    "Spoel {zwartebonen} af en prak ze fijn. Meng met {paneermeel}, {ei}, {komijn}, {paprikapoeder:0.5}, {ui} (heel fijn) en {zout:0.25}. Vorm 2 burgers.",
+    ["Bak de burgers in {olie:0.5} 4 minuten per kant op middelhoog vuur. Leg {kaasplak} erop de laatste minuut.",8],
+    "Saus: meng {kwark}, {mosterd} en {zout:0.25}. Bouw: {burgerbol}, saus, {sla}, burger, {tomaat} in plakjes."
+  ]},
+{ id:"tofuroerbak", type:"diner", serves:2, time:25, t:["vega","aziatisch",1],
+  name:"Roerbak met tofu, broccoli en pindasaus", short:"Snelle vegetarische wok met mie.",
+  items:[["mie",125],["tofu",375],["maizena",1],["olie",1.5],["broccoli",300],["paprika",1],["pindakaas",2],["sojasaus",2],["honing",0.5],["limoen",0.5],["sambal",0.5],["water",80]],
+  steps:[
+    "Breng een pan water aan de kook. Dep {tofu} droog, snijd in blokjes en hussel met {maizena}.",
+    ["Kook {mie} zo lang als op de verpakking staat (meestal 4 minuten). Giet af.",4],
+    ["Verhit {olie:1} in een wok. Bak de tofu 8 minuten tot hij goudbruin is. Schep op een bord.",8],
+    ["Bak {broccoli} (kleine roosjes) en {paprika} (reepjes) in {olie:0.5} 4 minuten.",4],
+    "Saus: roer {pindakaas}, {sojasaus}, {honing}, het sap van {limoen}, {sambal} en {water} (heet) glad.",
+    "Doe mie, tofu en saus bij de groente en schep 1 minuut om."
+  ]},
+{ id:"spinazieomeletwrap", type:"diner", serves:2, time:20, t:["vega","frans",0],
+  name:"Omeletwraps met spinazie, champignons en kaas", short:"Snel vegetarisch avondeten in 20 minuten.",
+  items:[["ei",6],["melk",50],["zout",0.5],["peper",0.25],["olie",1],["champignons",200],["spinazie",200],["kaas",60],["wraps",2],["cherrytomaat",200],["sla",75]],
+  steps:[
+    "Klop {ei} los met {melk}, {zout:0.25} en {peper}.",
+    ["Bak {champignons} (plakjes) in {olie:0.5} 4 minuten. Doe {spinazie} erbij tot hij slinkt. Bestrooi met {zout:0.25} en schep op een bord.",5],
+    ["Bak in {olie:0.5} de helft van het ei 3 minuten tot een omelet. Leg een van de {wraps} erop, druk aan en draai om. Bak 1 minuut. Herhaal met de rest.",8],
+    "Verdeel groente en {kaas} over de wraps en rol op. Eet met {cherrytomaat} en {sla}."
+  ]},
+{ id:"pastaboursin", type:"diner", serves:2, time:25, t:["vega","italiaans",0],
+  name:"Pasta met hüttenkäse, tomaat en spinazie", short:"Romige vegetarische pasta vol eiwit.",
+  items:[["zout",1.25],["pasta",180],["olie",0.5],["knoflook",2],["cherrytomaat",250],["spinazie",200],["huttenkase",200],["parmezaan",30],["peper",0.25],["basilicum",10]],
+  steps:[
+    ...PASTA({s:1, w:1}),
+    ["Bak {knoflook} (fijn) en {cherrytomaat} (gehalveerd) in {olie} 4 minuten. Doe {spinazie} erbij tot hij slinkt.",5],
+    "Zet het vuur uit. Roer {huttenkase}, {parmezaan}, {zout:0.25}, {peper} en 4 el kookwater erdoor. Meng met de pasta en strooi {basilicum} erover."
+  ]},
+{ id:"bonenstoofei", type:"diner", serves:2, time:30, t:["vega","spaans",1],
+  name:"Witte bonen in tomatensaus met eieren en brood", short:"Spaanse stoof met gerookte paprika. Vegetarisch.",
+  items:[["olie",1],["ui",1],["knoflook",2],["paprika",1],["paprikapoeder",2],["chili",0.25],["tomblokjes",400],["wittebonen",480],["spinazie",150],["zout",0.5],["ei",4],["brood",3],["peterselie",15]],
+  steps:[
+    "Snijd {ui}, {knoflook} en {paprika} fijn. Spoel {wittebonen} af.",
+    ["Verhit {olie} in een koekenpan met deksel. Bak ui, knoflook en paprika 5 minuten. Roer {paprikapoeder} en {chili} erdoor.",5],
+    ["Doe {tomblokjes}, bonen en {zout:0.25} erbij en laat 8 minuten pruttelen. Roer {spinazie} erdoor.",8],
+    ["Maak 4 kuiltjes, breek er {ei} in en bestrooi met {zout:0.25}. Deksel erop en laat 6 minuten garen.",6],
+    "Strooi {peterselie} erover en eet met {brood}."
+  ]},
+{ id:"vegachili", type:"diner", serves:2, time:35, t:["vega","mexicaans",1],
+  name:"Linzenchili met rijst en avocado", short:"Rode linzen maken deze chili dik en vullend.",
+  items:[["rijst",120],["water",680],["zout",0.75],["olie",1],["ui",1],["paprika",1],["knoflook",2],["komijn",1],["paprikapoeder",1.5],["chili",0.25],["linzen",100],["tomblokjes",400],["kidney",250],["groentebouillon",0.5],["avocado",1],["kwark",150]],
+  steps:[
+    ...RICE({w:180,s:0.25}),
+    "Snijd {ui}, {paprika} en {knoflook} fijn. Spoel {linzen} af.",
+    ["Verhit {olie} in een pan. Bak de groente 5 minuten. Roer {komijn}, {paprikapoeder} en {chili} erdoor.",5],
+    ["Doe linzen, {tomblokjes}, {kidney} (afgespoeld), {water:500}, {groentebouillon} en {zout:0.5} erbij. Laat 18 minuten zachtjes koken, af en toe roeren.",18],
+    "Eet met de rijst, {avocado} in plakjes en {kwark}."
+  ]},
+{ id:"zalmbroccolioven", type:"diner", serves:2, time:30, t:["vis","hollands",0],
+  name:"Zalm met broccoli en krieltjes van de bakplaat", short:"Simpel en gezond: alles in één keer de oven in.",
+  items:[["krieltjes",500],["broccoli",400],["olie",1.5],["zout",0.75],["peper",0.25],["zalm",250],["citroen",1],["dille",0.5],["kwark",100],["mosterd",1]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    ["Halveer {krieltjes}, hussel met {olie:1} en {zout:0.25} en bak 15 minuten.",15],
+    "Snijd {broccoli} in roosjes en hussel met {olie:0.5} en {zout:0.25}. Bestrooi {zalm} met {zout:0.25}, {peper} en {dille} en leg er plakjes {citroen:0.5} op.",
+    ["Leg broccoli en zalm bij de krieltjes en bak alles nog 12 minuten. Zalm is gaar als hij niet meer glazig is.",12],
+    "Saus: meng {kwark}, {mosterd} en het sap van {citroen:0.5}."
+  ]},
+{ id:"kabeljauwcurry2", type:"diner", serves:2, time:25, t:["vis","aziatisch",1],
+  name:"Witvis in groene curry met sperziebonen", short:"Snel Thais: vis gaart in de curry.",
+  items:[["rijst",150],["water",225],["zout",0.25],["olie",0.5],["groenecurry",1.5],["kokosmelk",400],["sperziebonen",250],["koolvis",350],["vissaus",1],["limoen",0.5],["basilicum",10]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    ["Bak {groenecurry} 1 minuut in {olie}. Giet {kokosmelk} erbij en doe {sperziebonen} (gehalveerd) erin. Laat 6 minuten koken.",7],
+    ["Leg {koolvis} in stukken erin, deksel erop en laat 6 minuten zachtjes garen.",6],
+    "Vis is gaar als hij wit is en uit elkaar valt. Roer voorzichtig {vissaus} en het sap van {limoen} erdoor. Strooi {basilicum} erover."
+  ]},
+{ id:"tonijnquinoa", type:"diner", serves:2, time:25, t:["vis","grieks",0],
+  name:"Quinoasalade met tonijn, ei en olijven", short:"Koude maaltijdsalade, ook lekker voor de volgende dag.",
+  items:[["quinoa",130],["water",260],["zout",0.5],["ei",2],["tonijn",224],["cherrytomaat",250],["komkommer",0.5],["rodeui",0.5],["olijven",50],["feta",50],["olie",1],["citroen",1],["oregano",0.5]],
+  steps:[
+    ["Spoel {quinoa} af en kook met {water} en {zout:0.25} 15 minuten met deksel. Laat afkoelen.",15],
+    EGGS({}),
+    "Snijd {cherrytomaat}, {komkommer} en {rodeui} klein. Laat {tonijn} uitlekken.",
+    "Dressing: {olie}, het sap van {citroen}, {oregano} en {zout:0.25}.",
+    "Meng alles met {olijven} en verkruimel {feta} erover. Leg de gehalveerde eieren erop."
+  ]},
+{ id:"garnalenspies", type:"diner", serves:2, time:30, t:["vis","aziatisch",1],
+  name:"Sateh van garnalen met pindasaus en rijst", short:"Garnalen in een zoete marinade, met warme pindasaus.",
+  items:[["rijst",150],["water",325],["zout",0.25],["garnalen",300],["ketjap",1],["knoflook",1],["olie",0.5],["pindakaas",2],["sambal",0.5],["sojasaus",1],["limoen",0.5],["komkommer",0.5],["sperziebonen",250]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Meng {garnalen} met {ketjap} en {knoflook} (geperst).",
+    ["Kook {sperziebonen} 7 minuten. Giet af.",7],
+    ["Bak de garnalen in {olie} 3 minuten tot ze roze zijn.",3],
+    ["Pindasaus: verwarm {pindakaas}, {sambal}, {sojasaus}, het sap van {limoen} en {water:100} in een steelpan 2 minuten.",2],
+    "Eet met rijst, bonen en {komkommer} in plakjes."
+  ]},
+{ id:"vistaco", type:"diner", serves:2, time:25, t:["vis","mexicaans",1],
+  name:"Vistaco's met witvis, rode kool en limoensaus", short:"Knapperige rode kool en zachte vis in een wrap.",
+  items:[["koolvis",350],["paprikapoeder",1],["komijn",0.5],["zout",0.5],["olie",1],["rodekool",150],["limoen",1],["kwark",100],["chili",0.25],["wraps",4],["avocado",1],["mais",140]],
+  steps:[
+    "Bestrooi {koolvis} met {paprikapoeder}, {komijn} en {zout:0.25}.",
+    ["Bak de vis in {olie} 3 minuten per kant. Vis is gaar als hij wit is en uit elkaar valt.",6],
+    "Meng {rodekool} met het sap van een halve {limoen} en {zout:0.25}. Meng {kwark} met {chili} en het sap van de rest van de limoen.",
+    ["Verwarm {wraps} 30 seconden per stuk in een droge pan.",2],
+    "Vul met vis in stukken, kool, {mais} (afgespoeld), {avocado} en saus."
+  ]},
+{ id:"zalmteriyakinoedel", type:"diner", serves:2, time:25, t:["vis","japans",0],
+  name:"Teriyaki-zalm met mie en paksoi", short:"Glanzende zalm met noedels in 25 minuten.",
+  items:[["mie",125],["zalm",250],["sojasaus",2],["honing",1],["gember",0.5],["knoflook",1],["maizena",0.5],["olie",0.5],["paksoi",300],["sesam",1],["lenteui",2]],
+  steps:[
+    "Breng een pan water aan de kook. Saus: meng {sojasaus}, {honing}, {gember}, {knoflook} (geperst), {maizena} en 3 el water.",
+    ["Kook {mie} 4 minuten. Doe {paksoi} (in stukken) de laatste minuut erbij. Giet af.",4],
+    ["Bak {zalm} in {olie} 4 minuten op het vel en 2 minuten op de andere kant.",6],
+    "Giet de saus erbij en laat 1 minuut borrelen terwijl je de zalm ermee bedruipt.",
+    "Verdeel mie en paksoi over 2 kommen, leg de zalm erop en strooi {sesam} en {lenteui} erover."
+  ]},
+{ id:"vissticksoven", type:"diner", serves:2, time:35, t:["vis","hollands",0],
+  name:"Zelfgemaakte vissticks met erwtenpuree", short:"Krokant van buiten, zacht van binnen. Kinderen vinden het ook lekker.",
+  items:[["aardappel",500],["doperwten",200],["zout",0.75],["melk",75],["koolvis",350],["ei",1],["paneermeel",50],["paprikapoeder",0.5],["olie",1],["kwark",75],["citroen",0.5],["dille",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {koolvis} in vingerdikke repen en bestrooi met {zout:0.25}. Klop {ei} los. Meng {paneermeel} met {paprikapoeder}.",
+    ["Haal de repen door ei en paneermeel. Leg ze op de bakplaat, druppel {olie} erover en bak 15 minuten, na 8 minuten draaien.",15],
+    ["Kook ondertussen {aardappel} (geschild, in vieren) 18 minuten in water met {zout:0.25}. Doe {doperwten} de laatste 4 minuten erbij.",18],
+    "Stamp aardappels en erwten met {melk} en {zout:0.25}. Saus: {kwark} met het sap van {citroen} en {dille}."
+  ]},
+{ id:"kabeljauwchorizo", type:"diner", serves:2, time:30, t:["vis","spaans",0],
+  name:"Kabeljauw met witte bonen en paprika", short:"Spaanse stoofpan met vis en bonen.",
+  items:[["olie",1],["ui",1],["knoflook",2],["paprika",1],["paprikapoeder",2],["tomblokjes",400],["wittebonen",240],["spinazie",150],["kabeljauw",350],["zout",0.75],["peterselie",15],["brood",2]],
+  steps:[
+    "Snijd {ui}, {knoflook} en {paprika} fijn.",
+    ["Bak de groente in {olie} 5 minuten. Roer {paprikapoeder} erdoor. Doe {tomblokjes}, {wittebonen} (afgespoeld) en {zout:0.5} erbij en laat 5 minuten pruttelen.",10],
+    "Roer {spinazie} erdoor. Leg {kabeljauw} in stukken op de saus en bestrooi met {zout:0.25}.",
+    ["Deksel erop en laat 7 minuten zachtjes garen. Vis is gaar als hij wit is en uit elkaar valt.",7],
+    "Strooi {peterselie} erover en eet met {brood}."
+  ]},
+{ id:"garnalenorzo", type:"diner", serves:2, time:25, t:["vis","grieks",0],
+  name:"Orzo met garnalen, tomaat en feta", short:"Griekse one-pot met citroen en dille.",
+  items:[["olie",1],["ui",1],["knoflook",2],["orzo",160],["tomblokjes",400],["water",350],["groentebouillon",0.5],["garnalen",250],["spinazie",100],["feta",75],["citroen",0.5],["dille",0.5],["zout",0.25]],
+  steps:[
+    ["Bak {ui} en {knoflook} (fijn) 3 minuten in {olie}. Doe {orzo} erbij en roer 1 minuut.",4],
+    ["Doe {tomblokjes}, {water}, {groentebouillon} en {zout} erbij. Laat 10 minuten zachtjes koken met deksel, af en toe roeren.",10],
+    ["Doe {garnalen} en {spinazie} erbij en laat 3 minuten garen tot de garnalen roze zijn.",3],
+    "Verkruimel {feta} erover, knijp {citroen} erboven uit en strooi {dille} erover."
+  ]},
+{ id:"zalmcurry", type:"diner", serves:2, time:30, t:["vis","indiaas",1],
+  name:"Zalm-tikka met spinazierijst", short:"Kruidige zalm uit de oven met groene rijst.",
+  items:[["rijst",150],["water",225],["zout",0.75],["zalm",250],["kwark",150],["garam",1],["paprikapoeder",1],["kurkuma",0.25],["knoflook",1],["citroen",0.5],["spinazie",200],["komkommer",0.5]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C).",
+    ...RICE({w:225,s:0.25}),
+    "Meng {kwark:50} met {garam}, {paprikapoeder}, {kurkuma}, {knoflook} (geperst) en {zout:0.25}. Smeer over {zalm}.",
+    ["Bak de zalm 12 minuten op bakpapier. Gaar als hij niet meer glazig is.",12],
+    "Roer {spinazie} door de hete rijst tot hij slinkt.",
+    "Raita: rasp {komkommer}, knijp uit en meng met {kwark:100}, het sap van {citroen} en {zout:0.25}."
+  ]},
+{ id:"tofuburrito", type:"diner", serves:2, time:25, t:["vega","mexicaans",1],
+  name:"Burrito's met gekruide tofu en bonen", short:"Vegetarisch, met tofu als 'gehakt'.",
+  items:[["tofu",375],["olie",1],["komijn",1],["paprikapoeder",1.5],["chili",0.25],["sojasaus",1],["ui",1],["paprika",1],["zwartebonen",240],["wraps",4],["kaas",40],["sla",50],["kwark",100],["tomaat",1]],
+  steps:[
+    "Dep {tofu} droog en verkruimel met je handen. Snijd {ui} en {paprika} fijn.",
+    ["Bak tofu in {olie} 6 minuten op hoog vuur tot hij goudbruin is. Doe ui en paprika erbij en bak 4 minuten.",10],
+    ["Roer {komijn}, {paprikapoeder}, {chili}, {sojasaus} en {zwartebonen} (afgespoeld) erdoor en bak 2 minuten.",2],
+    ["Verwarm {wraps} 30 seconden per stuk.",2],
+    "Vul met tofu, {sla}, {tomaat}, {kaas} en {kwark} en rol op."
+  ]},
+{ id:"groentelasagne", type:"diner", serves:2, time:55, t:["vega","italiaans",0],
+  name:"Groentelasagne met courgette en hüttenkäse", short:"Vegetarische lasagne met hüttenkäse.",
+  items:[["olie",1],["ui",1],["knoflook",2],["courgette",1],["paprika",1],["champignons",200],["passata",500],["italiaans",1],["zout",0.5],["huttenkase",200],["ei",1],["spinazie",150],["lasagne",125],["mozzarella",125]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Snijd {ui}, {knoflook}, {courgette}, {paprika} en {champignons} klein.",
+    ["Bak de groente in {olie} 8 minuten. Roer {passata}, {italiaans} en {zout:0.25} erdoor en laat 5 minuten pruttelen.",13],
+    "Witte laag: meng {huttenkase}, {ei}, {spinazie} (fijngesneden) en {zout:0.25}.",
+    "Bouw in een ovenschaal: saus, {lasagne}, witte laag. Herhaal en eindig met saus. Leg {mozzarella} in stukjes erop.",
+    ["Bak 30 minuten. Prik met een mes: gaat het makkelijk door de bladen, dan is hij klaar.",30]
+  ]},
+{ id:"zoeteaardappelcurry", type:"diner", serves:2, time:35, t:["vega","indiaas",1],
+  name:"Zoete aardappel-spinaziecurry met kikkererwten", short:"Romige vegetarische curry met kokos.",
+  items:[["rijst",120],["water",180],["zout",0.75],["olie",1],["ui",1],["knoflook",2],["gember",1],["kerrie",2],["zoeteaardappel",300],["kikkererwten",480],["kokosmelk",200],["tomblokjes",200],["spinazie",150],["kwark",150]],
+  steps:[
+    ...RICE({w:180,s:0.25}),
+    "Snijd {ui} en {knoflook} fijn. Schil {zoeteaardappel} en snijd in blokjes van 1,5 cm. Spoel {kikkererwten} af.",
+    ["Bak ui in {olie} 3 minuten. Doe knoflook, {gember} en {kerrie} erbij en bak 1 minuut.",4],
+    ["Doe zoete aardappel, kikkererwten, {kokosmelk}, {tomblokjes} en {zout:0.5} erbij. Deksel erop en laat 15 minuten zachtjes koken.",15],
+    "Roer {spinazie} erdoor tot hij slinkt. Eet met de rijst en {kwark}."
+  ]},
+{ id:"eiernoedels", type:"diner", serves:2, time:20, t:["vega","aziatisch",1],
+  name:"Mie met ei, edamame en sesam", short:"Klaar in 20 minuten, vegetarisch en vol eiwit.",
+  items:[["mie",150],["edamame",200],["ei",4],["olie",1],["knoflook",2],["wokgroente",400],["sojasaus",2],["ketjap",1],["sambal",0.5],["sesam",1],["lenteui",2]],
+  steps:[
+    "Breng een pan water aan de kook.",
+    ["Kook {mie} en {edamame} samen 4 minuten. Giet af.",4],
+    ["Klop {ei} los. Bak in {olie:0.5} in een wok al roerend 2 minuten tot roerei. Schep op een bord.",2],
+    ["Bak {knoflook} (fijn) en {wokgroente} in {olie:0.5} 4 minuten op hoog vuur.",4],
+    "Doe mie, edamame, ei, {sojasaus}, {ketjap} en {sambal} erbij en schep 1 minuut om. Strooi {sesam} en {lenteui} erover."
+  ]},
+{ id:"risottopaddestoel", type:"diner", serves:2, time:40, t:["vega","italiaans",0],
+  name:"Champignonrisotto met witte bonen en Parmezaan", short:"Romige vegetarische risotto met extra eiwit.",
+  items:[["groentebouillon",1],["water",800],["ui",1],["knoflook",2],["champignons",300],["olie",1],["tijm",0.5],["risottorijst",160],["wittebonen",240],["spinazie",100],["parmezaan",40],["peper",0.25]],
+  steps:[
+    "Los {groentebouillon} op in {water} (heet) en houd warm. Snijd {ui} en {knoflook} fijn en {champignons} in plakjes.",
+    ["Bak ui, knoflook, champignons en {tijm} 5 minuten in {olie}. Doe {risottorijst} erbij en roer 1 minuut.",6],
+    ["Giet een soeplepel bouillon erbij. Roer tot het bijna weg is, dan de volgende lepel. Zo 18 tot 20 minuten door tot de rijst zacht is.",19],
+    "Roer {wittebonen} (afgespoeld), {spinazie}, {parmezaan} en {peper} erdoor. Deksel erop en 2 minuten laten staan."
+  ]},
+{ id:"spinaziequiche", type:"diner", serves:2, time:45, t:["vega","frans",0],
+  name:"Hartige taart zonder bodem met spinazie en feta", short:"Vegetarisch, met een salade en brood.",
+  items:[["olie",0.5],["ui",1],["spinazie",300],["ei",5],["melk",100],["feta",100],["nootmuskaat",0.25],["peper",0.25],["cherrytomaat",150],["sla",100],["brood",2]],
+  steps:[
+    "Zet de oven aan op 190 °C (hetelucht 170 °C). Vet een ovenschaal of taartvorm (±22 cm) in met een beetje van de {olie}.",
+    ["Bak {ui} (fijn) 3 minuten in de rest van de olie. Laat {spinazie} erin slinken en knijp het vocht eruit.",5],
+    "Klop {ei} met {melk}, {nootmuskaat} en {peper} los. Roer spinazie en {feta} (verkruimeld) erdoor. Giet in de vorm en leg {cherrytomaat} (gehalveerd) erop.",
+    ["Bak 30 minuten tot de taart in het midden stevig is.",30],
+    "Eet met {sla} en {brood}."
+  ]},
+{ id:"makreelbiet", type:"diner", serves:2, time:25, t:["vis","hollands",0],
+  name:"Gerookte zalm met bietjessalade en krieltjes", short:"Frisse, koude schotel met een mosterd-dillesaus.",
+  items:[["krieltjes",500],["zout",0.5],["bietjes",250],["appel",1],["rodeui",0.5],["azijn",1],["gerooktezalm",200],["kwark",150],["mosterd",2],["dille",0.5],["sla",75]],
+  steps:[
+    ["Halveer {krieltjes} en kook 15 minuten in water met {zout:0.25}. Giet af.",15],
+    "Snijd {bietjes} en {appel} in blokjes en {rodeui} heel fijn. Meng met {azijn} en {zout:0.25}.",
+    "Saus: meng {kwark}, {mosterd} en {dille}.",
+    "Verdeel {sla}, krieltjes, bietjessalade en {gerooktezalm} over 2 borden. Schep de saus erbij."
+  ]},
+{ id:"tonijnwraps", type:"diner", serves:2, time:15, t:["vis","amerikaans",0],
+  name:"Warme tonijn-melts in een wrap", short:"Tonijn met kaas, krokant gebakken. Klaar in 15 minuten.",
+  items:[["tonijn",224],["kwark",75],["mosterd",1],["rodeui",0.5],["mais",140],["peper",0.25],["wraps",4],["kaas",60],["sla",100],["tomaat",2],["komkommer",0.5]],
+  steps:[
+    "Meng uitgelekte {tonijn} met {kwark}, {mosterd}, {rodeui} (heel fijn), {mais} (afgespoeld) en {peper}.",
+    "Verdeel over de helft van de {wraps}, strooi {kaas} erover en vouw dicht.",
+    ["Bak ze 2 voor 2 in een droge koekenpan, 3 minuten per kant.",12],
+    "Eet met {sla}, {tomaat} en {komkommer} in stukjes."
+  ]},
+{ id:"kikkerpasta", type:"diner", serves:2, time:25, t:["vega","italiaans",1],
+  name:"Pasta arrabbiata met kikkererwten en mozzarella", short:"Pittig, vegetarisch en lekker vullend.",
+  items:[["zout",1.25],["pasta",160],["olie",0.5],["knoflook",3],["chili",0.25],["tompuree",35],["tomblokjes",400],["kikkererwten",240],["italiaans",1],["mozzarella",125],["basilicum",10]],
+  steps:[
+    ...PASTA({s:1}),
+    ["Bak {knoflook} (plakjes) en {chili} 1 minuut in {olie}. Roer {tompuree} erdoor.",1],
+    ["Doe {tomblokjes}, {kikkererwten} (afgespoeld), {italiaans} en {zout:0.25} erbij en laat 10 minuten pruttelen.",10],
+    "Meng met de pasta. Scheur {mozzarella} erover en strooi {basilicum} erop."
+  ]},
+{ id:"bloemkoolsteak", type:"diner", serves:2, time:40, t:["vega","midden-oosten",0],
+  name:"Geroosterde bloemkool met linzen en knoflooksaus", short:"Vegetarisch feestje: geroosterde bloemkool met linzen.",
+  items:[["bloemkool",600],["olie",1.5],["komijn",1],["paprikapoeder",1],["zout",0.75],["linzen",120],["groentebouillon",0.5],["water",350],["kwark",150],["pindakaas",1],["citroen",1],["knoflook",1],["peterselie",15],["feta",50]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Leg bakpapier op een bakplaat.",
+    ["Snijd {bloemkool} in dikke plakken en roosjes. Hussel met {olie:1}, {komijn}, {paprikapoeder} en {zout:0.25}. Rooster 30 minuten.",30],
+    ["Kook ondertussen {linzen} (afgespoeld) 12 minuten in {water} met {groentebouillon} tot ze zacht maar nog heel zijn. Giet af.",12],
+    "Meng de linzen met {olie:0.5}, het sap van een halve {citroen}, {peterselie} en {zout:0.25}.",
+    "Saus: meng {kwark}, {pindakaas}, {knoflook} (geperst), het sap van de rest van de citroen en {zout:0.25}.",
+    "Leg de bloemkool op de linzen, schep de saus erover en verkruimel {feta} erop."
+  ]}
+,
+/* ============ Avondeten d07: doordeweekse vleesgerechten ============ */
+{ id:"honingmosterdkip", type:"diner", serves:2, time:35, t:["kip","hollands",0],
+  name:"Honing-mosterdkip met krieltjes en sperziebonen", short:"Zoet-hartige saus die iedereen lekker vindt.",
+  items:[["krieltjes",500],["olie",1.5],["zout",0.75],["kipfilet",350],["peper",0.25],["honing",1],["mosterd",3],["kookroom",100],["sperziebonen",300]],
+  steps:[
+    ["Halveer {krieltjes}. Bak in {olie:1} met {zout:0.25} in een pan met deksel 10 minuten, daarna 10 minuten zonder.",20],
+    ["Kook ondertussen {sperziebonen} 7 minuten in water met {zout:0.25}. Giet af.",7],
+    "Snijd {kipfilet} in repen. Bestrooi met {zout:0.25} en {peper}.",
+    ["Bak de kip in {olie:0.5} 6 minuten. Roer {honing}, {mosterd} en {kookroom} erdoor en laat 2 minuten pruttelen.",8],
+    GAAR
+  ]},
+{ id:"gehaktschotelbroc", type:"diner", serves:2, time:40, t:["rund","hollands",0],
+  name:"Broccoli-gehaktschotel met krieltjes en kaas", short:"Makkelijke ovenschotel voor doordeweeks.",
+  items:[["krieltjes",500],["olie",1],["zout",0.75],["gehakt",250],["ui",1],["paprikapoeder",1],["broccoli",400],["kookroom",150],["nootmuskaat",0.25],["kaas",50]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Halveer {krieltjes}, hussel in een ovenschaal met {olie:0.5} en {zout:0.25} en bak 20 minuten.",20],
+    ["Bak ondertussen {gehakt} en {ui} (fijn) in {olie:0.5} 6 minuten tot er geen roze meer te zien is. Roer {paprikapoeder} en {zout:0.25} erdoor.",6],
+    ["Kook {broccoli} in roosjes 3 minuten. Giet af.",3],
+    "Schep gehakt en broccoli door de krieltjes. Meng {kookroom} met {nootmuskaat} en {zout:0.25}, giet erover en strooi {kaas} erop.",
+    ["Bak nog 15 minuten.",15]
+  ]},
+{ id:"varkenshaaspaprika", type:"diner", serves:2, time:30, t:["varken","hollands",0],
+  name:"Varkenshaas-reepjes met paprikaroomsaus en rijst", short:"Mals vlees in een romige paprikasaus.",
+  items:[["rijst",150],["water",225],["zout",0.75],["varkenshaas",300],["paprikapoeder",2],["olie",1],["ui",1],["paprika",2],["kookroom",150],["tompuree",35],["peper",0.25]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {varkenshaas} in reepjes en bestrooi met {paprikapoeder:1} en {zout:0.25}. Snijd {ui} en {paprika} in reepjes.",
+    ["Bak het vlees in {olie:0.5} op hoog vuur 3 minuten. Schep op een bord.",3],
+    ["Bak ui en paprika in {olie:0.5} 5 minuten. Roer {tompuree} en {paprikapoeder:1} erdoor. Doe {kookroom}, {zout:0.25}, {peper} en het vlees erbij en laat 3 minuten pruttelen.",8],
+    "Check: het vlees mag van binnen licht roze zijn, maar niet rood. Eet met de rijst."
+  ]},
+{ id:"kipsate2", type:"diner", serves:2, time:40, t:["kip","aziatisch",0],
+  name:"Kipdij-saté uit de oven met atjar en rijst", short:"Ketjap-gemarineerde kip met frisse komkommer-atjar.",
+  items:[["kipdij",400],["ketjap",2],["knoflook",2],["koriander",1],["rijst",150],["water",325],["zout",0.25],["pindakaas",2],["sambal",0.5],["komkommer",1],["azijn",2],["honing",0.5],["sperziebonen",200]],
+  steps:[
+    "Zet de oven aan op 220 °C (hetelucht 200 °C). Snijd {kipdij} in stukken en meng met {ketjap:1}, {knoflook} (geperst) en {koriander}.",
+    ["Bak de kip 20 minuten op bakpapier.",20],
+    ...RICE({w:225,s:0.25}),
+    "Atjar: snijd {komkommer} in dunne plakjes en meng met {azijn} en {honing}.",
+    ["Kook {sperziebonen} 7 minuten. Pindasaus: verwarm {pindakaas}, {ketjap:1}, {sambal} en {water:100} 2 minuten.",7],
+    GAAR
+  ]},
+{ id:"goulashsoep", type:"diner", serves:2, time:50, t:["rund","oost-europees",1],
+  name:"Goulashsoep met rundvlees en brood", short:"Dikke Hongaarse soep. Een maaltijd op zich.",
+  items:[["stoofvlees",300],["olie",1],["ui",2],["paprika",2],["knoflook",2],["paprikapoeder",3],["komijn",0.5],["tompuree",70],["aardappel",300],["water",800],["runderbouillon",1],["chili",0.25],["brood",4],["kwark",100]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 1,5 cm, {ui} en {paprika} in stukjes, {knoflook} fijn en {aardappel} (geschild) in blokjes.",
+    ["Bak het vlees in {olie} 5 minuten bruin. Doe ui en paprika erbij en bak 4 minuten. Roer {paprikapoeder}, {komijn}, {chili} en {tompuree} erdoor.",9],
+    ["Doe {water}, {runderbouillon} en knoflook erbij. Deksel erop en laat 25 minuten zachtjes koken.",25],
+    ["Doe de aardappel erbij en kook nog 15 minuten tot vlees en aardappel zacht zijn.",15],
+    "Eet met {brood} en een schep {kwark}."
+  ]},
+{ id:"kalkoenkerrie", type:"diner", serves:2, time:30, t:["kip","hollands",0],
+  name:"Kalkoen-kerrie met ananas en rijst", short:"Mild en een beetje zoet.",
+  items:[["rijst",150],["water",325],["zout",0.75],["kalkoen",350],["olie",1],["ui",1],["paprika",1],["kerrie",2],["ananas",140],["kookroom",100],["maizena",0.5],["bouillon",0.5]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {kalkoen} in blokjes en {ui} en {paprika} in stukjes.",
+    ["Bak kalkoen in {olie} 5 minuten. Doe ui, paprika en {kerrie} erbij en bak 3 minuten.",8],
+    ["Doe {ananas}, {kookroom}, {water:100}, {bouillon} en {zout:0.5} erbij. Roer {maizena} los in 1 el water en roer erdoor. Laat 3 minuten pruttelen.",3],
+    "Check of de kalkoen gaar is: snijd een stukje door, het moet helemaal wit zijn. Eet met de rijst."
+  ]},
+{ id:"stoofpotje", type:"diner", serves:2, time:70, t:["rund","hollands",0],
+  name:"Hollands stoofvlees met aardappelen en rode kool", short:"Weekendklassieker: lang stoven, weinig werk.",
+  items:[["stoofvlees",350],["olie",1],["ui",2],["laurier",1],["kruidnagel",2],["runderbouillon",1],["water",350],["azijn",1],["honing",1],["mosterd",1],["maizena",1],["aardappel",500],["zout",0.5],["rodekool",350],["appel",1]],
+  steps:[
+    "Snijd {stoofvlees} in blokjes van 3 cm en {ui} in halve ringen.",
+    ["Bak het vlees in {olie} 5 minuten bruin. Doe ui erbij en bak 3 minuten.",8],
+    ["Doe {laurier}, {kruidnagel}, {water}, {runderbouillon}, {azijn}, {honing} en {mosterd} erbij. Deksel erop en laat 60 minuten heel zachtjes stoven.",60],
+    ["Stoof ondertussen {rodekool} met {appel} (blokjes) en 3 el water 20 minuten. Kook {aardappel} (geschild) 20 minuten in water met {zout}.",20],
+    "Haal laurier en kruidnagels eruit. Roer {maizena} los in 2 el water en roer door het vlees tot de jus dik is."
+  ]},
+{ id:"kipwraps", type:"diner", serves:2, time:20, t:["kip","mexicaans",0],
+  name:"Krokante kipwraps met avocado en salsa", short:"Snel avondeten voor een drukke dag.",
+  items:[["kipfilet",300],["paprikapoeder",1],["komijn",0.5],["zout",0.5],["olie",1],["wraps",4],["avocado",1],["tomaat",2],["rodeui",0.5],["limoen",0.5],["sla",75],["kaas",40]],
+  steps:[
+    "Snijd {kipfilet} in reepjes. Bestrooi met {paprikapoeder}, {komijn} en {zout:0.25}.",
+    ["Bak in {olie} 6 minuten tot hij helemaal wit is, zonder roze.",6],
+    "Salsa: snijd {tomaat} en {rodeui} fijn, meng met het sap van {limoen} en {zout:0.25}.",
+    "Vul {wraps} met {sla}, kip, {avocado} in plakjes, salsa en {kaas}. Vouw dicht.",
+    ["Bak de wraps 1 minuut per kant in een droge pan tot ze krokant zijn.",4]
+  ]},
+{ id:"gehaktnasi", type:"diner", serves:2, time:35, t:["rund","aziatisch",1],
+  name:"Nasi met gehakt, ei en atjar", short:"Gebakken rijst met kruidig gehakt.",
+  items:[["rijst",150],["water",225],["zout",0.25],["gehakt",250],["olie",1],["ui",1],["knoflook",2],["prei",1],["kerrie",1],["sambal",0.5],["ketjap",2],["ei",2],["komkommer",0.5],["azijn",1]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Laat de rijst afkoelen. Snijd {ui} en {knoflook} fijn en {prei} in ringen.",
+    ["Bak {gehakt} in {olie:0.5} 5 minuten los tot er geen roze meer te zien is. Doe ui, knoflook, prei, {kerrie} en {sambal} erbij en bak 4 minuten.",9],
+    ["Doe de rijst en {ketjap} erbij en bak 3 minuten.",3],
+    ["Bak {ei} in {olie:0.5} tot spiegeleieren.",3],
+    "Atjar: {komkommer} in dunne plakjes met {azijn}. Eet de nasi met een ei erop."
+  ]},
+{ id:"kipcurrywit", type:"diner", serves:2, time:25, t:["kip","indiaas",0],
+  name:"Snelle kip-kerrie met bloemkoolrijst en naanwrap", short:"Romige curry met minder koolhydraten.",
+  items:[["kipfilet",350],["olie",1],["ui",1],["kerrie",2],["garam",0.5],["tomblokjes",200],["kokosmelk",200],["zout",0.75],["bloemkool",500],["wraps",2],["kwark",100]],
+  steps:[
+    "Snijd {kipfilet} in blokjes en {ui} fijn. Rasp {bloemkool} grof tot 'rijst'.",
+    ["Bak ui in {olie:0.5} 3 minuten. Doe kip, {kerrie} en {garam} erbij en bak 5 minuten.",8],
+    ["Doe {tomblokjes}, {kokosmelk} en {zout:0.5} erbij en laat 7 minuten pruttelen.",7],
+    ["Bak de bloemkoolrijst in {olie:0.5} met {zout:0.25} 5 minuten.",5],
+    ["Verwarm {wraps} 30 seconden per stuk.",1],
+    GAAR + " Eet met {kwark}."
+  ]},
+{ id:"lamskoftekip", type:"diner", serves:2, time:30, t:["kip","midden-oosten",0],
+  name:"Kipgehaktballetjes met hummus, couscous en salade", short:"Kruidige balletjes met frisse groente.",
+  items:[["kipgehakt",350],["komijn",1],["paprikapoeder",1],["peterselie",15],["zout",0.5],["olie",1],["groentebouillon",0.5],["water",190],["couscous",150],["hummus",80],["tomaat",2],["komkommer",0.5],["citroen",0.5]],
+  steps:[
+    "Meng {kipgehakt} met {komijn}, {paprikapoeder}, de helft van de {peterselie} (fijn) en {zout:0.25}. Rol er 14 balletjes van.",
+    ["Bak de balletjes in {olie} 8 minuten rondom bruin, op middelhoog vuur.",8],
+    "Snijd een balletje door: helemaal wit, zonder roze = gaar.",
+    COUS({}),
+    "Salade: {tomaat} en {komkommer} in blokjes met het sap van {citroen}, de rest van de peterselie en {zout:0.25}. Eet met {hummus}."
+  ]},
+{ id:"biefstukwok", type:"diner", serves:2, time:25, t:["rund","aziatisch",0],
+  name:"Biefstukreepjes met broccoli en oestersaus", short:"Snelle Chinese wok met rijst.",
+  items:[["rijst",150],["water",225],["zout",0.25],["runderreepjes",300],["maizena",1],["sojasaus",2],["oestersaus",2],["honing",0.5],["olie",1],["knoflook",2],["broccoli",400]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Hussel {runderreepjes} met {maizena:0.5} en {sojasaus:1}. Saus: {sojasaus:1}, {oestersaus}, {honing}, {maizena:0.5} en 5 el water.",
+    ["Kook {broccoli} in roosjes 3 minuten. Giet af.",3],
+    ["Bak het vlees in {olie} op het hoogste vuur 2 minuten. Doe {knoflook} (fijn) en broccoli erbij en bak 1 minuut.",3],
+    "Giet de saus erbij en bak 1 minuut tot hij glanst. Eet met de rijst."
+  ]},
+{ id:"kipfajitarijst", type:"diner", serves:2, time:35, t:["kip","mexicaans",1],
+  name:"Mexicaanse kiprijst uit één pan", short:"Rijst, kip, bonen en kaas. Eén pan afwas.",
+  items:[["kipfilet",300],["olie",1],["ui",1],["paprika",1],["komijn",1],["paprikapoeder",1.5],["chili",0.25],["rijst",150],["tomblokjes",200],["water",300],["bouillon",0.5],["zwartebonen",240],["kaas",40],["kwark",100],["zout",0.25]],
+  steps:[
+    "Snijd {kipfilet} in blokjes, {ui} en {paprika} fijn. Spoel {rijst} af.",
+    ["Bak kip in {olie} 4 minuten. Doe ui, paprika, {komijn}, {paprikapoeder} en {chili} erbij en bak 2 minuten.",6],
+    "Doe rijst, {tomblokjes}, {water}, {bouillon} en {zout} erbij en breng aan de kook.",
+    ["Vuur laag, deksel erop, 15 minuten garen. Roer {zwartebonen} (afgespoeld) erdoor en laat 3 minuten staan.",18],
+    "Check: rijst zacht en kip helemaal wit. Strooi {kaas} erover en eet met {kwark}."
+  ]},
+{ id:"gehaktspaghettiveg", type:"diner", serves:2, time:30, t:["rund","italiaans",0],
+  name:"Spaghetti met gehakt en verstopte groente", short:"Bolognese met wortel, courgette en paprika erin.",
+  items:[["zout",1.25],["spaghetti",160],["olie",0.5],["gehakt",250],["ui",1],["knoflook",2],["wortel",150],["courgette",1],["paprika",1],["tomblokjes",400],["tompuree",35],["italiaans",1.5],["parmezaan",20]],
+  steps:[
+    ...PASTA({s:1, k:"spaghetti"}),
+    "Snijd {ui} en {knoflook} fijn en rasp {wortel}, {courgette} en {paprika} grof.",
+    ["Bak {gehakt} in {olie} 5 minuten los tot er geen roze meer te zien is. Doe de groente erbij en bak 5 minuten.",10],
+    ["Roer {tompuree}, {tomblokjes}, {italiaans} en {zout:0.25} erdoor. Laat 10 minuten pruttelen.",10],
+    "Eet met de spaghetti en {parmezaan}."
+  ]},
+{ id:"kipdijtraybake", type:"diner", serves:2, time:45, t:["kip","amerikaans",0],
+  name:"Kipdijen met pompoen, rode ui en rozemarijn", short:"Herfst op één bakplaat.",
+  items:[["kipdij",400],["pompoen",500],["rodeui",1],["krieltjes",300],["olie",1.5],["rozemarijn",1],["knoflook",3],["zout",0.75],["peper",0.25],["honing",0.5],["spinazie",100]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier op een bakplaat.",
+    "Schil {pompoen} en snijd in blokken van 3 cm. Halveer {krieltjes}. Snijd {rodeui} in partjes.",
+    "Hussel groente, {kipdij} en {knoflook} (heel) met {olie}, {rozemarijn}, {zout} en {peper}.",
+    ["Bak 35 minuten. Druppel {honing} over de pompoen de laatste 5 minuten.",35],
+    GAAR + " Schep {spinazie} erdoor, die slinkt door de warmte."
+  ]},
+{ id:"schnitzelstamp", type:"diner", serves:2, time:35, t:["varken","hollands",0],
+  name:"Varkensschnitzel met spinaziestamppot", short:"Krokante schnitzel uit de pan op een groene stamppot.",
+  items:[["varkenshaas",300],["ei",1],["paneermeel",40],["zout",0.75],["peper",0.25],["olie",1.5],["aardappel",600],["spinazie",200],["melk",75],["nootmuskaat",0.25],["citroen",0.5]],
+  steps:[
+    ["Schil {aardappel}, snijd in vieren en kook in water met {zout:0.25} 20 minuten.",20],
+    "Snijd {varkenshaas} in 4 plakken en sla ze plat tot ½ cm. Bestrooi met {zout:0.25} en {peper}. Haal door losgeklopt {ei} en daarna door {paneermeel}.",
+    ["Bak in {olie} op middelhoog vuur 3 minuten per kant tot goudbruin.",6],
+    "Snijd een schnitzel door: licht roze mag, rood niet.",
+    "Giet de aardappelen af. Stamp met {melk}, {nootmuskaat}, {zout:0.25} en rauwe {spinazie} tot hij slinkt. Eet met partjes {citroen}."
+  ]},
+{ id:"thaigehaktsla", type:"diner", serves:2, time:25, t:["kip","aziatisch",2],
+  name:"Larb: Thaise kipgehaktsalade met rijst", short:"Fris, pittig en licht. Met limoen en verse kruiden.",
+  items:[["rijst",150],["water",225],["zout",0.25],["kipgehakt",350],["olie",0.5],["knoflook",2],["vissaus",1.5],["limoen",1],["sambal",1],["honing",0.5],["rodeui",0.5],["basilicum",15],["sla",100],["komkommer",0.5]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    ["Bak {kipgehakt} met {knoflook} (fijn) in {olie} 6 minuten los tot het helemaal wit is, zonder roze.",6],
+    "Zet het vuur uit. Roer {vissaus}, het sap van {limoen}, {sambal}, {honing}, {rodeui} (heel fijn) en {basilicum} erdoor.",
+    "Schep op blaadjes {sla} en eet met de rijst en {komkommer}."
+  ]},
+{ id:"hamburgerbowl", type:"diner", serves:2, time:30, t:["rund","amerikaans",0],
+  name:"Burgerbowl met krieltjes en speciale saus", short:"Alles van een hamburger, zonder broodje.",
+  items:[["krieltjes",500],["olie",1],["zout",0.75],["paprikapoeder",1],["gehakt",300],["peper",0.25],["sla",100],["tomaat",2],["rodeui",0.5],["kaas",40],["kwark",100],["mosterd",1],["bbqsaus",1]],
+  steps:[
+    ["Halveer {krieltjes}. Bak in {olie} met {zout:0.25} en {paprikapoeder} in een pan met deksel 10 minuten, daarna 10 minuten zonder.",20],
+    "Vorm van {gehakt} met {zout:0.25} en {peper} 2 burgers.",
+    ["Bak de burgers in een droge koekenpan 4 minuten per kant. Snijd een burger door: geen roze meer = gaar.",8],
+    "Saus: meng {kwark}, {mosterd}, {bbqsaus} en {zout:0.25}.",
+    "Verdeel {sla}, krieltjes, {tomaat}, {rodeui} en de burger in stukken over 2 kommen. Strooi {kaas} erover en schep de saus erop."
+  ]},
+{ id:"kipcordonbleu", type:"diner", serves:2, time:40, t:["kip","frans",0],
+  name:"Kip cordon bleu uit de oven met sperziebonen", short:"Kip gevuld met ham en kaas, krokant gebakken.",
+  items:[["kipfilet",350],["hamblokjes",60],["kaasplak",40],["ei",1],["paneermeel",40],["zout",0.75],["olie",1],["aardappel",500],["sperziebonen",300],["melk",50]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C). Leg bakpapier op een bakplaat.",
+    "Snijd {kipfilet} aan de zijkant in, zodat je een zakje krijgt. Vul met {kaasplak} en {hamblokjes}. Bestrooi met {zout:0.25}.",
+    "Haal de kip door losgeklopt {ei} en daarna door {paneermeel}. Leg op de bakplaat en druppel {olie} erover.",
+    ["Bak 25 minuten.",25],
+    ["Kook ondertussen {aardappel} (geschild) 20 minuten in water met {zout:0.25}. Kook {sperziebonen} 7 minuten.",20],
+    GAAR + " Stamp de aardappelen met {melk} en {zout:0.25}."
+  ]},
+{ id:"kipgyrosoven", type:"diner", serves:2, time:35, t:["kip","grieks",0],
+  name:"Gyros-ovenschotel met kip, tomaat en kaas", short:"Griekse snackbar-favoriet, nu uit de oven.",
+  items:[["kipdij",350],["paprikapoeder",1.5],["oregano",1],["knoflookpoeder",0.5],["komijn",0.5],["zout",0.75],["olie",1],["ui",1],["tomaat",2],["kaas",50],["kwark",150],["komkommer",0.5],["knoflook",1],["pita",2]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    "Snijd {kipdij} in reepjes. Meng met {paprikapoeder}, {oregano}, {knoflookpoeder}, {komijn} en {zout:0.5}.",
+    ["Bak de kip met {ui} (halve ringen) in {olie} 7 minuten.",7],
+    "Schep in een ovenschaal, leg {tomaat} in plakjes erop en strooi {kaas} erover.",
+    ["Bak 12 minuten.",12],
+    "Tzatziki: rasp {komkommer}, knijp uit en meng met {kwark}, {knoflook} (geperst) en {zout:0.25}. " + GAAR + " Eet met {pita}."
+  ]},
+{ id:"ketjapvarkenshaas", type:"diner", serves:2, time:30, t:["varken","aziatisch",0],
+  name:"Varkenshaas in ketjap met paksoi en rijst", short:"Mals vlees in een zoete glanzende saus.",
+  items:[["rijst",150],["water",225],["zout",0.25],["varkenshaas",300],["olie",1],["knoflook",2],["gember",0.5],["ketjap",2],["sojasaus",1],["paksoi",300],["sesam",1]],
+  steps:[
+    ...RICE({w:225,s:0.25}),
+    "Snijd {varkenshaas} in plakjes van 1 cm.",
+    ["Bak het vlees in {olie} op hoog vuur 2 minuten per kant. Doe {knoflook} (fijn) en {gember} erbij.",4],
+    ["Doe {ketjap}, {sojasaus} en 3 el water erbij en laat 1 minuut inkoken. Schep op een bord.",1],
+    ["Bak {paksoi} (in stukken) 2 minuten in dezelfde pan.",2],
+    "Check: licht roze mag, rood niet. Strooi {sesam} erover en eet met de rijst."
+  ]},
+{ id:"kipsoepvermicelli", type:"diner", serves:2, time:35, t:["kip","hollands",0],
+  name:"Stevige kippensoep met mie en groente", short:"Hollandse kippensoep als maaltijd.",
+  items:[["kipfilet",300],["water",1000],["bouillon",1],["prei",1],["wortel",150],["champignons",150],["laurier",1],["mie",80],["peterselie",15],["brood",3]],
+  steps:[
+    "Snijd {prei} in ringen, {wortel} in plakjes en {champignons} in vieren.",
+    ["Breng {water} met {bouillon} en {laurier} aan de kook. Leg {kipfilet} erin en laat 12 minuten zachtjes koken.",12],
+    GAAR,
+    "Haal de kip eruit en trek in draadjes.",
+    ["Doe groente en {mie} (in stukjes gebroken) in de soep en kook 5 minuten. Doe de kip terug.",5],
+    "Strooi {peterselie} erover en eet met {brood}."
+  ]},
+{ id:"gyozabowl", type:"diner", serves:2, time:30, t:["varken","japans",0],
+  name:"Varkensgehakt-noedelbowl met gember en edamame", short:"De vulling van gyoza, maar dan over noedels.",
+  items:[["mie",125],["varkensreepjes",300],["olie",1],["knoflook",2],["gember",1],["spitskool",200],["edamame",150],["sojasaus",2],["azijn",1],["honing",0.5],["sesam",1],["lenteui",2]],
+  steps:[
+    "Breng een pan water aan de kook. Snijd {varkensreepjes} heel klein (hakken) en {spitskool} in reepjes.",
+    ["Kook {mie} en {edamame} 4 minuten. Giet af.",4],
+    ["Bak het vlees in {olie} 4 minuten op hoog vuur. Doe {knoflook} (fijn), {gember} en kool erbij en bak 3 minuten.",7],
+    "Saus: {sojasaus}, {azijn}, {honing}. Meng alles en strooi {sesam} en {lenteui} erover.",
+    "Check: het vlees mag niet meer roze zijn."
+  ]},
+{ id:"lasagnebroodje", type:"diner", serves:2, time:30, t:["rund","italiaans",0],
+  name:"Lasagnesoep met gehakt en hüttenkäse", short:"Alle smaak van lasagne in een kom soep.",
+  items:[["gehakt",250],["olie",0.5],["ui",1],["knoflook",2],["tompuree",35],["tomblokjes",400],["water",600],["runderbouillon",1],["italiaans",1.5],["lasagne",100],["spinazie",100],["huttenkase",150],["parmezaan",20]],
+  steps:[
+    ["Bak {gehakt} in {olie} 5 minuten los tot er geen roze meer te zien is. Doe {ui} en {knoflook} (fijn) erbij en bak 3 minuten. Roer {tompuree} erdoor.",8],
+    "Doe {tomblokjes}, {water}, {runderbouillon} en {italiaans} erbij en breng aan de kook.",
+    ["Breek {lasagne} in stukken en kook 12 minuten mee tot ze zacht zijn.",12],
+    "Roer {spinazie} erdoor. Schep in kommen met een flinke schep {huttenkase} en {parmezaan} erop."
+  ]},
+{ id:"tikkawraps", type:"diner", serves:2, time:30, t:["kip","indiaas",1],
+  name:"Tikka-kipwraps met raita en rode ui", short:"Indiase smaken in een snelle wrap.",
+  items:[["kipfilet",350],["kwark",200],["garam",1.5],["paprikapoeder",1],["kurkuma",0.25],["knoflook",2],["zout",0.75],["olie",1],["wraps",4],["komkommer",0.5],["rodeui",0.5],["citroen",0.5],["sla",75],["tomaat",1]],
+  steps:[
+    "Snijd {kipfilet} in reepjes. Meng met {kwark:75}, {garam}, {paprikapoeder}, {kurkuma}, {knoflook:1} (geperst) en {zout:0.5}.",
+    ["Bak de kip in {olie} 7 minuten op hoog vuur.",7],
+    GAAR,
+    "Raita: rasp {komkommer}, knijp uit en meng met {kwark:125}, {knoflook:1} (geperst) en {zout:0.25}. Snijd {rodeui} in ringen en besprenkel met het sap van {citroen}.",
+    "Vul {wraps} met {sla}, {tomaat}, kip, ui en raita."
+  ]},
+{ id:"risottokip2", type:"diner", serves:2, time:35, t:["kip","italiaans",0],
+  name:"Ovenrisotto met kip en doperwten", short:"Risotto zonder roeren: de oven doet het werk.",
+  items:[["kipfilet",300],["olie",1],["ui",1],["knoflook",1],["risottorijst",160],["bouillon",1],["water",650],["doperwten",150],["parmezaan",30],["citroen",0.5],["zout",0.25],["peper",0.25]],
+  steps:[
+    "Zet de oven aan op 200 °C (hetelucht 180 °C).",
+    ["Bak {kipfilet} in blokjes in {olie} in een ovenvaste pan 4 minuten. Doe {ui} en {knoflook} (fijn) en {risottorijst} erbij en roer 1 minuut.",5],
+    "Giet {water} met {bouillon} erbij en breng aan de kook. Deksel erop (of aluminiumfolie). Geen ovenvaste pan? Schep alles in een ovenschaal.",
+    ["Bak 22 minuten in de oven.",22],
+    "Roer {doperwten}, {parmezaan}, het sap van {citroen}, {zout} en {peper} erdoor tot het romig is. " + GAAR
+  ]},
+{ id:"thaiburger", type:"diner", serves:2, time:30, t:["kip","aziatisch",1],
+  name:"Thaise kipburgers met komkommersalade", short:"Kipburgers met limoen en zoete chilisaus.",
+  items:[["kipgehakt",350],["knoflook",1],["gember",0.5],["sojasaus",1],["paneermeel",20],["olie",1],["burgerbol",2],["zoetechili",2],["komkommer",1],["wortel",100],["azijn",1],["limoen",0.5],["sla",50]],
+  steps:[
+    "Meng {kipgehakt} met {knoflook} (geperst), {gember}, {sojasaus} en {paneermeel}. Vorm 2 burgers.",
+    ["Bak de burgers in {olie} 5 minuten per kant op middelhoog vuur.",10],
+    "Snijd een burger door: helemaal wit, zonder roze = gaar.",
+    "Salade: snijd {komkommer} in plakjes, rasp {wortel} en meng met {azijn} en het sap van {limoen}.",
+    "Bouw: {burgerbol}, {sla}, burger, {zoetechili}. Eet met de salade."
+  ]}
+
 
 
 
@@ -2474,7 +4348,7 @@ const FK = {
   kidney:[6,14], mais:[2.5,14], zwartebonen:[7,14], kikkererwten:[6,16], tomblokjes:[1,3.5], passata:[1,6], tompuree:[3,12], kokosmelk:[0,2], ananas:[1,14],
   pindakaas:[7,12], pindas:[8,12], sesam:[12,12], sojasaus:[0,5], ketjap:[0,60], honing:[0,82], mosterd:[3,4], maizena:[0,88], pesto:[1,4], currypasta:[3,10], groenecurry:[3,10],
   bbqsaus:[0.5,35], gochujang:[2,40], oestersaus:[0,20], vissaus:[0,4],
-  boerenkool:[4,4], rookworst:[0,2], spitskool:[2.5,4], hamblokjes:[0,1], tofu:[1,2], linzen:[11,50], havermout:[10,58], banaan:[2.6,20], appel:[2.4,12], roodfruit:[4,7], brood:[7,41], skyr:[0,4], whey:[0,8], kipbeleg:[0,1]
+  boerenkool:[4,4], rookworst:[0,2], spitskool:[2.5,4], hamblokjes:[0,1], prei:[1.8,5], spruitjes:[3.8,5], rodekool:[2.5,5], pompoen:[2,8], sugarsnaps:[2.6,5], olijven:[3,1], wittebonen:[6,13], gerooktezalm:[0,0], spekreepjes:[0,0], huttenkase:[0,3], parmezaan:[0,0], quinoa:[7,57], zoetechili:[0,50], sambal:[2,8], peterselie:[3,6], basilicum:[1.6,2.6], rucola:[1.6,2], koolvis:[0,0], bietjes:[2.5,8], witlof:[3,2], tofu:[1,2], linzen:[11,50], havermout:[10,58], banaan:[2.6,20], appel:[2.4,12], roodfruit:[4,7], brood:[7,41], skyr:[0,4], whey:[0,8], kipbeleg:[0,1]
 };
 /* Groente (gram) en fruit (porties) volgens de Schijf van Vijf: 250 g groente en 2 stuks fruit per dag */
 const NOT_VEG = ["aardappel","krieltjes","zoeteaardappel","knoflook","limoen","citroen","banaan","appel","roodfruit","avocado"];
@@ -2647,11 +4521,11 @@ function overall(id){
 }
 function blocked(id){ const w = avgOf(id, "weer"); return w !== null && w <= 1; }
 const ALLERGY = [
-  ["zuivel","Zuivel (lactose of melk)",["kwark","kaas","kookroom","melk","feta","mozzarella","skyr","kaasplak","whey"]],
+  ["zuivel","Zuivel (lactose of melk)",["kwark","kaas","kookroom","melk","feta","mozzarella","skyr","kaasplak","whey","huttenkase","parmezaan"]],
   ["gluten","Gluten",["pasta","spaghetti","mie","couscous","bulgur","orzo","lasagne","wraps","pita","burgerbol","paneermeel","sojasaus","ketjap","gnocchi","havermout","brood"]],
   ["noten","Pinda's en noten",["pindakaas","pindas","pesto"]],
   ["ei","Ei",["ei"]],
-  ["vis","Vis",["zalm","kabeljauw","tonijn","vissaus"]],
+  ["vis","Vis",["zalm","kabeljauw","tonijn","vissaus","gerooktezalm","koolvis"]],
   ["schaal","Schaal- en schelpdieren",["garnalen","oestersaus"]]
 ];
 const DIETS = [["alles","Ik eet alles"],["pesco","Geen vlees, wel vis"],["vega","Vegetarisch"]];
@@ -2760,7 +4634,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v12";
+const APP_VERSION = "v13";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -2859,7 +4733,7 @@ const SUB = {
   groenecurry: "rode currypasta, of 1 el kerriepoeder per el pasta", currypasta: "1 el kerriepoeder met ¼ tl chilivlokken per el pasta",
   edamame: "doperwten uit de diepvries", paksoi: "verse spinazie of wokgroente", tauge: "wokgroente", orzo: "kleine pasta of rijst",
   bulgur: "couscous", rijstnoedels: "mie", garam: "kerriepoeder", kipgehakt: "mager rundergehakt", kalkoen: "kipfilet",
-  lenteui: "rode ui (1 per 4 lente-uitjes)", risottorijst: "gewone rijst (wordt iets minder romig)", gnocchi: "aardappelen in blokjes, 20 min gekookt", kookroom: "kookroom (niet light)", whey: "250 g magere kwark extra (25 g eiwit)", tofu: "kikkererwten (zelfde gewicht)"
+  lenteui: "rode ui (1 per 4 lente-uitjes)", risottorijst: "gewone rijst (wordt iets minder romig)", gnocchi: "aardappelen in blokjes, 20 min gekookt", kookroom: "kookroom (niet light)", whey: "250 g magere kwark extra (25 g eiwit)", tofu: "kikkererwten (zelfde gewicht)", quinoa: "couscous of bulgur", huttenkase: "magere kwark", koolvis: "kabeljauw"
 };
 /* Looproute door een gemiddelde Nederlandse supermarkt */
 const ZONES = [
@@ -2882,7 +4756,7 @@ const ZONE_OF = {
   mie:"wereld", rijstnoedels:"wereld", kokosmelk:"wereld", currypasta:"wereld", groenecurry:"wereld", vissaus:"wereld", oestersaus:"wereld", gochujang:"wereld", sojasaus:"wereld", ketjap:"wereld", sesam:"wereld",
   pindakaas:"ontbijt", honing:"ontbijt", mosterd:"saus", azijn:"saus", bbqsaus:"saus", olie:"saus", maizena:"saus", paneermeel:"saus", bouillon:"saus", runderbouillon:"saus", pesto:"droog", pindas:"saus",
   havermout:"ontbijt", whey:"ontbijt", linzen:"droog", groentebouillon:"saus", tofu:"vlees", kipbeleg:"vlees", roodfruit:"diepvries",
-  doperwten:"diepvries", edamame:"diepvries", tonijn:"droog", gnocchi:"zuivel", hummus:"zuivel", kookroom:"zuivel"
+  doperwten:"diepvries", edamame:"diepvries", olijven:"saus", wittebonen:"droog", quinoa:"droog", zoetechili:"wereld", sambal:"wereld", tonijn:"droog", gnocchi:"zuivel", hummus:"zuivel", kookroom:"zuivel"
 };
 const WHERE = {
   tofu: "In de koeling bij de vegetarische producten, vaak naast het vlees.", kipbeleg: "Bij de vleeswaren voor op brood, niet bij het verse vlees.",
@@ -2897,12 +4771,18 @@ const WHERE = {
   maizena: "Bij de bakproducten (meel en suiker).", paneermeel: "Bij de bakproducten (meel en suiker).", bouillon: "Bij de soepen.", runderbouillon: "Bij de soepen.",
   olie: "Bij de olie en azijn.", azijn: "Bij de olie en azijn.", pindas: "Bij de noten en chips.", zuurkool: "In de koeling bij de voorgesneden groente.",
   andijvie: "Bij de voorgesneden groente in zakken.", boerenkool: "Bij de voorgesneden groente in zakken.",
-  rookworst: "Bij het vlees of de vleeswaren, vaak in een kartonnen hoesje. Kies een magere.", spitskool: "Bij de kool, een puntige groene kool.", hamblokjes: "Bij de vleeswaren of bij het verse vlees, in kleine bakjes.", tauge: "Bij de voorgesneden groente.", wokgroente: "Zakken voorgesneden groente, vaak met 'wok' erop.", sla: "Bij de zakken sla.",
+  rookworst: "Bij het vlees of de vleeswaren, vaak in een kartonnen hoesje. Kies een magere.", spitskool: "Bij de kool, een puntige groene kool.", hamblokjes: "Bij de vleeswaren of bij het verse vlees, in kleine bakjes.",
+  olijven: "Bij de augurken en zilveruitjes, in een pot.", wittebonen: "Bij de bonen in blik.", gerooktezalm: "In de koeling bij de vis, in platte pakjes.",
+  spekreepjes: "Bij het vlees, kleine bakjes. Kies 'mager'.", huttenkase: "In de koeling bij de kwark (kleine bakjes, ook wel 'cottage cheese').",
+  parmezaan: "Bij de kaas in de koeling, of bij de pasta (zakjes).", quinoa: "Bij de rijst, of bij de biologische producten.", zoetechili: "In de wereldkeuken, in een fles.",
+  sambal: "In de wereldkeuken, een potje.", peterselie: "Bij de verse kruiden, in bakjes of bosjes.", basilicum: "Bij de verse kruiden, in bakjes of als plantje.",
+  rucola: "Bij de zakken sla.", koolvis: "In het koelvak bij de vis, of in de diepvries.", bietjes: "Gekookt en vacuüm verpakt, bij de voorgesneden groente.",
+  pompoen: "Bij de groente, een lichtbruine pompoen in de vorm van een peer.", sugarsnaps: "Bij de groente in bakjes, naast de sperziebonen.", rodekool: "Bij de voorgesneden groente in zakken.", tauge: "Bij de voorgesneden groente.", wokgroente: "Zakken voorgesneden groente, vaak met 'wok' erop.", sla: "Bij de zakken sla.",
   kookroom: "Bij de room in de koeling.", kipgehakt: "Bij het gehakt, vaak een klein pakje.", lenteui: "Bosjes, vaak bij de verse kruiden.", gember: "Gemalen gember, een potje."
 };
 /* Potjes en flessen die weken meegaan: één keer kopen, daarna "heb ik in huis" */
 const PANTRY = { olie:"fles", sojasaus:"fles", ketjap:"fles", honing:"pot", mosterd:"pot", maizena:"pak", azijn:"fles", bouillon:"doosje", runderbouillon:"doosje", sesam:"zakje",
-  pesto:"pot", currypasta:"pot", groenecurry:"pot", gochujang:"pot", oestersaus:"fles", vissaus:"fles", bbqsaus:"fles", pindakaas:"pot", paneermeel:"zak", groentebouillon:"doosje", whey:"zak" };
+  pesto:"pot", currypasta:"pot", groenecurry:"pot", gochujang:"pot", oestersaus:"fles", vissaus:"fles", bbqsaus:"fles", pindakaas:"pot", paneermeel:"zak", groentebouillon:"doosje", whey:"zak", zoetechili:"fles", sambal:"pot" };
 /* Houdbare restjes die de app bijhoudt na "Boodschappen gedaan" */
 const KEEP = ["havermout","linzen","rijst","pasta","spaghetti","mie","couscous","bulgur","orzo","risottorijst","lasagne","rijstnoedels","paneermeel","pindas","knoflook","doperwten","edamame","aardappel"];
 /* Wat je thuis even checkt voor je gaat: dingen die lang goed blijven */
@@ -3172,13 +5052,14 @@ function pickerList(){
   if (q) list = list.filter(r => (r.name + " " + r.short + " " + cuisineName(r.cuisine) + " " + r.items.map(([k]) => DB[k].n).join(" ")).toLowerCase().includes(q));
   list.sort((a, b) => planCount(b.id) - planCount(a.id) || (score(b.id) ?? 0) - (score(a.id) ?? 0) || kcalFit(b) - kcalFit(a) || a.name.localeCompare(b.name));
   if (!list.length) return `<p class="sub" style="margin:0">Niets gevonden. Probeer een ander woord.</p>`;
+  const total = list.length; list = list.slice(0, UI.pmax || 50);
   return list.map(r => { const n = planCount(r.id), m = pm(r); return `<div class="pkrow ${n ? "on" : ""}">
     <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${m.k} kcal · ${m.p} g eiwit · ${r.time} min${starTxt(r.id)}</small></button>
     ${n ? `<span class="pill p num">${unitN(type, n)}</span>` : ""}
-    <button class="addbtn" data-addp="${r.id}" aria-label="${esc(r.name)} toevoegen">+</button></div>`; }).join("");
+    <button class="addbtn" data-addp="${r.id}" aria-label="${esc(r.name)} toevoegen">+</button></div>`; }).join("") + moreBtn(total, UI.pmax || 50, "data-pmore");
 }
 function starTxt(id){ const sc = score(id); return sc === null ? "" : ` · ★ ${nl1(sc)}`; }
-function openPicker(type){ UI.pick = type; UI.pq = ""; const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden"; renderPicker(); }
+function openPicker(type){ UI.pick = type; UI.pq = ""; UI.pmax = 50; const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden"; renderPicker(); }
 function autofill(){
   const used = planIds();
   if (!totalLunches()){ const id = pick(LUNCHES, used); S.plan.lunch.push({ id, n: 5 }); used.push(id); }
@@ -3309,12 +5190,13 @@ function recipeListHtml(){
   const { list, hidden } = recipeMatches(), f = S.filter;
   return `${hidden ? `<button class="btn small" id="showall" style="justify-self:start">${S.showAll ? "Verberg" : "Toon ook"} ${hidden} recept${hidden>1?"en":""} die niet bij je smaak passen</button>` : ""}
   <div class="sub num">${list.length} ${list.length === 1 ? "recept" : "recepten"}</div>
-  ${list.length ? list.map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
+  ${list.length ? list.slice(0, UI.rmax || 40).map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
       <span class="label">${typeLabel(r)} · ${esc(cuisineName(r.cuisine))}${r.spice ? " · " + SPICE[r.spice].toLowerCase() : ""}</span>
       <h3>${esc(r.name)}</h3><p>${esc(r.short)}</p>
       <span class="row">${pills(r)}${starLine(r.id)}${focusTags(r).filter(([k]) => S.prefs.focus.includes(k)).map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}${kcalFit(r) < 0.4 ? `<span class="pill warnp">Veel kcal voor jouw doel</span>` : ""}</span></button>`).join("")
     : `<p class="empty">${f === "gemaakt" ? "Nog niks gemaakt. Na het koken tik je op 'Ik heb dit gemaakt' om sterren te geven." : (S.minStars ? "Nog geen recepten met zoveel sterren. Kies minder sterren of geef zelf sterren na het koken." : "Geen recepten gevonden. Probeer een ander zoekwoord of zet bij Profiel wat meer aan.")}</p>`}`;
 }
+function moreBtn(n, max, attr){ return n > max ? `<button class="btn full" ${attr}="1">Toon meer (nog ${n - max})</button>` : ""; }
 function viewRecipes(){
   const f = S.filter;
   const nActive = (S.minStars ? 1 : 0) + S.prefs.focus.length + (S.sort !== "standaard" ? 1 : 0);
@@ -3338,7 +5220,8 @@ function viewRecipes(){
       <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],["eiwit","Meeste eiwit"],["kcal","Minste calorieën"],["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
     </div>
   </details>
-  <div class="rlist" id="rlist">${recipeListHtml()}</div>`;
+  <div class="rlist" id="rlist">${recipeListHtml()}</div>
+  <div id="rmore">${moreBtn(recipeMatches().list.length, UI.rmax || 40, "data-rmore")}</div>`;
 }
 function cuisineName(c){ return (CUISINES.find(x => x[0] === c) || [c, c])[1]; }
 function ingName(k){ return DB[k].n.replace(/ \(.*\)/, ""); }
@@ -3750,7 +5633,9 @@ document.addEventListener("click", (e) => {
   if (d.maxtime !== undefined){ S.prefs.maxTime = +d.maxtime; save(); render(); return; }
   if (d.cuisine){ const a = S.prefs.noCuisine, i = a.indexOf(d.cuisine); i < 0 ? a.push(d.cuisine) : a.splice(i, 1); save(); render(); return; }
   if (d.noing){ const a = S.prefs.noIng, i = a.indexOf(d.noing); i < 0 ? a.push(d.noing) : a.splice(i, 1); save(); render(); return; }
-  if (d.filter){ S.filter = d.filter; save(); render(); return; }
+  if (d.filter){ S.filter = d.filter; UI.rmax = 40; save(); render(); return; }
+  if (d.rmore){ UI.rmax = (UI.rmax || 40) + 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, UI.rmax, "data-rmore"); return; }
+  if (d.pmore){ UI.pmax = (UI.pmax || 50) + 50; document.getElementById("plist").innerHTML = pickerList(); return; }
   if (d.check){ S.checks[d.check] = !S.checks[d.check]; save(); render(); return; }
   if (d.got){ UI.got[d.got] = !UI.got[d.got]; UI.view === "cook" ? renderCook() : renderRecipe(); return; }
   if (d.pick){ openPicker(d.pick); return; }
@@ -3844,8 +5729,8 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("toggle", (e) => { if (e.target.id === "filters") UI.filtersOpen = e.target.open; if (e.target.id === "storesfold") UI.storesOpen = e.target.open; if (e.target.id === "extfold") UI.extOpen = e.target.open; }, true);
 document.addEventListener("input", (e) => {
   if (e.target.id === "fbtext"){ UI.fb.text = e.target.value; return; }
-  if (e.target.id === "psearch"){ UI.pq = e.target.value; document.getElementById("plist").innerHTML = pickerList(); return; }
-  if (e.target.id === "search"){ UI.q = e.target.value; document.getElementById("rlist").innerHTML = recipeListHtml(); return; }
+  if (e.target.id === "psearch"){ UI.pq = e.target.value; UI.pmax = 50; document.getElementById("plist").innerHTML = pickerList(); return; }
+  if (e.target.id === "search"){ UI.q = e.target.value; UI.rmax = 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, 40, "data-rmore"); return; }
   if (e.target.id === "tsearch"){ UI.tq = e.target.value; const q = UI.tq.toLowerCase();
     const row = (x, i, src) => `<button class="frow" data-addfood="${src}:${i}"><span>${esc(x[0])}</span><span class="num sub">${x[1]} kcal · ${x[2]} g eiwit</span><b class="plus">+</b></button>`;
     document.getElementById("tresults").innerHTML = trackerResults((S.myFoods || []).filter(x => x[0].toLowerCase().includes(q)), QUICK.filter(x => x[0].toLowerCase().includes(q)), row); return; }

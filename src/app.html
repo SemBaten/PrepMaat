@@ -407,6 +407,26 @@ const DB = {
   rookworst:  {n:"magere rookworst", c:"vlees", u:"g", k:180, p:15, pk:[275,"rookworst van ±275 g"]},
   spitskool:  {n:"spitskool", c:"groente", u:"g", k:25, p:1.5, pk:[500,"spitskool van ±500 g"]},
   hamblokjes: {n:"hamblokjes", c:"vlees", u:"g", k:120, p:20, pk:[150,"bakje van ±150 g"]},
+  prei:       {n:"prei", pl:"preien", c:"groente", u:"stuk", g:200, k:30, p:1.5},
+  spruitjes:  {n:"spruitjes", c:"groente", u:"g", k:43, p:3.4, pk:[500,"zak van ±500 g"]},
+  rodekool:   {n:"rode kool (gesneden)", c:"groente", u:"g", k:30, p:1.4, pk:[350,"zak van ±350 g"]},
+  pompoen:    {n:"flespompoen", c:"groente", u:"g", k:40, p:1, pk:[1000,"flespompoen van ±1 kg"]},
+  sugarsnaps: {n:"sugarsnaps", c:"groente", u:"g", k:40, p:2.8, pk:[150,"bakje van ±150 g"]},
+  olijven:    {n:"zwarte olijven (uitgelekt)", c:"voorraad", u:"g", k:140, p:1, pk:[150,"pot (±150 g uitgelekt)"]},
+  wittebonen: {n:"witte bonen (uitgelekt)", c:"voorraad", u:"g", k:95, p:7, pk:[240,"blik (±240 g uitgelekt)"]},
+  gerooktezalm:{n:"gerookte zalm", c:"vis", u:"g", k:180, p:21, pk:[100,"pakje van ±100 g"]},
+  spekreepjes:{n:"magere spekreepjes", c:"vlees", u:"g", k:220, p:18, pk:[150,"bakje van ±150 g"]},
+  huttenkase: {n:"hüttenkäse", c:"zuivel", u:"g", k:95, p:12, pk:[200,"bakje van 200 g"]},
+  parmezaan:  {n:"Parmezaanse kaas (geraspt)", c:"zuivel", u:"g", k:400, p:35, pk:[100,"zakje van ±100 g"]},
+  quinoa:     {n:"quinoa (droog)", c:"voorraad", u:"g", k:360, p:14, pk:[400,"pak van ±400 g"]},
+  zoetechili: {n:"zoete chilisaus", c:"voorraad", u:"el", g:18, k:220, p:0.5},
+  sambal:     {n:"sambal oelek", c:"voorraad", u:"tl", g:5, k:50, p:1.5},
+  peterselie: {n:"verse peterselie", c:"groente", u:"g", k:36, p:3, pk:[30,"bosje of bakje (±30 g)"]},
+  basilicum:  {n:"verse basilicum", c:"groente", u:"g", k:23, p:3, pk:[30,"bosje of bakje (±30 g)"]},
+  rucola:     {n:"rucola", c:"groente", u:"g", k:25, p:2.6, pk:[75,"zak van ±75 g"]},
+  koolvis:    {n:"witvis (koolvis of pangasius)", c:"vis", u:"g", k:80, p:18, pk:[400,"pak van ±400 g"]},
+  bietjes:    {n:"gekookte rode bieten", c:"groente", u:"g", k:45, p:1.6, pk:[500,"vacuümpak van ±500 g"]},
+  witlof:     {n:"witlof", c:"groente", u:"g", k:17, p:1.2, pk:[500,"zak van ±500 g (±4 stronken)"]},
 };
 const CATS = [
   ["vlees","Vlees en kip"],["vis","Vis"],["groente","Groente en fruit"],["zuivel","Zuivel en eieren"],
@@ -418,6 +438,12 @@ const RICE = (z) => [
   `Kook de rijst. Spoel {rijst} 30 seconden in een zeef onder de kraan. Doe de rijst met {water:${z.w}} en {zout:${z.s}} in een pan met deksel. Breng aan de kook op hoog vuur.`,
   [`Zodra het kookt: zet het vuur op de laagste stand, doe het deksel erop en laat 12 minuten staan. Niet roeren en het deksel er niet af halen. Zet daarna het vuur uit en laat de rijst nog 10 minuten met deksel rusten.`, 12]
 ];
+const PASTA = (z) => [
+  `Breng een grote pan met ${z.l || 2} liter water en {zout:${z.s}} aan de kook.`,
+  [`Kook {${z.k || "pasta"}} zo lang als op de verpakking staat (meestal ${z.t || "10 tot 12"} minuten).${z.w ? " Schep er een kopje kookwater uit en giet af." : z.c ? " Giet af en spoel koud." : " Giet af."}`, z.m || 11]
+];
+const EGGS = (z) => [`Leg {ei${z.p ? ":" + z.p : ""}} in een steelpan, net onder water. Breng aan de kook en kook vanaf het koken ${z.m || 9} minuten${z.m && z.m < 8 ? ", dan is de dooier nog zacht" : ""}. Leg ze daarna in koud water en pel ze.`, z.m || 9];
+const COUS = (z) => [`Couscous: los {groentebouillon${z.b ? ":" + z.b : ""}} op in {water${z.w ? ":" + z.w : ""}} (kokend). Giet het over {couscous}, leg een bord erop en laat 5 minuten staan. Roer los met een vork.`, 5];
 const GAAR = "Check of de kip gaar is: snijd het dikste stukje doormidden. Het moet helemaal wit zijn, zonder roze.";
 
 /* ============ Recepten ============ */
@@ -2404,6 +2430,7 @@ const R = [
     "Meng de appel met {havermout}, {kwark}, {melk} en {kaneel} in een bakje of pot. Schep {pindakaas} erop.",
     "Deksel erop en een nacht in de koelkast."
   ]}
+/*@@EXTRA_RECIPES@@*/
 
 
 
@@ -2459,7 +2486,7 @@ const FK = {
   kidney:[6,14], mais:[2.5,14], zwartebonen:[7,14], kikkererwten:[6,16], tomblokjes:[1,3.5], passata:[1,6], tompuree:[3,12], kokosmelk:[0,2], ananas:[1,14],
   pindakaas:[7,12], pindas:[8,12], sesam:[12,12], sojasaus:[0,5], ketjap:[0,60], honing:[0,82], mosterd:[3,4], maizena:[0,88], pesto:[1,4], currypasta:[3,10], groenecurry:[3,10],
   bbqsaus:[0.5,35], gochujang:[2,40], oestersaus:[0,20], vissaus:[0,4],
-  boerenkool:[4,4], rookworst:[0,2], spitskool:[2.5,4], hamblokjes:[0,1], tofu:[1,2], linzen:[11,50], havermout:[10,58], banaan:[2.6,20], appel:[2.4,12], roodfruit:[4,7], brood:[7,41], skyr:[0,4], whey:[0,8], kipbeleg:[0,1]
+  boerenkool:[4,4], rookworst:[0,2], spitskool:[2.5,4], hamblokjes:[0,1], prei:[1.8,5], spruitjes:[3.8,5], rodekool:[2.5,5], pompoen:[2,8], sugarsnaps:[2.6,5], olijven:[3,1], wittebonen:[6,13], gerooktezalm:[0,0], spekreepjes:[0,0], huttenkase:[0,3], parmezaan:[0,0], quinoa:[7,57], zoetechili:[0,50], sambal:[2,8], peterselie:[3,6], basilicum:[1.6,2.6], rucola:[1.6,2], koolvis:[0,0], bietjes:[2.5,8], witlof:[3,2], tofu:[1,2], linzen:[11,50], havermout:[10,58], banaan:[2.6,20], appel:[2.4,12], roodfruit:[4,7], brood:[7,41], skyr:[0,4], whey:[0,8], kipbeleg:[0,1]
 };
 /* Groente (gram) en fruit (porties) volgens de Schijf van Vijf: 250 g groente en 2 stuks fruit per dag */
 const NOT_VEG = ["aardappel","krieltjes","zoeteaardappel","knoflook","limoen","citroen","banaan","appel","roodfruit","avocado"];
@@ -2632,11 +2659,11 @@ function overall(id){
 }
 function blocked(id){ const w = avgOf(id, "weer"); return w !== null && w <= 1; }
 const ALLERGY = [
-  ["zuivel","Zuivel (lactose of melk)",["kwark","kaas","kookroom","melk","feta","mozzarella","skyr","kaasplak","whey"]],
+  ["zuivel","Zuivel (lactose of melk)",["kwark","kaas","kookroom","melk","feta","mozzarella","skyr","kaasplak","whey","huttenkase","parmezaan"]],
   ["gluten","Gluten",["pasta","spaghetti","mie","couscous","bulgur","orzo","lasagne","wraps","pita","burgerbol","paneermeel","sojasaus","ketjap","gnocchi","havermout","brood"]],
   ["noten","Pinda's en noten",["pindakaas","pindas","pesto"]],
   ["ei","Ei",["ei"]],
-  ["vis","Vis",["zalm","kabeljauw","tonijn","vissaus"]],
+  ["vis","Vis",["zalm","kabeljauw","tonijn","vissaus","gerooktezalm","koolvis"]],
   ["schaal","Schaal- en schelpdieren",["garnalen","oestersaus"]]
 ];
 const DIETS = [["alles","Ik eet alles"],["pesco","Geen vlees, wel vis"],["vega","Vegetarisch"]];
@@ -2745,7 +2772,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v12";
+const APP_VERSION = "v13";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -2844,7 +2871,7 @@ const SUB = {
   groenecurry: "rode currypasta, of 1 el kerriepoeder per el pasta", currypasta: "1 el kerriepoeder met ¼ tl chilivlokken per el pasta",
   edamame: "doperwten uit de diepvries", paksoi: "verse spinazie of wokgroente", tauge: "wokgroente", orzo: "kleine pasta of rijst",
   bulgur: "couscous", rijstnoedels: "mie", garam: "kerriepoeder", kipgehakt: "mager rundergehakt", kalkoen: "kipfilet",
-  lenteui: "rode ui (1 per 4 lente-uitjes)", risottorijst: "gewone rijst (wordt iets minder romig)", gnocchi: "aardappelen in blokjes, 20 min gekookt", kookroom: "kookroom (niet light)", whey: "250 g magere kwark extra (25 g eiwit)", tofu: "kikkererwten (zelfde gewicht)"
+  lenteui: "rode ui (1 per 4 lente-uitjes)", risottorijst: "gewone rijst (wordt iets minder romig)", gnocchi: "aardappelen in blokjes, 20 min gekookt", kookroom: "kookroom (niet light)", whey: "250 g magere kwark extra (25 g eiwit)", tofu: "kikkererwten (zelfde gewicht)", quinoa: "couscous of bulgur", huttenkase: "magere kwark", koolvis: "kabeljauw"
 };
 /* Looproute door een gemiddelde Nederlandse supermarkt */
 const ZONES = [
@@ -2867,7 +2894,7 @@ const ZONE_OF = {
   mie:"wereld", rijstnoedels:"wereld", kokosmelk:"wereld", currypasta:"wereld", groenecurry:"wereld", vissaus:"wereld", oestersaus:"wereld", gochujang:"wereld", sojasaus:"wereld", ketjap:"wereld", sesam:"wereld",
   pindakaas:"ontbijt", honing:"ontbijt", mosterd:"saus", azijn:"saus", bbqsaus:"saus", olie:"saus", maizena:"saus", paneermeel:"saus", bouillon:"saus", runderbouillon:"saus", pesto:"droog", pindas:"saus",
   havermout:"ontbijt", whey:"ontbijt", linzen:"droog", groentebouillon:"saus", tofu:"vlees", kipbeleg:"vlees", roodfruit:"diepvries",
-  doperwten:"diepvries", edamame:"diepvries", tonijn:"droog", gnocchi:"zuivel", hummus:"zuivel", kookroom:"zuivel"
+  doperwten:"diepvries", edamame:"diepvries", olijven:"saus", wittebonen:"droog", quinoa:"droog", zoetechili:"wereld", sambal:"wereld", tonijn:"droog", gnocchi:"zuivel", hummus:"zuivel", kookroom:"zuivel"
 };
 const WHERE = {
   tofu: "In de koeling bij de vegetarische producten, vaak naast het vlees.", kipbeleg: "Bij de vleeswaren voor op brood, niet bij het verse vlees.",
@@ -2882,12 +2909,18 @@ const WHERE = {
   maizena: "Bij de bakproducten (meel en suiker).", paneermeel: "Bij de bakproducten (meel en suiker).", bouillon: "Bij de soepen.", runderbouillon: "Bij de soepen.",
   olie: "Bij de olie en azijn.", azijn: "Bij de olie en azijn.", pindas: "Bij de noten en chips.", zuurkool: "In de koeling bij de voorgesneden groente.",
   andijvie: "Bij de voorgesneden groente in zakken.", boerenkool: "Bij de voorgesneden groente in zakken.",
-  rookworst: "Bij het vlees of de vleeswaren, vaak in een kartonnen hoesje. Kies een magere.", spitskool: "Bij de kool, een puntige groene kool.", hamblokjes: "Bij de vleeswaren of bij het verse vlees, in kleine bakjes.", tauge: "Bij de voorgesneden groente.", wokgroente: "Zakken voorgesneden groente, vaak met 'wok' erop.", sla: "Bij de zakken sla.",
+  rookworst: "Bij het vlees of de vleeswaren, vaak in een kartonnen hoesje. Kies een magere.", spitskool: "Bij de kool, een puntige groene kool.", hamblokjes: "Bij de vleeswaren of bij het verse vlees, in kleine bakjes.",
+  olijven: "Bij de augurken en zilveruitjes, in een pot.", wittebonen: "Bij de bonen in blik.", gerooktezalm: "In de koeling bij de vis, in platte pakjes.",
+  spekreepjes: "Bij het vlees, kleine bakjes. Kies 'mager'.", huttenkase: "In de koeling bij de kwark (kleine bakjes, ook wel 'cottage cheese').",
+  parmezaan: "Bij de kaas in de koeling, of bij de pasta (zakjes).", quinoa: "Bij de rijst, of bij de biologische producten.", zoetechili: "In de wereldkeuken, in een fles.",
+  sambal: "In de wereldkeuken, een potje.", peterselie: "Bij de verse kruiden, in bakjes of bosjes.", basilicum: "Bij de verse kruiden, in bakjes of als plantje.",
+  rucola: "Bij de zakken sla.", koolvis: "In het koelvak bij de vis, of in de diepvries.", bietjes: "Gekookt en vacuüm verpakt, bij de voorgesneden groente.",
+  pompoen: "Bij de groente, een lichtbruine pompoen in de vorm van een peer.", sugarsnaps: "Bij de groente in bakjes, naast de sperziebonen.", rodekool: "Bij de voorgesneden groente in zakken.", tauge: "Bij de voorgesneden groente.", wokgroente: "Zakken voorgesneden groente, vaak met 'wok' erop.", sla: "Bij de zakken sla.",
   kookroom: "Bij de room in de koeling.", kipgehakt: "Bij het gehakt, vaak een klein pakje.", lenteui: "Bosjes, vaak bij de verse kruiden.", gember: "Gemalen gember, een potje."
 };
 /* Potjes en flessen die weken meegaan: één keer kopen, daarna "heb ik in huis" */
 const PANTRY = { olie:"fles", sojasaus:"fles", ketjap:"fles", honing:"pot", mosterd:"pot", maizena:"pak", azijn:"fles", bouillon:"doosje", runderbouillon:"doosje", sesam:"zakje",
-  pesto:"pot", currypasta:"pot", groenecurry:"pot", gochujang:"pot", oestersaus:"fles", vissaus:"fles", bbqsaus:"fles", pindakaas:"pot", paneermeel:"zak", groentebouillon:"doosje", whey:"zak" };
+  pesto:"pot", currypasta:"pot", groenecurry:"pot", gochujang:"pot", oestersaus:"fles", vissaus:"fles", bbqsaus:"fles", pindakaas:"pot", paneermeel:"zak", groentebouillon:"doosje", whey:"zak", zoetechili:"fles", sambal:"pot" };
 /* Houdbare restjes die de app bijhoudt na "Boodschappen gedaan" */
 const KEEP = ["havermout","linzen","rijst","pasta","spaghetti","mie","couscous","bulgur","orzo","risottorijst","lasagne","rijstnoedels","paneermeel","pindas","knoflook","doperwten","edamame","aardappel"];
 /* Wat je thuis even checkt voor je gaat: dingen die lang goed blijven */
@@ -3157,13 +3190,14 @@ function pickerList(){
   if (q) list = list.filter(r => (r.name + " " + r.short + " " + cuisineName(r.cuisine) + " " + r.items.map(([k]) => DB[k].n).join(" ")).toLowerCase().includes(q));
   list.sort((a, b) => planCount(b.id) - planCount(a.id) || (score(b.id) ?? 0) - (score(a.id) ?? 0) || kcalFit(b) - kcalFit(a) || a.name.localeCompare(b.name));
   if (!list.length) return `<p class="sub" style="margin:0">Niets gevonden. Probeer een ander woord.</p>`;
+  const total = list.length; list = list.slice(0, UI.pmax || 50);
   return list.map(r => { const n = planCount(r.id), m = pm(r); return `<div class="pkrow ${n ? "on" : ""}">
     <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${m.k} kcal · ${m.p} g eiwit · ${r.time} min${starTxt(r.id)}</small></button>
     ${n ? `<span class="pill p num">${unitN(type, n)}</span>` : ""}
-    <button class="addbtn" data-addp="${r.id}" aria-label="${esc(r.name)} toevoegen">+</button></div>`; }).join("");
+    <button class="addbtn" data-addp="${r.id}" aria-label="${esc(r.name)} toevoegen">+</button></div>`; }).join("") + moreBtn(total, UI.pmax || 50, "data-pmore");
 }
 function starTxt(id){ const sc = score(id); return sc === null ? "" : ` · ★ ${nl1(sc)}`; }
-function openPicker(type){ UI.pick = type; UI.pq = ""; const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden"; renderPicker(); }
+function openPicker(type){ UI.pick = type; UI.pq = ""; UI.pmax = 50; const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden"; renderPicker(); }
 function autofill(){
   const used = planIds();
   if (!totalLunches()){ const id = pick(LUNCHES, used); S.plan.lunch.push({ id, n: 5 }); used.push(id); }
@@ -3294,12 +3328,13 @@ function recipeListHtml(){
   const { list, hidden } = recipeMatches(), f = S.filter;
   return `${hidden ? `<button class="btn small" id="showall" style="justify-self:start">${S.showAll ? "Verberg" : "Toon ook"} ${hidden} recept${hidden>1?"en":""} die niet bij je smaak passen</button>` : ""}
   <div class="sub num">${list.length} ${list.length === 1 ? "recept" : "recepten"}</div>
-  ${list.length ? list.map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
+  ${list.length ? list.slice(0, UI.rmax || 40).map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
       <span class="label">${typeLabel(r)} · ${esc(cuisineName(r.cuisine))}${r.spice ? " · " + SPICE[r.spice].toLowerCase() : ""}</span>
       <h3>${esc(r.name)}</h3><p>${esc(r.short)}</p>
       <span class="row">${pills(r)}${starLine(r.id)}${focusTags(r).filter(([k]) => S.prefs.focus.includes(k)).map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}${kcalFit(r) < 0.4 ? `<span class="pill warnp">Veel kcal voor jouw doel</span>` : ""}</span></button>`).join("")
     : `<p class="empty">${f === "gemaakt" ? "Nog niks gemaakt. Na het koken tik je op 'Ik heb dit gemaakt' om sterren te geven." : (S.minStars ? "Nog geen recepten met zoveel sterren. Kies minder sterren of geef zelf sterren na het koken." : "Geen recepten gevonden. Probeer een ander zoekwoord of zet bij Profiel wat meer aan.")}</p>`}`;
 }
+function moreBtn(n, max, attr){ return n > max ? `<button class="btn full" ${attr}="1">Toon meer (nog ${n - max})</button>` : ""; }
 function viewRecipes(){
   const f = S.filter;
   const nActive = (S.minStars ? 1 : 0) + S.prefs.focus.length + (S.sort !== "standaard" ? 1 : 0);
@@ -3323,7 +3358,8 @@ function viewRecipes(){
       <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],["eiwit","Meeste eiwit"],["kcal","Minste calorieën"],["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
     </div>
   </details>
-  <div class="rlist" id="rlist">${recipeListHtml()}</div>`;
+  <div class="rlist" id="rlist">${recipeListHtml()}</div>
+  <div id="rmore">${moreBtn(recipeMatches().list.length, UI.rmax || 40, "data-rmore")}</div>`;
 }
 function cuisineName(c){ return (CUISINES.find(x => x[0] === c) || [c, c])[1]; }
 function ingName(k){ return DB[k].n.replace(/ \(.*\)/, ""); }
@@ -3735,7 +3771,9 @@ document.addEventListener("click", (e) => {
   if (d.maxtime !== undefined){ S.prefs.maxTime = +d.maxtime; save(); render(); return; }
   if (d.cuisine){ const a = S.prefs.noCuisine, i = a.indexOf(d.cuisine); i < 0 ? a.push(d.cuisine) : a.splice(i, 1); save(); render(); return; }
   if (d.noing){ const a = S.prefs.noIng, i = a.indexOf(d.noing); i < 0 ? a.push(d.noing) : a.splice(i, 1); save(); render(); return; }
-  if (d.filter){ S.filter = d.filter; save(); render(); return; }
+  if (d.filter){ S.filter = d.filter; UI.rmax = 40; save(); render(); return; }
+  if (d.rmore){ UI.rmax = (UI.rmax || 40) + 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, UI.rmax, "data-rmore"); return; }
+  if (d.pmore){ UI.pmax = (UI.pmax || 50) + 50; document.getElementById("plist").innerHTML = pickerList(); return; }
   if (d.check){ S.checks[d.check] = !S.checks[d.check]; save(); render(); return; }
   if (d.got){ UI.got[d.got] = !UI.got[d.got]; UI.view === "cook" ? renderCook() : renderRecipe(); return; }
   if (d.pick){ openPicker(d.pick); return; }
@@ -3829,8 +3867,8 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("toggle", (e) => { if (e.target.id === "filters") UI.filtersOpen = e.target.open; if (e.target.id === "storesfold") UI.storesOpen = e.target.open; if (e.target.id === "extfold") UI.extOpen = e.target.open; }, true);
 document.addEventListener("input", (e) => {
   if (e.target.id === "fbtext"){ UI.fb.text = e.target.value; return; }
-  if (e.target.id === "psearch"){ UI.pq = e.target.value; document.getElementById("plist").innerHTML = pickerList(); return; }
-  if (e.target.id === "search"){ UI.q = e.target.value; document.getElementById("rlist").innerHTML = recipeListHtml(); return; }
+  if (e.target.id === "psearch"){ UI.pq = e.target.value; UI.pmax = 50; document.getElementById("plist").innerHTML = pickerList(); return; }
+  if (e.target.id === "search"){ UI.q = e.target.value; UI.rmax = 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, 40, "data-rmore"); return; }
   if (e.target.id === "tsearch"){ UI.tq = e.target.value; const q = UI.tq.toLowerCase();
     const row = (x, i, src) => `<button class="frow" data-addfood="${src}:${i}"><span>${esc(x[0])}</span><span class="num sub">${x[1]} kcal · ${x[2]} g eiwit</span><b class="plus">+</b></button>`;
     document.getElementById("tresults").innerHTML = trackerResults((S.myFoods || []).filter(x => x[0].toLowerCase().includes(q)), QUICK.filter(x => x[0].toLowerCase().includes(q)), row); return; }

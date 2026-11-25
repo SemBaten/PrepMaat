@@ -1,6 +1,12 @@
 import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 s=open(os.path.join(HERE,'app.html')).read()
+import glob
+extra=''.join(open(p).read().rstrip()+'\n' for p in sorted(glob.glob(os.path.join(HERE,'recipes','*.js'))))
+assert '/*@@EXTRA_RECIPES@@*/' in s
+s=s.replace('/*@@EXTRA_RECIPES@@*/', extra)
+os.makedirs(os.path.join(HERE,'..','dist'), exist_ok=True)
+open(os.path.join(HERE,'..','dist','app-full.html'),'w').write(s)  # voor de preview, niet committen
 head_parts=[]
 for pat in [r'<title>.*?</title>\n', r'<meta name="claude:viewport-fit-sides"[^>]*>\n', r'<link [^>]*>\n', r'<style>.*?</style>\n']:
     for m in re.findall(pat,s,re.S):

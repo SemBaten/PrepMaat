@@ -9,7 +9,7 @@ const path = require('path');
   const out = await p.evaluate(() => {
     const issues = [];
     const add = (r, sev, msg) => issues.push(`${sev} ${r.id}: ${msg}`);
-    const ids = new Set(), names = new Set();
+    const ids = new Set(), names = new Set(), sigs = {};
     const CUIS = new Set(CUISINES.map(c => c[0]));
     const per = (r, k) => { const it = r.items.find(x => x[0] === k); return it ? it[1] / r.serves : 0; };
     const sumG = (r, keys) => keys.reduce((a, k) => a + grams(k, (r.items.find(x => x[0] === k) || [0, 0])[1]), 0) / r.serves;
@@ -18,6 +18,8 @@ const path = require('path');
     for (const r of R){
       if (ids.has(r.id)) add(r, "FOUT", "dubbele id"); ids.add(r.id);
       if (names.has(r.name)) add(r, "FOUT", "dubbele naam"); names.add(r.name);
+      const sig = r.type + ":" + r.items.map(x => x[0]).filter(k => !["zout","peper","olie","water"].includes(k)).sort().join(",");
+      if (sigs[sig]) add(r, "LET OP", "zelfde ingrediënten als " + sigs[sig]); else sigs[sig] = r.id;
       const want = { lunch: 5, diner: 2, ontbijt: 1 }[r.type];
       if (r.serves !== want) add(r, "FOUT", `serves ${r.serves}, verwacht ${want}`);
       if (!r.meat || !CUIS.has(r.cuisine) || ![0,1,2].includes(r.spice)) add(r, "FOUT", "labels ontbreken of onbekende keuken: " + [r.meat, r.cuisine, r.spice]);
@@ -57,7 +59,7 @@ const path = require('path');
       const bouillon = per(r, "bouillon") + per(r, "runderbouillon") + per(r, "groentebouillon");
       if (bouillon > 0.6) add(r, "LET OP", `veel bouillonblokjes: ${bouillon.toFixed(2)} per portie`);
       const olie = per(r, "olie"); if (olie > 1.25) add(r, "LET OP", `veel olie: ${olie.toFixed(2)} el per portie`);
-      const chili = per(r, "chili") + per(r, "cayenne") * 2; if (chili > 0.31) add(r, "LET OP", `veel pit: ${chili.toFixed(2)} tl chili per portie`);
+      const chili = per(r, "chili") + per(r, "cayenne") * 2 + per(r, "sambal") * 0.5; if (chili > 0.31) add(r, "LET OP", `veel pit: ${chili.toFixed(2)} tl chili per portie`);
       if (r.spice === 0 && (per(r, "chili") + per(r, "cayenne")) > 0.13) add(r, "LET OP", "chili in een gerecht dat als mild staat");
       // zetmeel en vlees per portie
       const rice = sumG(r, STARCH_RICE), pasta = sumG(r, STARCH_PASTA);
