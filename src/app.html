@@ -2817,7 +2817,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v26";
+const APP_VERSION = "v27";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3232,7 +3232,7 @@ function viewWeek(){
   return `
   <header class="top"><div class="brand">Prep<span>maat</span></div><div class="sub">Planning</div></header>
   ${feedbackNudge()}
-  ${any ? `<div class="wsum num"><span><b>${totalBakjes()}</b> lunchbakjes</span><span><b>${nd}</b> ${nd === 1 ? "avond" : "avonden"}</span>${g && md.any ? `<span><b>${Math.round((md.k + snackDay().k) / 10) * 10}</b> / ${g.kcal} kcal per dag</span>` : ""}</div>` : `<p class="sub" style="margin:0">Kies wat je deze week eet. Je boodschappenlijst maakt zich vanzelf.</p>`}
+  ${any ? `<div class="wsum num"><span><b>${totalBakjes()}</b> lunchbakjes</span><span><b>${nd}</b> ${nd === 1 ? "avond" : "avonden"}</span>${g && md.any ? `<span><b>${md.k + snackDay().k}</b> / ${g.kcal} kcal per dag</span>` : ""}</div>` : `<p class="sub" style="margin:0">Kies wat je deze week eet. Je boodschappenlijst maakt zich vanzelf.</p>`}
   <nav class="seg" role="tablist">${segs.map(([k, l]) => `<button role="tab" data-wseg="${k}" aria-selected="${seg === k}">${l}</button>`).join("")}</nav>
   ${body}
   ${nl + nd ? `<button class="btn primary full" data-tab="lijst">Naar je boodschappen · ${open} ${open === 1 ? "product" : "producten"}</button>` : ""}`;
@@ -3503,7 +3503,7 @@ function todayMenu(){
   const nxt = (() => { for (let k = 1; k < 7; k++){ const id = sch[(t + k) % 7]; if (id && id !== "-") return [DAYS_LONG[(t + k) % 7], id]; } return null; })();
   return `<section class="section"><div class="label">Vandaag op het menu</div><div class="days">
     ${ob ? `<div class="prow">${row("Ontbijt", ob.id)}</div>` : ""}
-    ${lu ? (t < totalLunches() ? `<div class="prow">${row("Lunch", lu.id, "Pak een bakje uit de koelkast." + (t + 1 < totalLunches() && t + 1 >= 3 ? " Haal vanavond het bakje voor morgen uit de vriezer en zet het in de koelkast." : "") + (S.plan.lunch.length > 1 ? " Je hebt meerdere lunches: pak de oudste eerst." : ""))}</div>` : `<div class="prow"><div class="dmeal mrow"><small>Lunch</small><b>Vandaag geen lunchbakje gepland</b><small>Je bakjes zijn voor ${totalLunches()} ${totalLunches() === 1 ? "dag" : "dagen"}, vanaf maandag.</small></div></div>`) : ""}
+    ${lu ? (t < totalLunches() ? `<div class="prow">${row("Lunch", lu.id, "Bakje uit de koelkast." + (t + 1 < totalLunches() && t + 1 >= 3 ? " Vanavond: bakje voor morgen van vriezer naar koelkast." : "") + (S.plan.lunch.length > 1 ? " Je hebt meerdere lunches: pak de oudste eerst." : ""))}</div>` : `<div class="prow"><div class="dmeal mrow"><small>Lunch</small><b>Vandaag geen lunchbakje gepland</b><small>Je bakjes zijn voor ${totalLunches()} ${totalLunches() === 1 ? "dag" : "dagen"}, vanaf maandag.</small></div></div>`) : ""}
     ${din && din !== "-" ? `<div class="prow">${row("Avondeten", din, EP(din) + (EP(din) === 1 ? " persoon" : " personen") + " · " + RID[din].time + " min")}<button class="btn small primary" data-cooknow="${din}" style="justify-self:start">Nu koken</button></div>`
       : `<div class="prow"><div class="dmeal mrow"><small>Avondeten</small><b>Vanavond niets gepland</b>${nxt ? `<small>Volgende: ${esc(RID[nxt[1]].name)} op ${nxt[0]}</small>` : ""}</div></div>`}
     ${sn.length ? `<div class="prow"><div class="dmeal mrow"><small>Tussendoor</small>${sn.map(x => `<b>${esc(SID[x.id].name)}</b><small>${esc(SID[x.id].items.map(([k, q]) => fmt(k, q)).join(" + "))}</small>`).join("")}</div></div>` : ""}
@@ -3907,7 +3907,7 @@ function heroImg(r){
   const own = UI.photos[0];
   if (own) return `<figure class="dhero"><img src="${own.img}" alt="Foto van ${esc(r.name)}"><figcaption>${own.mine ? "Jouw foto" : "Foto van een gebruiker"}</figcaption></figure>`;
   const u = wimgUrls(r.id); if (!u) return "";
-  return `<figure class="dhero"><img src="${u.list[0]}" data-alt="${esc(u.list.slice(1).join(" "))}" alt="Voorbeeldfoto: ${esc(decodeURIComponent(u.page).replace(/_/g, " "))}" referrerpolicy="no-referrer" onerror="heroErr(this)"><figcaption>Voorbeeldfoto van dit soort gerecht, niet precies dit recept · <a href="https://en.wikipedia.org/wiki/${u.page}" target="_blank" rel="noopener">Wikipedia</a></figcaption></figure>`;
+  return `<figure class="dhero"><img src="${u.list[0]}" data-alt="${esc(u.list.slice(1).join(" "))}" alt="Voorbeeldfoto: ${esc(decodeURIComponent(u.page).replace(/_/g, " "))}" referrerpolicy="no-referrer" onerror="heroErr(this)"><figcaption>Voorbeeld van dit soort gerecht · <a href="https://en.wikipedia.org/wiki/${u.page}" target="_blank" rel="noopener">Wikipedia</a></figcaption></figure>`;
 }
 function thumbImg(r){
   const u = wimgUrls(r.id); if (!u) return "";
@@ -3955,9 +3955,9 @@ function viewList(){
     <ul class="havelist">${have.map(it => `<li><span>${esc(DB[it.id].n)}<br><small class="sub">${esc(it.why)}</small></span><button class="btn small" data-unhave="${it.id}">Toch kopen</button></li>`).join("")}</ul></details>` : "";
   const nCheck = items.filter(it => !it.have && (HOMECHECK.includes(it.id) || it.pantry)).length;
   return `
-  <header class="top"><h1 class="brand" style="font-size:26px">Boodschappen</h1><div class="sub num">${shopCount()} van ${items.filter(it => !it.have).length} nog te halen</div></header>
+  <header class="top"><h1 class="brand" style="font-size:26px">Boodschappen</h1><div class="sub num">${shopCount()} nog te halen</div></header>
   <details class="section fold card" id="storesfold" ${!sel.length || UI.storesOpen ? "open" : ""}><summary class="label">Mijn supermarkten${sel.length ? `: ${sel.map(x => SNAME[x]).join(", ")}` : ""}</summary>
-    <p class="sub" style="margin:0">Tik aan waar jij boodschappen kunt doen. De lijst laat dan zien wat je waar haalt, en geeft een vervanger als iets daar meestal niet ligt.</p>
+    <p class="sub" style="margin:0">Waar doe je boodschappen? Tik er één of meer aan.</p>
     ${storeChips()}
   </details>
   ${!items.length ? `<div class="card"><p style="margin:0">Je lijst is nog leeg. Kies eerst wat je deze week eet.</p><button class="btn primary" data-tab="week" style="justify-self:start">Naar Planning</button></div>` : `
