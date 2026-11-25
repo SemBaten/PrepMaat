@@ -141,6 +141,11 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: left; width: 100%; }
 .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; margin-top: 1px; }
 .item.done { opacity: 0.5; }
+.seg { position: sticky; top: 0; z-index: 6; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; background: var(--sunk); border-radius: 12px; }
+.seg button { border: 0; background: none; padding: 9px 4px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.wsum { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--muted); }
+.wsum b { color: var(--ink); }
 .deal { display: inline-block; margin-top: 4px; font-size: 13px; background: var(--protein-soft); color: var(--protein); border-radius: 6px; padding: 2px 6px; }
 .dealcard { gap: 8px; border-color: var(--accent); }
 .deallist { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 14px; }
@@ -2812,7 +2817,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v25";
+const APP_VERSION = "v26";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3111,7 +3116,7 @@ function planRows(type){
       <div class="pctl"><span class="stepper" aria-label="${type === "diner" ? "Hoe vaak" : "Aantal dagen"}"><button data-pn="${r.id}:-1" aria-label="Minder ${esc(r.name)}">−</button><span class="num">${unitN(type, x.n)}</span><button data-pn="${r.id}:1" aria-label="Meer ${esc(r.name)}">+</button></span>${pStep(r.id)}</div>
       ${type === "lunch" && (x.p || 1) > 1 ? `<small class="sub num">${x.n * x.p} bakjes: ${x.n} ${x.n === 1 ? "dag" : "dagen"} voor ${x.p} personen</small>` : ""}
     </div>`; }).join("")}</div>
-    <p class="ihint" style="margin:0">Per gerecht kies je hoe vaak${type === "diner" ? "" : " (dagen)"} en voor hoeveel personen.</p>`;
+`;
 }
 function inspiration(){
   if (!UI.insp){ const used = planIds(); const d1 = pick(DINNERS, used), d2 = pick(DINNERS, [...used, d1]); UI.insp = [pick(LUNCHES, used), d1, d2]; }
@@ -3192,42 +3197,45 @@ function viewToday(){
   ${weightCard(false)}`;
 }
 function viewWeek(){
-  const nl = totalLunches(), nd = totalDinners(), open = shopCount();
-  return `
-  <header class="top"><div class="brand">Prep<span>maat</span></div><div class="sub">Planning</div></header>
-  <p class="sub" style="margin:0">Kies wat je deze week eet en hoe vaak. Je boodschappenlijst maakt zich vanzelf.</p>
-  ${feedbackNudge()}
-
+  const nl = totalLunches(), nd = totalDinners(), open = shopCount(), any = nl + nd + totalOf("ontbijt");
+  const seg = UI.wseg || "gerechten", sn = snackPlan().length;
+  const segs = [["gerechten", "Gerechten"], ["week", "Weekkalender"], ["tussendoor", "Tussendoor" + (sn ? ` (${sn})` : "")]];
+  const md = mealDay(), g = goals();
+  let body = "";
+  if (seg === "gerechten") body = `
   <section class="section">
     <div class="row between"><div class="label">Ontbijt</div><span class="sub num">${pickCount("ontbijt")}</span></div>
     ${planRows("ontbijt")}
     <button class="btn full" data-pick="ontbijt">+ Ontbijt kiezen</button>
   </section>
-
   <section class="section">
     <div class="row between"><div class="label">Lunch</div><span class="sub num">${totalBakjes()} ${totalBakjes() === 1 ? "bakje" : "bakjes"} in totaal</span></div>
     ${planRows("lunch")}
     <button class="btn full" data-pick="lunch">+ Lunch kiezen</button>
   </section>
-
   <section class="section">
     <div class="row between"><div class="label">Avondeten</div><span class="sub num">${nd} ${nd === 1 ? "avond" : "avonden"}</span></div>
     ${planRows("diner")}
     <button class="btn full" data-pick="diner">+ Avondeten kiezen</button>
-    ${weekStrip()}
   </section>
-
-  ${snackSection()}
-
-  ${nl + nd ? restCard() : ""}
-  ${nl + nd ? `<button class="btn primary full" data-tab="lijst">Naar je boodschappen · ${open} ${open === 1 ? "product" : "producten"}</button>` : ""}
-  ${nl + nd ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Lunchbakjes en eventueel avondeten achter elkaar, met één afweeglijst en timers.</span></button>` : ""}
   <div class="row">
     <button class="btn small" id="autofill">${nl + nd ? "Vul aan met voorstellen" : "Kies een week voor mij"}</button>
     ${nl + nd ? `<button class="btn small" id="clearplan">${UI.clearArm ? "Zeker weten? Tik nog een keer" : "Week leegmaken"}</button>` : ""}
   </div>
-
   ${inspiration()}`;
+  else if (seg === "week") body = nd ? `
+  <section class="section">${weekStrip()}</section>
+  ${nl + nd ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Lunchbakjes en eventueel avondeten achter elkaar, met één afweeglijst en timers.</span></button>` : ""}
+  ${restCard()}` : `<div class="card"><p style="margin:0">Kies eerst je avondeten. Daarna zet je hier per dag wat je eet.</p><button class="btn primary" data-wseg="gerechten" style="justify-self:start">Naar Gerechten</button></div>
+  ${nl ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Je lunchbakjes met één afweeglijst en timers.</span></button>` : ""}`;
+  else body = snackSection();
+  return `
+  <header class="top"><div class="brand">Prep<span>maat</span></div><div class="sub">Planning</div></header>
+  ${feedbackNudge()}
+  ${any ? `<div class="wsum num"><span><b>${totalBakjes()}</b> lunchbakjes</span><span><b>${nd}</b> ${nd === 1 ? "avond" : "avonden"}</span>${g && md.any ? `<span><b>${Math.round((md.k + snackDay().k) / 10) * 10}</b> / ${g.kcal} kcal per dag</span>` : ""}</div>` : `<p class="sub" style="margin:0">Kies wat je deze week eet. Je boodschappenlijst maakt zich vanzelf.</p>`}
+  <nav class="seg" role="tablist">${segs.map(([k, l]) => `<button role="tab" data-wseg="${k}" aria-selected="${seg === k}">${l}</button>`).join("")}</nav>
+  ${body}
+  ${nl + nd ? `<button class="btn primary full" data-tab="lijst">Naar je boodschappen · ${open} ${open === 1 ? "product" : "producten"}</button>` : ""}`;
 }
 function renderPicker(){
   UI.view = "picker";
@@ -3808,12 +3816,13 @@ function viewPrefs(){
   const used = new Set(); R.forEach(r => r.items.forEach(([k]) => used.add(k)));
   const skip = ["water","zout","olie","peper","bouillon","runderbouillon"];
   const ingGroups = CATS.filter(([c]) => c !== "extra").map(([c, label]) => [label, [...used].filter(k => DB[k].c === c && !skip.includes(k)).sort((a, b) => ingName(a).localeCompare(ingName(b)))]).filter(g => g[1].length);
-  const nFit = R.filter(fits).length;
-  return `
-  <header class="top"><h1 class="brand" style="font-size:26px">Profiel</h1></header>
+  const nFit = R.filter(fits).length, ps = UI.pseg || "ik";
+  const segs = [["ik", "Ik en doelen"], ["smaak", "Smaak"], ["hulp", "Hulp"]];
+  const nav = `<nav class="seg" role="tablist">${segs.map(([k, l]) => `<button role="tab" data-pseg="${k}" aria-selected="${ps === k}">${l}</button>`).join("")}</nav>`;
+  const head = `<header class="top"><h1 class="brand" style="font-size:26px">Profiel</h1></header>${nav}`;
+  if (ps === "ik") return `${head}
   ${profileCard()}
   ${weightCard(true)}
-  <h2 class="group">Instellingen</h2>
   <section class="section"><div class="label">Eten bijhouden</div>
     <div class="card">
       <label class="check"><input type="checkbox" id="trackertoggle" ${S.tracker ? "checked" : ""}> Ik wil bijhouden wat ik per dag eet</label>
@@ -3823,8 +3832,8 @@ function viewPrefs(){
   <section class="section"><div class="label">Mijn supermarkten</div>
     <p class="sub" style="margin:0">Je boodschappenlijst past zich hierop aan.</p>
     ${storeChips()}
-  </section>
-  <h2 class="group">Smaak en voorkeuren</h2>
+  </section>`;
+  if (ps === "smaak") return `${head}
   <section class="section"><div class="label">Voedingskeuze</div>
     <p class="sub" style="margin:0">Gerechten die hierbij passen worden vaker voorgesteld.</p>
     <div class="chips">${FOCUS.map(([k,l]) => `<button class="chip" data-focus="${k}" aria-pressed="${p.focus.includes(k)}">${l}</button>`).join("")}</div>
@@ -3847,8 +3856,8 @@ function viewPrefs(){
     <p class="sub" style="margin:0">Tik aan wat je niet lust. Gerechten met dat ingrediënt worden niet meer voorgesteld.</p>
     ${ingGroups.map(([label, keys]) => `<div class="cat"><div class="sub">${esc(label.split(":")[0])}</div><div class="chips">${keys.map(k => `<button class="chip no" data-noing="${k}" aria-pressed="${p.noIng.includes(k)}">${p.noIng.includes(k) ? "✕ " : ""}${esc(ingName(k))}</button>`).join("")}</div></div>`).join("")}
   </details>
-  <button class="btn full" id="resetprefs">Smaak en voorkeuren terugzetten</button>
-  <h2 class="group">Hulp</h2>
+  <button class="btn full" id="resetprefs">Smaak en voorkeuren terugzetten</button>`;
+  return `${head}
   <button class="btn full" data-basics="1">Kookbasis: maten, vuur en veilig bewaren</button>
   <button class="btn full" data-feedback="1">Feedback geven over de app</button>
   <details class="section fold card"><summary class="label">Privacy: wat gaat er online?</summary><div class="prose">
@@ -4185,6 +4194,8 @@ document.addEventListener("click", (e) => {
   if (d.addp){ const n = addToPlan(d.addp), r = RID[d.addp]; UI.clearArm = false; save(); render(); refreshSheet(); toast(`${r.name}: ${unitN(r.type, n)} in je week`); return; }
   if (d.pn){ const [id, dl] = d.pn.split(":"); setPlanN(id, +dl); save(); render(); refreshSheet(); return; }
   if (d.sn){ const [id, dl] = d.sn.split(":"), L = S.plan.snack, i = L.findIndex(x => x.id === id); if (i >= 0){ L[i].n = Math.min(14, L[i].n + +dl); if (L[i].n <= 0){ L.splice(i, 1); toast(SID[id].name + " is uit je week gehaald"); } } save(); render(); return; }
+  if (d.pseg){ UI.pseg = d.pseg; render(); window.scrollTo(0, 0); return; }
+  if (d.wseg){ UI.wseg = d.wseg; UI.dayPick = null; render(); window.scrollTo(0, 0); return; }
   if (d.day !== undefined){ const i = +d.day; UI.dayPick = UI.dayPick === i ? null : i; render(); return; }
   if (d.setday){ const [i, id] = d.setday.split(":"); setDay(+i, id); UI.dayPick = null; save(); render(); return; }
   if (d.cooknow){ openRecipe(d.cooknow); startCook(); return; }
