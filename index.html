@@ -96,8 +96,9 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .dmeal small { color: var(--muted); font-size: 13px; }
 .off { color: var(--muted); font-style: italic; }
 .dact { display: flex; gap: 6px; }
-.prow { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 11px 12px; border-top: 1px solid var(--line); }
+.prow { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: center; padding: 11px 12px; border-top: 1px solid var(--line); }
 .prow:first-child { border-top: 0; }
+.pctl { display: flex; gap: 8px; flex-wrap: wrap; }
 .prow .stepper span { min-width: 64px; font-size: 14px; }
 .pkrow { display: grid; grid-template-columns: 1fr auto 44px; gap: 8px; align-items: center; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 8px 8px 12px; }
 .pkrow.on { border-color: var(--accent); background: var(--accent-soft); }
@@ -11310,6 +11311,7 @@ function defaults(){
 const LO = load();
 S = Object.assign(defaults(), LO || {});
 S.plan.ontbijt = S.plan.ontbijt || [];
+["ontbijt","lunch","diner"].forEach(t => (S.plan[t] || []).forEach(x => { if (!x.p) x.p = t === "diner" ? (S.persons || 2) : ((S.pp || {})[t] || 1); }));
 if (LO && !LO.plan && LO.lunch && RID[LO.lunch]){
   S.plan = { lunch: [{ id: LO.lunch, n: LO.lunchDays || 5 }], diner: [] };
   (LO.dinners || []).forEach(id => { if (!id || !RID[id]) return; const e = S.plan.diner.find(x => x.id === id); e ? e.n++ : S.plan.diner.push({ id, n: 1 }); });
@@ -11371,7 +11373,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v21";
+const APP_VERSION = "v22";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -11571,9 +11573,9 @@ function hasAt(k, st){ return !(MISS[k] || []).includes(st); }
 function shopItems(){
   const tot = {};
   const add = (r, f) => { for (const [k, q] of r.items) tot[k] = (tot[k] || 0) + q * f; };
-  S.plan.lunch.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * (PP("lunch") - 1 + pf(r)) / r.serves); });
-  S.plan.diner.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * (S.persons - 1 + pf(r)) / r.serves); });
-  (S.plan.ontbijt || []).forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * (PP("ontbijt") - 1 + pf(r)) / r.serves); });
+  S.plan.lunch.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || 1) - 1 + pf(r)) / r.serves); });
+  S.plan.diner.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || S.persons) - 1 + pf(r)) / r.serves); });
+  (S.plan.ontbijt || []).forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || 1) - 1 + pf(r)) / r.serves); });
   const items = [];
   for (const [k, q] of Object.entries(tot)){
     const d = DB[k]; if (d.c === "water") continue;
@@ -11629,7 +11631,11 @@ function pills(r){ const m = pm(r); return `<span class="pill p num">${m.p} g ei
 function planCount(id){ const r = RID[id]; if (!r) return 0; const e = (S.plan[r.type] || []).find(x => x.id === id); return e ? e.n : 0; }
 function lunchN(r){ return planCount(r.id) || S.lunchDays || 5; }
 function PP(t){ return t === "diner" ? S.persons : ((S.pp || {})[t] || 1); }
+function EP(id){ const r = RID[id], e = r && (S.plan[r.type] || []).find(x => x.id === id); return e ? (e.p || PP(r.type)) : PP(r.type); }
+function setEP(id, d){ const r = RID[id], e = (S.plan[r.type] || []).find(x => x.id === id); const n = Math.min(6, Math.max(1, EP(id) + d)); if (e) e.p = n; if (r.type === "diner") S.persons = n; else { S.pp = S.pp || {}; S.pp[r.type] = n; } }
+function pStep(id){ const n = EP(id); return `<span class="stepper" aria-label="Aantal personen"><button data-pe="${id}:-1" aria-label="Minder personen">−</button><span class="num">${n} pers.</span><button data-pe="${id}:1" aria-label="Meer personen">+</button></span>`; }
 function ppStep(t){ const n = PP(t); return `<span class="stepper" aria-label="Aantal personen"><button data-pt="${t}:-1" aria-label="Minder personen">−</button><span class="num">${n} pers.</span><button data-pt="${t}:1" aria-label="Meer personen">+</button></span>`; }
+function totalBakjes(){ return S.plan.lunch.reduce((a, x) => a + x.n * (x.p || 1), 0); }
 function totalLunches(){ return S.plan.lunch.reduce((a, x) => a + x.n, 0); }
 function totalDinners(){ return S.plan.diner.reduce((a, x) => a + x.n, 0); }
 function planIds(){ return [...(S.plan.ontbijt || []), ...S.plan.lunch, ...S.plan.diner].map(x => x.id); }
@@ -11638,7 +11644,7 @@ function pickCount(type){ const n = totalOf(type); return type === "lunch" ? uni
 function addToPlan(id){
   const r = RID[id], list = (S.plan[r.type] = S.plan[r.type] || []), e = list.find(x => x.id === id);
   if (e) e.n = Math.min(r.type === "lunch" ? 10 : 7, e.n + 1);
-  else list.push({ id, n: r.type === "lunch" ? Math.max(1, 5 - totalLunches()) : r.type === "ontbijt" ? Math.max(1, 7 - totalOf("ontbijt")) : 1 });
+  else list.push({ id, p: PP(r.type), n: r.type === "lunch" ? Math.max(1, 5 - totalLunches()) : r.type === "ontbijt" ? Math.max(1, 7 - totalOf("ontbijt")) : 1 });
   return planCount(id);
 }
 function setPlanN(id, delta){
@@ -11647,7 +11653,7 @@ function setPlanN(id, delta){
   list[i].n = Math.min(r.type === "lunch" ? 10 : 7, list[i].n + delta);
   if (list[i].n <= 0){ list.splice(i, 1); toast(r.name + " is uit je week gehaald"); }
 }
-function unitN(type, n){ return type === "lunch" ? (PP("lunch") > 1 ? `${n} ${n === 1 ? "dag" : "dagen"}` : `${n} ${n === 1 ? "bakje" : "bakjes"}`) : type === "ontbijt" ? `${n} ${n === 1 ? "dag" : "dagen"}` : `${n}×`; }
+function unitN(type, n){ return type === "lunch" ? `${n} ${n === 1 ? "dag" : "dagen"}` : type === "ontbijt" ? `${n} ${n === 1 ? "dag" : "dagen"}` : `${n}×`; }
 function avgMacros(type){
   const list = (S.plan[type] || []).filter(x => RID[x.id]); const n = list.reduce((a, x) => a + x.n, 0); if (!n) return null;
   const t = list.reduce((a, x) => { const m = pm(RID[x.id]); return { k: a.k + m.k * x.n, p: a.p + m.p * x.n, v: a.v + m.v * x.n, gv: a.gv + m.gv * x.n, fr: a.fr + m.fr * x.n }; }, { k: 0, p: 0, v: 0, gv: 0, fr: 0 });
@@ -11659,8 +11665,10 @@ function planRows(type){
   return `<div class="days">${list.map(x => { const r = RID[x.id], m = pm(r); return `
     <div class="prow">
       <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${m.k} kcal · ${m.p} g eiwit · ${r.time} min</small></button>
-      <span class="stepper"><button data-pn="${r.id}:-1" aria-label="Minder ${esc(r.name)}">−</button><span class="num">${unitN(type, x.n)}</span><button data-pn="${r.id}:1" aria-label="Meer ${esc(r.name)}">+</button></span>
-    </div>`; }).join("")}</div>`;
+      <div class="pctl"><span class="stepper" aria-label="${type === "diner" ? "Hoe vaak" : "Aantal dagen"}"><button data-pn="${r.id}:-1" aria-label="Minder ${esc(r.name)}">−</button><span class="num">${unitN(type, x.n)}</span><button data-pn="${r.id}:1" aria-label="Meer ${esc(r.name)}">+</button></span>${pStep(r.id)}</div>
+      ${type === "lunch" && (x.p || 1) > 1 ? `<small class="sub num">${x.n * x.p} bakjes: ${x.n} ${x.n === 1 ? "dag" : "dagen"} voor ${x.p} personen</small>` : ""}
+    </div>`; }).join("")}</div>
+    <p class="ihint" style="margin:0">Per gerecht kies je hoe vaak${type === "diner" ? "" : " (dagen)"} en voor hoeveel personen.</p>`;
 }
 function inspiration(){
   if (!UI.insp){ const used = planIds(); const d1 = pick(DINNERS, used), d2 = pick(DINNERS, [...used, d1]); UI.insp = [pick(LUNCHES, used), d1, d2]; }
@@ -11747,22 +11755,19 @@ function viewWeek(){
   ${feedbackNudge()}
 
   <section class="section">
-    <div class="row between"><div class="label">Ontbijt · ${pickCount("ontbijt")}</div>${ppStep("ontbijt")}</div>
+    <div class="row between"><div class="label">Ontbijt</div><span class="sub num">${pickCount("ontbijt")}</span></div>
     ${planRows("ontbijt")}
     <button class="btn full" data-pick="ontbijt">+ Ontbijt kiezen</button>
   </section>
 
   <section class="section">
-    <div class="row between"><div class="label">Lunch · ${nl * PP("lunch")} ${nl * PP("lunch") === 1 ? "bakje" : "bakjes"}</div>${ppStep("lunch")}</div>
-    ${PP("lunch") > 1 && nl ? `<p class="sub" style="margin:0">${nl} ${nl === 1 ? "dag" : "dagen"} lunch voor ${PP("lunch")} personen.</p>` : ""}
+    <div class="row between"><div class="label">Lunch</div><span class="sub num">${totalBakjes()} ${totalBakjes() === 1 ? "bakje" : "bakjes"} in totaal</span></div>
     ${planRows("lunch")}
     <button class="btn full" data-pick="lunch">+ Lunch kiezen</button>
   </section>
 
   <section class="section">
-    <div class="row between"><div class="label">Avondeten · ${nd} ${nd === 1 ? "avond" : "avonden"}</div>
-      ${ppStep("diner")}
-    </div>
+    <div class="row between"><div class="label">Avondeten</div><span class="sub num">${nd} ${nd === 1 ? "avond" : "avonden"}</span></div>
     ${planRows("diner")}
     <button class="btn full" data-pick="diner">+ Avondeten kiezen</button>
   </section>
@@ -11781,7 +11786,7 @@ function renderPicker(){
   document.getElementById("sheet").innerHTML = `<div class="wrap">
     <div class="sheethead"><button class="back" id="close">‹ Klaar</button><span class="label num" id="pcount">${pickCount(type)} gekozen</span></div>
     <h1 class="dtitle" style="font-size:26px">${({ lunch: "Kies je lunch", diner: "Kies je avondeten", ontbijt: "Kies je ontbijt" })[type]}</h1>
-    <p class="sub" style="margin:0">Tik op + om een gerecht toe te voegen. Nog een keer + betekent: ${({ lunch: PP("lunch") > 1 ? "een dag extra" : "een bakje extra", diner: "deze week nog een keer", ontbijt: "een dag extra" })[type]}. Tik op de naam om het recept te bekijken.</p>
+    <p class="sub" style="margin:0">Tik op + om een gerecht toe te voegen. Nog een keer + betekent: ${({ lunch: "een dag extra", diner: "deze week nog een keer", ontbijt: "een dag extra" })[type]}. Tik op de naam om het recept te bekijken.</p>
     <input id="psearch" class="search" type="search" placeholder="Zoek op gerecht of ingrediënt, bijv. kip" value="${esc(UI.pq || "")}" autocomplete="off">
     <div id="plist" class="flist">${pickerList()}</div>
   </div>`;
@@ -12179,7 +12184,7 @@ function viewList(){
     ${storeChips()}
   </details>
   ${!items.length ? `<div class="card"><p style="margin:0">Je lijst is nog leeg. Kies eerst wat je deze week eet.</p><button class="btn primary" data-tab="week" style="justify-self:start">Naar Planning</button></div>` : `
-  <p class="sub" style="margin:0">Voor ${nl * PP("lunch")} ${nl * PP("lunch") === 1 ? "lunchbakje" : "lunchbakjes"} en ${nd} keer avondeten voor ${S.persons} ${S.persons === 1 ? "persoon" : "personen"}. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p>
+  <p class="sub" style="margin:0">Voor ${totalBakjes()} ${totalBakjes() === 1 ? "lunchbakje" : "lunchbakjes"} en ${nd} keer avondeten, met het aantal personen dat je per gerecht hebt gekozen. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p>
   ${nCheck ? `<button class="btn full homebtn" id="homecheck"><b>Eerst thuis checken</b><span class="sub">${nCheck} dingen die je misschien al hebt. Duurt een minuut.</span></button>` : ""}
   <div class="row"><button class="btn primary" id="copy">Kopieer lijst</button><button class="btn" id="share">Delen</button><button class="btn" id="uncheck">Vinkjes wissen</button></div>
   <div class="shop">
@@ -12245,7 +12250,7 @@ function render(){
 }
 
 /* ============ Recept-detail en kookmodus ============ */
-function factorFor(r){ return (r.type === "lunch" ? lunchN(r) : 1) * (PP(r.type) - 1 + pf(r)) / r.serves; }
+function factorFor(r){ return (r.type === "lunch" ? lunchN(r) : 1) * (EP(r.id) - 1 + pf(r)) / r.serves; }
 function openRecipe(id){
   const r = RID[id]; UI.got = {}; UI.open = id; UI.cook = null; stopTimer();
   const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0;
@@ -12264,13 +12269,13 @@ function portionPicker(r){
   return `<section class="section"><div class="label">Jouw portie</div>
     <div class="pgrid">${opts.map(([k, l, f]) => `<button class="popt ${k === "advies" ? "adv" : ""}" data-portion="${k}" aria-pressed="${cur === k}"><b>${l}</b><span class="num">${Math.round(base.kr * f / 10) * 10} kcal</span><span class="num">${Math.round(base.pr * f)} g eiwit</span></button>`).join("")}</div>
     ${note ? `<p class="sub" style="margin:0">${note}</p>` : g ? "" : `<p class="sub" style="margin:0">Vul bij Profiel je gegevens in voor een advies-portie die bij jouw doel past.</p>`}
-    ${PP(r.type) > 1 ? `<p class="sub" style="margin:0">Dit is jouw portie. De andere ${PP(r.type) - 1 === 1 ? "persoon eet" : PP(r.type) - 1 + " personen eten"} een normale portie. De hoeveelheden hieronder zijn daarop aangepast.</p>` : `<p class="sub" style="margin:0">De hoeveelheden en je boodschappenlijst passen zich aan je keuze aan.</p>`}
+    ${EP(r.id) > 1 ? `<p class="sub" style="margin:0">Dit is jouw portie. De andere ${EP(r.id) - 1 === 1 ? "persoon eet" : EP(r.id) - 1 + " personen eten"} een normale portie. De hoeveelheden hieronder zijn daarop aangepast.</p>` : `<p class="sub" style="margin:0">De hoeveelheden en je boodschappenlijst passen zich aan je keuze aan.</p>`}
   </section>`;
 }
 function renderRecipe(){
   UI.view = "recipe";
   const r = RID[UI.open], f = factorFor(r), m = pm(r);
-  const portions = r.type === "lunch" ? lunchN(r) * PP("lunch") : PP(r.type), pc = planCount(r.id);
+  const portions = r.type === "lunch" ? lunchN(r) * EP(r.id) : EP(r.id), pc = planCount(r.id);
   const steps = allSteps(r, f);
   document.getElementById("sheet").innerHTML = `<div class="wrap">
     <div class="sheethead"><button class="back" id="close">‹ Terug</button><span class="label">${typeLabel(r)}</span></div>
@@ -12280,8 +12285,8 @@ function renderRecipe(){
     <div class="macros num"><div class="macro p"><b>${m.p} g</b><small>eiwit in jouw portie</small></div><div class="macro"><b>${m.k}</b><small>kcal in jouw portie</small></div><div class="macro"><b>${m.v} g</b><small>vezels</small></div><div class="macro"><b>${m.kh} g</b><small>koolhydraten</small></div><div class="macro"><b>${r.time}</b><small>minuten</small></div><div class="macro"><b>${portions}</b><small>${r.type === "lunch" ? "bakjes" : portions === 1 ? "persoon" : "personen"}</small></div></div>
     ${portionPicker(r)}
     ${(() => { const t = focusTags(r).filter(([k]) => S.prefs.focus.includes(k)); return t.length ? `<div class="row"><span class="sub">Past bij jouw keuze:</span>${t.map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}</div>` : ""; })()}
-    <div class="row between"><span class="sub">Aantal personen</span>${ppStep(r.type)}</div>
-    ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${PP("lunch") > 1 ? ` (${portions} bakjes)` : ""}</span>
+    <div class="row between"><span class="sub">Aantal personen</span>${pStep(r.id)}</div>
+    ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${EP(r.id) > 1 ? ` (${portions} bakjes)` : ""}</span>
       <span class="stepper">${pc ? `<button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button>` : `<button data-ld="-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-ld="1" aria-label="Meer">+</button>`}</span>
     </div>` : ""}
     ${pc ? (r.type !== "lunch" ? `<div class="row between"><span class="sub">In mijn week</span><span class="stepper"><button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${unitN(r.type, pc)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button></span></div>` : `<p class="sub" style="margin:0">✓ Staat in je week. Je boodschappenlijst rekent met ${portions} ${portions === 1 ? "bakje" : "bakjes"}.</p>`)
@@ -12406,6 +12411,7 @@ document.addEventListener("click", (e) => {
   if (d.shopmode){ S.shopMode = d.shopmode; save(); render(); return; }
   if (d.logplan){ const r = RID[d.logplan], m = pm(r); addLog({ n: typeLabel(r).split(" ·")[0] + ": " + r.name, k: m.k, p: m.p, v: m.v, gv: m.gv, fr: m.fr, src: r.id }); render(); toast("Toegevoegd aan vandaag"); return; }
   if (d.ld){ S.lunchDays = Math.min(7, Math.max(1, S.lunchDays + +d.ld)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
+  if (d.pe){ const [id, v] = d.pe.split(":"); setEP(id, +v); save(); render(); refreshSheet(); return; }
   if (d.pt){ const [t, v] = d.pt.split(":"); const n = Math.min(6, Math.max(1, PP(t) + +v)); if (t === "diner") S.persons = n; else { S.pp = S.pp || {}; S.pp[t] = n; } save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   if (d.pp){ S.persons = Math.min(6, Math.max(1, S.persons + +d.pp)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   switch (b.id){
