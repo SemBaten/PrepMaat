@@ -5,6 +5,7 @@ import glob
 extra=''.join(open(p).read().rstrip()+'\n' for p in sorted(glob.glob(os.path.join(HERE,'recipes','*.js'))))
 assert '/*@@EXTRA_RECIPES@@*/' in s
 s=s.replace('/*@@EXTRA_RECIPES@@*/', extra)
+s=s.replace('/*@@IMAGES@@*/', open(os.path.join(HERE,'images.js')).read())
 os.makedirs(os.path.join(HERE,'..','dist'), exist_ok=True)
 open(os.path.join(HERE,'..','dist','app-full.html'),'w').write(s)  # voor de preview, niet committen
 head_parts=[]
