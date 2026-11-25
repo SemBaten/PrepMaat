@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function score(s, k) {
+      return !(k in s) || (s[k] is int && s[k] >= 0 && s[k] <= 5);
+    }
+    function validRating(d) {
+      return d.keys().hasOnly(['recipe', 'uid', 'd', 's'])
+        && d.recipe is string && d.recipe.size() <= 40
+        && d.uid == request.auth.uid
+        && d.d is string && d.d.size() == 10
+        && d.s is map && d.s.size() > 0
+        && d.s.keys().hasOnly(['lekker', 'gemak', 'prijs', 'vullend', 'weer'])
+        && score(d.s, 'lekker') && score(d.s, 'gemak') && score(d.s, 'prijs')
+        && score(d.s, 'vullend') && score(d.s, 'weer');
+    }
+    // Sterren: iedereen mag lezen, je mag alleen je eigen sterren schrijven (1 per gerecht per dag)
+    match /ratings/{id} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && validRating(request.resource.data)
+        && id == request.auth.uid + '_' + request.resource.data.recipe + '_' + request.resource.data.d;
+      allow delete: if false;
+    }
+    // Foto's: iedereen mag kijken, je mag alleen kleine JPG-foto's toevoegen, niets aanpassen of weghalen
+    match /photos/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['recipe', 'uid', 'd', 'img'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.recipe is string && request.resource.data.recipe.size() <= 40
+        && request.resource.data.d is string && request.resource.data.d.size() == 10
+        && request.resource.data.img is string
+        && request.resource.data.img.size() < 300000
+        && request.resource.data.img.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$');
+      allow update, delete: if false;
+    }
+    // Feedback: gebruikers mogen alleen toevoegen. Niemand kan het via de app lezen; Sem leest het in de Firebase-console.
+    match /feedback/{id} {
+      allow read, update, delete: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'd', 'score', 'about', 'text', 'v'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.d is string && request.resource.data.d.size() == 10
+        && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= 5
+        && request.resource.data.about is string && request.resource.data.about.size() <= 20
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+        && request.resource.data.v is string && request.resource.data.v.size() <= 10;
+    }
+  }
+}
