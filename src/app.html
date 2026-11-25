@@ -141,6 +141,9 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: left; width: 100%; }
 .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; margin-top: 1px; }
 .item.done { opacity: 0.5; }
+.deal { display: inline-block; margin-top: 4px; font-size: 13px; background: var(--protein-soft); color: var(--protein); border-radius: 6px; padding: 2px 6px; }
+.dealcard { gap: 8px; border-color: var(--accent); }
+.deallist { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 14px; }
 .preprow { grid-template-columns: 26px 1fr; display: grid; text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
 .preprow .tick { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; }
 .preprow[aria-pressed="true"] .tick { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -3030,11 +3033,14 @@ function shopItems(){
   if (!sel.length) return items;
   const cheap = [...sel].sort((a, b) => SRANK[a] - SRANK[b]);
   let primary = cheap[0];
-  if (S.shopMode !== "goedkoop"){ let best = -1; for (const st of cheap){ const c = items.filter(it => it.extra !== undefined || hasAt(it.id, st)).length; if (c > best){ best = c; primary = st; } } }
+  const today = DEALS ? isoDay(0) : null;
+  const saveAt = (st) => { if (!DEALS) return 0; let t = 0; for (const it of items){ if (it.extra !== undefined || it.have) continue; const b = bestDeal(it.id, it.need || it.q, today); if (b && b.d.s === st) t += b.c.save; } return t; };
+  if (S.shopMode !== "goedkoop"){ let best = -1; for (const st of cheap){ const c = items.filter(it => it.extra !== undefined || hasAt(it.id, st)).length + saveAt(st) / 2; if (c > best){ best = c; primary = st; } } }
   const names = sel.map(x => SNAME[x]).join(" of ").replace(/ of (?=.* of )/g, ", ");
   for (const it of items){
     if (it.extra !== undefined){ it.store = primary; continue; }
-    const ok = (S.shopMode === "goedkoop" ? cheap : [primary, ...cheap]).find(st => hasAt(it.id, st));
+    const dl = DEALS && S.shopMode === "goedkoop" ? bestDeal(it.id, it.need || it.q, today) : null;
+    const ok = dl && dl.c.save >= 0.75 ? dl.d.s : (S.shopMode === "goedkoop" ? cheap : [primary, ...cheap]).find(st => hasAt(it.id, st));
     if (ok){ it.store = ok; if (ok !== primary && S.shopMode !== "goedkoop") it.note = `Meestal niet bij ${SNAME[primary]}, wel bij ${SNAME[ok]}.`; }
     else { it.store = primary; it.miss = true; it.note = `Vaak niet te koop bij ${names}.` + (SUB[it.id] ? ` Neem in plaats daarvan: ${SUB[it.id]}.` : ""); }
   }
@@ -3397,6 +3403,64 @@ function renderPrep(){
     ${timerHtml}${meanwhile}${back}
     <div class="cnav"><button class="btn full" id="prev" ${i === 0 || steps[i - 1].ri !== s.ri ? "disabled" : ""}>Vorige</button><button class="btn primary full" id="next">${nDone >= steps.length - 1 && !UI.prep.done[i] ? "Klaar!" : "Volgende stap"}</button></div>
   </div>`;
+}
+/* ============ Aanbiedingen (bron: PrijsProfeet, elke nacht opgehaald naar deals.json) ============ */
+let DEALS = null;
+async function loadDeals(){
+  try { const r = await fetch("deals.json", { cache: "no-cache" }); if (!r.ok) return; DEALS = await r.json(); if (S.tab === "lijst") render(); } catch(e){}
+}
+function isoDay(off){ const d = new Date(); d.setDate(d.getDate() + (off || 0)); return dayKey(d); }
+function dealStores(){ const sel = myStores(); return sel.length ? sel : STORES.map(x => x[0]); }
+/* Aanbiedingen voor één ingrediënt die op dag `day` geldig zijn, in jouw winkels */
+function dealsFor(k, day){
+  if (!DEALS || !DEALS.deals || !DEALS.deals[k]) return [];
+  const st = dealStores();
+  return DEALS.deals[k].filter(d => st.includes(d.s) && (!d.from || d.from <= day) && (!d.to || d.to >= day));
+}
+/* Hoeveel pakken van deze aanbieding je nodig hebt en wat je bespaart */
+function dealCalc(k, need, d){
+  const n = Math.max(1, Math.ceil(need / d.amt - 0.1));
+  return { n, cost: n * d.p, save: d.o && d.o > d.p ? n * (d.o - d.p) : 0 };
+}
+function bestDeal(k, need, day){
+  let best = null;
+  for (const d of dealsFor(k, day)){ const c = dealCalc(k, need, d); if (!best || c.save > best.c.save || (c.save === best.c.save && d.up < best.d.up)) best = { d, c }; }
+  return best && best.c.save > 0.2 ? best : null;
+}
+function euro(x){ return "€" + x.toFixed(2).replace(".", ","); }
+function shortDate(iso){ const d = new Date(iso + "T12:00"); return DAYS_LONG[(d.getDay() + 6) % 7] + " " + d.getDate() + " " + MND[d.getMonth()]; }
+function dealLine(it){
+  if (!DEALS || it.extra !== undefined || it.have) return "";
+  const b = bestDeal(it.id, it.need || it.q, isoDay(0));
+  if (!b) return "";
+  const { d, c } = b;
+  return `<br><span class="deal">🏷 ${it.store && it.store !== d.s ? "Alleen bij " : ""}${SNAME[d.s]}: ${esc(d.n)} (${esc(d.q || "")}) ${euro(d.p)}${d.o ? ` i.p.v. ${euro(d.o)}` : ""} · t/m ${shortDate(d.to)}${c.n > 1 ? ` · neem er ${c.n}` : ""}${c.save >= 0.5 ? ` · je bespaart ±${euro(c.save)}` : ""}</span>`;
+}
+/* Welke dag de komende week de meeste korting geeft op jouw lijst */
+function dayPlan(items){
+  if (!DEALS) return null;
+  const its = items.filter(it => it.extra === undefined && !it.have && DEALS.deals[it.id]);
+  const days = [];
+  for (let off = 0; off < 7; off++){
+    const day = isoDay(off); let save = 0; const what = [];
+    for (const it of its){ const b = bestDeal(it.id, it.need || it.q, day); if (b){ save += b.c.save; what.push([it.id, b]); } }
+    days.push({ off, day, save, what });
+  }
+  return days;
+}
+function dealCard(items){
+  const days = dayPlan(items); if (!days) return "";
+  const now = days[0], best = days.reduce((a, b) => b.save > a.save + 0.01 ? b : a, now);
+  const src = `<p class="ihint" style="margin:0">Aanbiedingen via <a href="https://www.prijsprofeet.nl" target="_blank" rel="noopener">PrijsProfeet</a>, bijgewerkt ${esc(shortDate(DEALS.updated.slice(0, 10)))}. Kijk in de winkel even na: aanbiedingen kunnen per filiaal verschillen.</p>`;
+  if (!now.save && !best.save) return `<details class="section fold card"><summary class="label">Aanbiedingen</summary><p class="sub" style="margin:0">Deze week geen aanbiedingen gevonden voor jouw lijst${myStores().length ? " in jouw winkels" : ""}.</p>${src}</details>`;
+  const later = best.off > 0 && best.save - now.save >= 1.5;
+  const list = (x) => x.what.slice().sort((a, b) => b[1].c.save - a[1].c.save).slice(0, 5).map(([k, b]) => `<li><b>${esc(ingName(k))}</b> bij ${SNAME[b.d.s]} · bespaar ±${euro(b.c.save)}</li>`).join("");
+  return `<section class="card dealcard">
+    <div class="label">${later ? "Slimmer: wacht tot " + DAYS_LONG[(new Date(best.day + "T12:00").getDay() + 6) % 7] : "Aanbiedingen op je lijst"}</div>
+    ${later ? `<p style="margin:0">Ga je op <b>${shortDate(best.day)}</b>, dan bespaar je ±<b>${euro(best.save)}</b>. Vandaag is dat ±${euro(now.save)}.${best.off >= 3 ? " Kook je eerder? Dan heb je de spullen misschien al eerder nodig." : ""}</p><ul class="deallist">${list(best)}</ul>`
+      : `<p style="margin:0">Vandaag bespaar je ±<b>${euro(now.save)}</b> met de aanbiedingen op je lijst (🏷).${best.off === 0 ? " Voor zover nu bekend wordt het later deze week niet goedkoper." : ""}</p><ul class="deallist">${list(now)}</ul>`}
+    ${src}
+  </section>`;
 }
 /* ============ Weekkalender: welke avond eet je wat ============ */
 /* S.dayMap: 7 vakjes (ma t/m zo). null = automatisch, "-" = geen avondeten (vrij/uit eten), anders een recept-id */
@@ -3861,7 +3925,7 @@ function viewList(){
   const nl = totalLunches(), nd = totalDinners();
   const itemHtml = it => `<button class="item ${S.checks[it.id] ? "done" : ""}" data-check="${esc(it.id)}">
           <span class="box">${S.checks[it.id] ? "✓" : ""}</span>
-          <span style="min-width:0"><span class="iname num">${esc(it.label)}</span>${it.hint ? `<br><span class="ihint num">${esc(it.hint)}</span>` : ""}${it.where ? `<br><span class="iwhere">📍 ${esc(it.where)}</span>` : ""}${it.note ? `<br><span class="inote ${it.miss ? "miss" : ""}">${esc(it.note)}</span>` : ""}${it.pantry ? `<br><span class="havebtn" data-have="${it.id}" role="button">Heb ik al in huis</span>` : ""}${it.extra !== undefined ? `<br><span class="ihint" data-delx="${it.extra}" role="button" style="text-decoration:underline">Verwijderen</span>` : ""}</span>
+          <span style="min-width:0"><span class="iname num">${esc(it.label)}</span>${it.hint ? `<br><span class="ihint num">${esc(it.hint)}</span>` : ""}${it.where ? `<br><span class="iwhere">📍 ${esc(it.where)}</span>` : ""}${it.note ? `<br><span class="inote ${it.miss ? "miss" : ""}">${esc(it.note)}</span>` : ""}${dealLine(it)}${it.pantry ? `<br><span class="havebtn" data-have="${it.id}" role="button">Heb ik al in huis</span>` : ""}${it.extra !== undefined ? `<br><span class="ihint" data-delx="${it.extra}" role="button" style="text-decoration:underline">Verwijderen</span>` : ""}</span>
         </button>`;
   const shop = !!UI.shop && items.length > 0;
   const cats = arr => ZONES.map(([z, label, tip]) => { const g = arr.filter(it => it.z === z && !it.have); if (!g.length) return "";
@@ -3890,6 +3954,7 @@ function viewList(){
   ${!items.length ? `<div class="card"><p style="margin:0">Je lijst is nog leeg. Kies eerst wat je deze week eet.</p><button class="btn primary" data-tab="week" style="justify-self:start">Naar Planning</button></div>` : `
   ${nCheck ? `<button class="btn full homebtn" id="homecheck"><b>1. Eerst thuis checken</b><span class="sub">${nCheck} dingen die je misschien al hebt. Duurt een minuut.</span></button>` : ""}
   <button class="btn primary full shopgo" id="shopstart"><b>${nCheck ? "2. " : ""}${got ? "Verder met winkelen" : "Start met winkelen"}</b><span>Grote vakjes, op volgorde van de winkel, scherm blijft aan</span></button>
+  ${dealCard(items)}
   <details class="fold"><summary class="sub">Hoe werkt deze lijst?</summary><p class="sub" style="margin:6px 0 0">Voor ${totalBakjes()} ${totalBakjes() === 1 ? "lunchbakje" : "lunchbakjes"}, ${nd} keer avondeten${snackPlan().length ? " en je tussendoortjes" : ""}, met het aantal personen dat je per gerecht hebt gekozen. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p></details>
   ${got ? shopBar : ""}
   <div class="shop">
@@ -4235,4 +4300,5 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 render();
 if (!S.onboarded && !S.profile) openProfile();
 initCloud();
+loadDeals();
 </script>
