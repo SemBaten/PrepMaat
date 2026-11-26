@@ -267,7 +267,6 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .ingres { display: grid; gap: 6px; }
 .ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
 .btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
-.btag.bio { background: #dcefdc; color: #24502c; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -2872,7 +2871,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v36";
+const APP_VERSION = "v37";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -2961,24 +2960,22 @@ const SNAME = Object.fromEntries(STORES.map(x => [x[0], x[1]]));
 /* Prijsniveau per winkel t.o.v. Albert Heijn (schatting uit prijsvergelijkingen van een vergelijkbaar mandje) */
 const SIDX = { ah: 1.00, plus: 0.99, jumbo: 0.97, vomar: 0.89, dirk: 0.88, lidl: 0.82, aldi: 0.81 };
 const HUIS = { ah: "AH-huismerk", jumbo: "Jumbo-huismerk", plus: "PLUS-huismerk", vomar: "Vomar-huismerk", dirk: "1 de Beste" };
-const BRANDCATS = ["vlees","vis","zuivel","brood","voorraad","kruiden"], BIOCATS = ["vlees","groente","zuivel"];
+const BRANDCATS = ["vlees","vis","zuivel","brood","voorraad","kruiden"];
 /* Boodschappen-doelen: meerdere tegelijk mogelijk */
 function shopGoals(){
   if (!S.shopGoals) S.shopGoals = S.shopMode === "goedkoop" ? { cheap: true } : { one: true };
-  return S.shopGoals;
+  delete S.shopGoals.bio; return S.shopGoals;
 }
 function priceF(it, st){
   const G = shopGoals(), c = DB[it.id] ? DB[it.id].c : "";
   let f = st ? (SIDX[st] || 1) : 1;
   if (G.cheap && (BRANDCATS.includes(c) || it.pantry)) f *= HUIS[st] ? 0.82 : 0.95;
-  if (G.bio && BIOCATS.includes(c)) f *= 1.35;
   return f;
 }
 function brandTag(it){
   if (it.extra !== undefined) return "";
   const G = shopGoals(), c = DB[it.id] ? DB[it.id].c : "", tags = [];
   if (G.cheap && (BRANDCATS.includes(c) || it.pantry) && HUIS[it.store]) tags.push(`<span class="btag">Kies ${HUIS[it.store]}</span>`);
-  if (G.bio && BIOCATS.includes(c)) tags.push(`<span class="btag bio">Kies biologisch</span>`);
   return tags.length ? `<br>${tags.join(" ")}` : "";
 }
 const SRANK = Object.fromEntries(STORES.map(x => [x[0], x[2]]));
@@ -3367,7 +3364,7 @@ function autofill(){
 function storeChips(){
   const sel = myStores();
   return `<div class="chips">${STORES.map(([k, l]) => `<button class="chip" data-store="${k}" aria-pressed="${sel.includes(k)}">${l}</button>`).join("")}</div>
-  ${sel.length ? `<div class="sub" style="margin-top:10px">Wat vind je belangrijk? Kies er één of meer</div><div class="chips">${[["cheap","Zo goedkoop mogelijk"], ...(sel.length > 1 ? [["one","Alles in één winkel"]] : []), ["bio","Biologisch waar het kan"]].map(([k, l]) => `<button class="chip" data-shopgoal="${k}" aria-pressed="${!!shopGoals()[k]}">${l}</button>`).join("")}</div>
+  ${sel.length ? `<div class="sub" style="margin-top:10px">Wat vind je belangrijk? Kies er één of meer</div><div class="chips">${[["cheap","Zo goedkoop mogelijk"], ...(sel.length > 1 ? [["one","Alles in één winkel"]] : [])].map(([k, l]) => `<button class="chip" data-shopgoal="${k}" aria-pressed="${!!shopGoals()[k]}">${l}</button>`).join("")}</div>
   <p class="sub" style="margin:0">${(() => { const G = shopGoals(); return G.cheap && G.one && sel.length > 1 ? "Je doet alles bij de winkel die voor jouw lijst het goedkoopst uitkomt, en de app zegt wanneer je het huismerk moet pakken." : G.cheap && sel.length > 1 ? "Elk product komt bij de goedkoopste winkel, met aanbiedingen. De app zegt wanneer je het huismerk moet pakken." : G.cheap ? "De app zegt wanneer je het huismerk moet pakken." : sel.length > 1 ? "Je lijst komt zo veel mogelijk bij één winkel." : ""; })()}</p>` : ""}`;
 }
 
@@ -3627,7 +3624,7 @@ function priceCard(items){
   const net = w.tot - w.save;
   return `<div class="pricebar"><div><b class="num">±${euro(net)}</b> <span class="sub">deze week${w.save > 0.5 ? `, met ±${euro(w.save)} korting` : ""}</span></div>
     <div class="ihint num">${meals ? `Ongeveer ${euro((net - w.pantry) / meals)} per maaltijd. ` : ""}${w.pantry > 0.5 ? `Waarvan ±${euro(w.pantry)} aan potjes en flessen die weken meegaan. ` : ""}${(() => { const st = [...new Set(items.filter(i => i.store).map(i => i.store))], G = shopGoals();
-      return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}${G.bio ? " en biologisch" : ""}.`; })()}</div></div>`;
+      return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}.`; })()}</div></div>`;
 }
 /* ============ Herinneringen: een agendabestand (.ics) voor de komende 7 dagen ============ */
 function icsEvents(){
