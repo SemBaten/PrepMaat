@@ -2850,7 +2850,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v32";
+const APP_VERSION = "v33";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3109,8 +3109,8 @@ const ICONS = {
 };
 const TABS = [["week","Planning"],["recepten","Recepten"],["lijst","Boodschappen"],["vandaag","Vandaag"],["smaak","Profiel"]];
 function todayIdx(){ return (new Date().getDay() + 6) % 7; }
-function pills(r){ const m = pm(r); return healthOn() ? `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>` : `<span class="pill num">⏱ ${r.time} min</span>`; }
-function metaLine(r){ const m = pm(r); return healthOn() ? `${m.k} kcal · ${m.p} g eiwit · ${r.time} min` : `${r.time} min`; }
+function pills(r){ const m = pm(r); return `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
+function metaLine(r){ const m = pm(r); return `${m.k} kcal · ${m.p} g eiwit · ${r.time} min`; }
 
 /* ============ Mijn week ============ */
 function planCount(id){ const r = RID[id]; if (!r) return 0; const e = (S.plan[r.type] || []).find(x => x.id === id); return e ? e.n : 0; }
@@ -3232,7 +3232,7 @@ function viewToday(){
   ${healthOn() ? todayCard() : ""}
   ${healthOn() && !S.tracker && goals() ? `<p class="sub" style="margin:0">Wil je precies zien hoeveel je vandaag al gegeten hebt? Zet hierboven "Bijhouden wat ik eet" aan. Het is niet verplicht.</p>` : ""}
   ${healthOn() ? weightCard(false) : ""}
-  ${healthOn() ? "" : `<p class="ihint" style="margin:0">Wil je ook zien hoeveel calorieën en eiwit je eet? Zet bij Profiel "Gezondheid en sport" aan.</p>`}`;
+  ${healthOn() ? "" : `<p class="ihint" style="margin:0">Wil je dagdoelen en zien hoeveel je vandaag al gegeten hebt? Zet bij Profiel "Gezondheid en sport" aan.</p>`}`;
 }
 function viewWeek(){
   const nl = totalLunches(), nd = totalDinners(), open = shopCount(), any = nl + nd + totalOf("ontbijt");
@@ -4001,7 +4001,7 @@ function viewRecipes(){
     </div>
     <div class="row between">
       <label class="label" for="sort">Sorteren op</label>
-      <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],...(healthOn() ? [["eiwit","Meeste eiwit"],["kcal","Minste calorieën"]] : []),["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
+      <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],["eiwit","Meeste eiwit"],["kcal","Minste calorieën"],["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
     </div>
   </details>
   <div class="rlist" id="rlist">${recipeListHtml()}</div>
@@ -4107,7 +4107,7 @@ function viewPrefs(){
   if (ps === "ik") return `${head}
   <section class="section"><div class="card healthcard">
     <label class="switch"><input type="checkbox" id="healthtoggle" ${healthOn() ? "checked" : ""}><span class="sw" aria-hidden="true"></span><b>Gezondheid en sport</b></label>
-    <p class="sub" style="margin:0">${healthOn() ? "Aan: je ziet calorieën, eiwit en je dagdoelen, met advies-porties, tussendoortjes en trainingsdagen." : "Uit: Prepmaat helpt je alleen met kiezen, boodschappen en koken, zonder calorieën of eiwit. Zet dit aan als je persoonlijk advies wilt, bijvoorbeeld voor sport of afvallen."}</p>
+    <p class="sub" style="margin:0">${healthOn() ? "Aan: je krijgt dagdoelen voor calorieën, eiwit, koolhydraten en vet, met balkjes, advies-porties, tussendoortjes en trainingsdagen." : "Uit: je ziet wel calorieën en eiwit per gerecht, maar zonder dagdoelen of advies. Zet dit aan als je persoonlijk advies wilt, bijvoorbeeld voor sport of afvallen."}</p>
   </div></section>
   ${healthOn() ? `${profileCard()}
   ${S.profile ? customCard() : ""}
@@ -4363,7 +4363,7 @@ function renderRecipe(){
     ${heroImg(r)}
     <h1 class="dtitle">${esc(r.name)}</h1>
     <p style="margin:0;color:var(--muted)">${esc(r.short)}</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill num">⏱ ${r.time} min</span>${healthOn() ? `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span>` : ""}</div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
     <div class="row between"><span class="sub">Aantal personen</span>${pStep(r.id)}</div>
     ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${EP(r.id) > 1 ? ` (${portions} bakjes)` : ""}</span>
       <span class="stepper">${pc ? `<button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button>` : `<button data-ld="-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-ld="1" aria-label="Meer">+</button>`}</span>
@@ -4377,11 +4377,11 @@ function renderRecipe(){
     <section class="section"><div class="label">Bereiding</div>
       <ol class="steps">${steps.map(s => `<li><div>${renderText(r, s.t, f)}${s.min ? `<div class="t">Timer: ${fmtMin(s.min)}</div>` : ""}</div></li>`).join("")}</ol>
     </section>
-    ${healthOn() ? `<section class="section"><div class="label">Voeding en portie</div>
+    <section class="section"><div class="label">${healthOn() ? "Voeding en portie" : "Voeding per portie"}</div>
     <div class="macros num"><div class="macro p"><b>${m.p} g</b><small>eiwit in jouw portie</small></div><div class="macro"><b>${m.k}</b><small>kcal in jouw portie</small></div><div class="macro"><b>${m.v} g</b><small>vezels</small></div><div class="macro"><b>${m.kh} g</b><small>koolhydraten</small></div><div class="macro"><b>${r.time}</b><small>minuten</small></div><div class="macro"><b>${portions}</b><small>${r.type === "lunch" ? "bakjes" : portions === 1 ? "persoon" : "personen"}</small></div></div>
-    ${portionPicker(r)}
-    ${(() => { const t = focusTags(r).filter(([k]) => S.prefs.focus.includes(k)); return t.length ? `<div class="row"><span class="sub">Past bij jouw keuze:</span>${t.map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}</div>` : ""; })()}
-    </section>` : ""}
+    ${healthOn() ? portionPicker(r) : ""}
+    ${healthOn() ? (() => { const t = focusTags(r).filter(([k]) => S.prefs.focus.includes(k)); return t.length ? `<div class="row"><span class="sub">Past bij jouw keuze:</span>${t.map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}</div>` : ""; })() : ""}
+    </section>
     <button class="btn full" id="made">Ik heb dit gemaakt: geef sterren</button>
     ${photoSection()}
     ${communitySummary(r)}
