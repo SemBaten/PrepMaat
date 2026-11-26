@@ -2591,16 +2591,31 @@ function goals(){
 function goalsCalc(){
   const P = S && S.profile; if (!P) return null;
   const E = P.ext || {};
-  const bmr = P.bf ? 370 + 21.6 * P.weight * (1 - P.bf / 100) : 10 * P.weight + 6.25 * P.height - 5 * P.age + (P.sex === "m" ? 5 : -161);
+  const mif = 10 * P.weight + 6.25 * P.height - 5 * P.age + (P.sex === "m" ? 5 : -161), katch = bf => 370 + 21.6 * P.weight * (1 - bf / 100);
+  /* Vetpercentage bekend: Katch-McArdle. Alleen geschat met een meetlint: gemiddelde van beide formules. */
+  const bfTape = P.bf ? null : navyBf(P);
+  const bmr = P.bf ? katch(P.bf) : bfTape ? (mif + katch(bfTape)) / 2 : mif;
   /* Uitgebreide test: rustverbruik x beweging in het dagelijks leven, plus de trainingen (MET-waarden) */
   let tdee, restK = null, sessionK = 0;
   if (E.job){
-    const pal = ({ zit: 1.3, staand: 1.45, zwaar: 1.65 })[E.job] + (({ laag: 0, mid: 0.05, hoog: 0.1, zeerhoog: 0.2 })[E.steps] || 0);
-    const st = (E.strength || 0) * (E.strengthMin || 45) / 60 * 4 * P.weight;
+    const stepBonus = P.stepsN > 0 ? Math.min(0.35, Math.max(-0.05, (P.stepsN - 5000) / 1000 * 0.025)) : (({ laag: 0, mid: 0.05, hoog: 0.1, zeerhoog: 0.2 })[E.steps] || 0);
+    const pal = ({ zit: 1.3, staand: 1.45, zwaar: 1.65 })[E.job] + stepBonus;
+    /* MET-waarden min 1 (de rust zit al in je rustverbruik) */
+    const st = (E.strength || 0) * (E.strengthMin || 45) / 60 * ({ rustig: 2.5, stevig: 5 }[E.strInt] || 3.5) * P.weight;
     const ca = (E.cardio || 0) * (E.cardioMin || 30) / 60 * ((E.cardioInt === "stevig" ? 9 : 6) - 1) * P.weight;
-    const n = (E.strength || 0) + (E.cardio || 0);
-    restK = bmr * pal; sessionK = n ? (st + ca) / n : 0; tdee = restK + (st + ca) / 7;
+    const sp = (E.sport || 0) * (E.sportMin || 60) / 60 * ({ licht: 4, stevig: 7 }[E.sportInt] || 6) * P.weight;
+    const n = (E.strength || 0) + (E.cardio || 0) + (E.sport || 0);
+    restK = bmr * pal; sessionK = n ? (st + ca + sp) / n : 0; tdee = restK + (st + ca + sp) / 7;
   } else tdee = bmr * P.activity;
+  /* Controlevraag: wat je nu eet en hoe je gewicht veranderde zegt veel over je echte verbruik (mensen schatten hun eten vaak te laag, dus 40%). */
+  let anchor = null;
+  if (P.curKcal >= 1000 && E.wtrend){
+    const ch = E.wtrend === "stabiel" ? 0 : (E.wtrend === "af" ? -1 : 1) * (P.wkg || 0);
+    const obs = Math.min(tdee * 1.3, Math.max(tdee * 0.7, P.curKcal - ch * 7700 / 28));
+    anchor = Math.round(obs); const f = (0.6 * tdee + 0.4 * obs) / tdee; tdee *= f; if (restK){ restK *= f; sessionK *= f; }
+  }
+  const tdeeRaw = tdee, delta = adaptDelta();
+  if (delta){ tdee += delta; if (restK) restK += delta; }
   const gl = goalList(P), vet = gl.includes("vet"), sp = gl.includes("spieren"), du = gl.includes("duur");
   /* Vet verliezen + spieren: kleiner tekort zodat je kunt blijven opbouwen. Duursport: kleiner tekort zodat je energie hebt. */
   let adj = 0, why = "";
@@ -2625,7 +2640,8 @@ function goalsCalc(){
     const base = Math.max(minK, restK + adj);
     today = { kcal: Math.round((base + (train ? sessionK : 0)) / 50) * 50, train, extra: Math.round(sessionK / 50) * 50 };
   }
-  return { bmr: Math.round(bmr), tdee: Math.round(tdee / 50) * 50, kcal, prot, fib, why, perKg, today, ext: !!E.job, bfK: kcal * 0.20, lunchK: kcal * 0.30, dinnerK: kcal * 0.35 };
+  const conf = delta ? "hoog" : (E.job && (P.bf || bfTape || anchor)) ? "redelijk" : E.job ? "redelijk" : "grof";
+  return { bmr: Math.round(bmr), tdee: Math.round(tdee / 50) * 50, tdeeRaw: Math.round(tdeeRaw), delta, anchor, bfTape: bfTape && Math.round(bfTape), conf, kcal, prot, fib, why, perKg, today, ext: !!E.job, bfK: kcal * 0.20, lunchK: kcal * 0.30, dinnerK: kcal * 0.35 };
 }
 function targetK(g, type){ return type === "lunch" ? g.lunchK : type === "ontbijt" ? g.bfK : g.dinnerK; }
 function typeLabel(r){ return ({ lunch: "Lunch · meal prep", diner: "Avondeten", ontbijt: "Ontbijt" })[r.type]; }
@@ -2850,7 +2866,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v33";
+const APP_VERSION = "v34";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3726,6 +3742,69 @@ function customCard(){
     <div class="row" style="gap:8px"><button class="btn primary small" id="savecustom">Opslaan</button>${g.custom ? `<button class="btn small" id="resetcustom">Terug naar uitgerekend</button>` : ""}</div>
   </details>`;
 }
+/* Vetpercentage schatten met een meetlint (US Navy-methode, ongeveer ±3 à 4%) */
+function navyBf(P){
+  const h = P.height, w = P.waist, n = P.neck, hip = P.hip, L = Math.log10;
+  if (!(h && w && n) || w <= n) return null;
+  let bf;
+  if (P.sex === "m") bf = 495 / (1.0324 - 0.19077 * L(w - n) + 0.15456 * L(h)) - 450;
+  else { if (!hip) return null; bf = 495 / (1.29579 - 0.35004 * L(w + hip - n) + 0.22100 * L(h)) - 450; }
+  return bf >= 3 && bf <= 60 ? bf : null;
+}
+/* ============ Slim bijstellen: echt verbruik uit je gewicht en wat je at ============ */
+function adaptDelta(){ const A = S.adapt; return A && !A.off && A.delta ? A.delta : 0; }
+function daysBetween(a, b){ return Math.round((wTime(b) - wTime(a)) / 864e5); }
+function adaptData(){
+  const today = dayKey(), w = (S.weights || []).filter(e => daysBetween(e.d, today) <= 28);
+  const span = w.length ? daysBetween(w[0].d, w[w.length - 1].d) : 0;
+  const g = goalsCalc(); if (!g) return null;
+  const goalK = g.kcal;
+  /* Dagen waarop genoeg is ingevuld tellen mee (minstens de helft van je doel) */
+  const logDays = Object.keys(S.log || {}).filter(k => w.length && k >= w[0].d && k < today).map(k => S.log[k].reduce((a, e) => a + e.k, 0)).filter(k => k >= goalK * 0.5);
+  const days = Math.max(1, w.length ? daysBetween(w[0].d, today) : 1);
+  const useLog = logDays.length >= 7 && logDays.length >= days * 0.5;
+  const intake = useLog ? logDays.reduce((a, k) => a + k, 0) / logDays.length : (S.adapt && S.adapt.plan ? (goals() || g).kcal : null);
+  let slope = null;
+  if (w.length >= 2){ const xs = w.map(e => daysBetween(w[0].d, e.d)), ys = w.map(e => e.kg), mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+    const sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0); slope = sxx ? xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / sxx : null; }
+  const enough = w.length >= 8 && span >= 14 && intake && slope !== null;
+  return { n: w.length, span, logN: logDays.length, useLog, intake, slope, enough, raw: g.tdeeRaw };
+}
+function adaptUpdate(force){
+  if (!healthOn() || !S.profile) return;
+  const A = S.adapt = S.adapt || {}; if (A.off) return;
+  if (!force && A.upd && daysBetween(A.upd, dayKey()) < 7) return;
+  const D = adaptData(); if (!D || !D.enough) return;
+  const obs = D.intake - D.slope * 7700, target = obs - D.raw, cur = A.delta || 0;
+  A.delta = Math.round(Math.max(-1000, Math.min(1000, cur + Math.max(-150, Math.min(150, (target - cur) * 0.5)))) / 10) * 10;
+  A.obs = Math.round(obs); A.upd = dayKey(); A.src = D.useLog ? "log" : "plan"; A.kgw = Math.round(D.slope * 7 * 100) / 100; A.intake = Math.round(D.intake);
+  save();
+}
+function adaptCard(){
+  const A = S.adapt || {}, D = adaptData(); if (!D) return "";
+  const on = !A.off, sign = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x);
+  const next = A.upd ? dLabel(dayKey(new Date(wTime(A.upd) + 7 * 864e5))) : null;
+  const need = [];
+  if (D.n < 8) need.push(`${D.n} van de 8 wegingen`);
+  if (D.span < 14) need.push(`${D.span} van de 14 dagen`);
+  if (!D.intake) need.push(`${D.logN} van de 7 dagen met ingevuld eten`);
+  return `<section class="section"><div class="label">Slim bijstellen</div><div class="card">
+    <label class="switch"><input type="checkbox" id="adapttoggle" ${on ? "checked" : ""}><span class="sw" aria-hidden="true"></span><b>Leer van mijn eigen lichaam</b></label>
+    ${!on ? `<p class="sub" style="margin:0">Uit: je dagdoel komt alleen uit de test.</p>` : A.upd && A.delta !== undefined ? `
+      <p style="margin:0" class="num">Volgens je gewicht en wat je at verbruik je ongeveer <b>${D.raw + (A.delta || 0)} kcal</b> per dag. De test zei ${D.raw}. Je doel is daarom <b>${sign(A.delta || 0)} kcal</b> bijgesteld.</p>
+      <p class="sub num" style="margin:0">Laatste check ${dLabel(A.upd)}: je at gemiddeld ${A.intake} kcal${A.src === "plan" ? " (volgens je plan)" : ""} en je gewicht ging ${A.kgw <= 0 ? "omlaag" : "omhoog"} met ${nl1(Math.abs(A.kgw))} kg per week. Volgende check: ${next}. De app past per week hooguit 150 kcal aan, zodat één rare week weinig uitmaakt.</p>`
+    : `<p class="sub" style="margin:0">Weeg je minstens 3 keer per week, het liefst elke ochtend, en vul bij Vandaag in wat je eet. Na 2 weken rekent de app je echte verbruik uit en stelt hij je doel elke week een beetje bij. Dat is veel preciezer dan welke test ook.</p>
+      ${need.length ? `<p class="num" style="margin:0">Nog nodig: ${need.join(", ")}.</p>` : `<p class="num" style="margin:0">Genoeg gegevens. De eerste check gebeurt vandaag.</p>`}`}
+    ${on ? `<label class="check"><input type="checkbox" id="adaptplan" ${A.plan ? "checked" : ""}> Ik vul mijn eten niet in, maar eet meestal precies wat de app plant</label>
+      <p class="sub" style="margin:0">Dan rekent de app met je dagdoel als wat je at. Dat is minder precies dan invullen.</p>` : ""}
+    ${A.delta ? `<button class="btn small" id="adaptreset" style="justify-self:start">Bijstelling wissen</button>` : ""}
+  </div></section>`;
+}
+function confText(g){
+  return g.conf === "hoog" ? "Nauwkeurigheid: hoog. Je doel is bijgesteld met je eigen gewicht en eten."
+    : g.conf === "redelijk" ? "Nauwkeurigheid: redelijk, ongeveer ±10%. Met \"Slim bijstellen\" wordt het na een paar weken preciezer."
+    : "Nauwkeurigheid: grof, ongeveer ±15%. Doe de uitgebreide test en zet \"Slim bijstellen\" aan voor een preciezer doel.";
+}
 function goalsCalcPlain(){ return goalsCalc() || { kcal: "", prot: "" }; }
 function saveCustom(){
   const v = id => { const x = parseInt((document.getElementById(id) || {}).value, 10); return x > 0 ? x : null; };
@@ -4024,7 +4103,8 @@ function profileCard(){
       </div>
       ${g.custom ? `<p class="tip" style="margin:0">Je gebruikt je eigen doelen (zie "Doelen zelf instellen").</p>` : ""}
       ${P.ext && P.ext.job ? `<p class="sub" style="margin:0">Uitgebreide test ingevuld${P.bf ? `, vetpercentage ${P.bf}%` : ""}. ${(P.ext.strength || 0) + (P.ext.cardio || 0) ? `Je traint ${(P.ext.strength || 0) + (P.ext.cardio || 0)}× per week.` : ""}${g.today.extra ? ` Op trainingsdagen eet je ±${g.today.extra} kcal meer.` : ""}${P.diet && P.diet !== "alles" ? ` ${DIETS.find(x => x[0] === P.diet)[1]}.` : ""}</p>` : `<p class="sub" style="margin:0">Wil je advies meer op maat? Doe de uitgebreide test via "Gegevens aanpassen".</p>`}
-      <p class="sub" style="margin:0">Je lichaam verbruikt ongeveer ${g.tdee} kcal per dag. ${g.why} Lunch: ±${Math.round(g.lunchK/10)*10} kcal. Avondeten: ±${Math.round(g.dinnerK/10)*10} kcal.</p>
+      <p class="sub" style="margin:0">Je lichaam verbruikt ongeveer ${g.tdee} kcal per dag${g.delta ? " (bijgesteld met je eigen gegevens)" : ""}. ${g.why} Lunch: ±${Math.round(g.lunchK/10)*10} kcal. Avondeten: ±${Math.round(g.dinnerK/10)*10} kcal.</p>
+      <p class="tip" style="margin:0">${confText(g)}</p>
       <button class="btn" id="editprofile" style="justify-self:start">Gegevens aanpassen</button>
     </div></section>`;
 }
@@ -4055,16 +4135,36 @@ function renderProfile(){
       <p class="sub" style="margin:0">Dit is je standaardportie. Per gerecht kun je altijd kiezen voor klein, normaal, groot of de advies-portie.</p></section>
     <section class="section"><div class="label">Hoe actief ben je?${d.ext && d.ext.job ? " (wordt nu uit de uitgebreide test gehaald)" : ""}</div>
       <div class="opts">${ACT.map(([k,l,h]) => `<button class="opt" data-act="${k}" aria-pressed="${d.activity===k}"><b>${l}</b><span>${h}</span></button>`).join("")}</div></section>
-    <details class="section fold card" id="extfold" ${UI.extOpen ? "open" : ""}><summary class="label">Uitgebreide test (optioneel)</summary>
-      <p class="sub" style="margin:0">Voor advies op maat. Vul in wat je weet, de rest mag leeg blijven. Met je trainingen rekent de app je verbruik preciezer uit dan met "hoe actief ben je".</p>
-      <div class="pfgrid">${num("pf-bf","Vetpercentage (als je het weet)",d.bf,"%",3,60)}</div>
+    <details class="section fold card" id="extfold" ${UI.extOpen ? "open" : ""}><summary class="label">Uitgebreide test (aanrader, vooral als je sport)</summary>
+      <p class="sub" style="margin:0">Hoe meer je invult, hoe preciezer je dagdoel. Vul in wat je weet, de rest mag leeg blijven. Kies minstens je werk of studie, dan rekent de app met je echte dag en trainingen in plaats van met "hoe actief ben je".</p>
+      <div class="label" style="margin-top:4px">1. Je lichaam</div>
+      <div>${num("pf-bf","Vetpercentage (als je het weet)",d.bf,"%",3,60)}</div>
+      <p class="sub" style="margin:0">Weet je het niet? Meet dan met een meetlint. De app schat je vetpercentage daaruit. Dat maakt je rustverbruik preciezer, vooral als je veel spieren hebt.</p>
+      <div class="pfgrid">
+        ${num("pf-waist","Buikomvang (op navelhoogte)",d.waist,"cm",50,200)}
+        ${num("pf-neck","Nek (net onder je adamsappel)",d.neck,"cm",25,60)}
+        ${d.sex === "v" ? num("pf-hip","Heupen (breedste punt)",d.hip,"cm",60,200) : ""}
+      </div>
+      ${!d.bf && navyBf(d) ? `<p class="tip num" style="margin:0">Geschat vetpercentage: ±${Math.round(navyBf(d))}%</p>` : ""}
+      <div class="label" style="margin-top:8px">2. Je sport</div>
       ${extChips("Krachttraining per week", "strength", [[0,"Geen"],[1,"1×"],[2,"2×"],[3,"3×"],[4,"4×"],[5,"5×"],[6,"6×"]])}
-      ${(d.ext.strength || 0) ? extChips("Hoe lang per keer?", "strengthMin", [[30,"30 min"],[45,"45 min"],[60,"60 min"],[90,"90 min"]]) : ""}
+      ${(d.ext.strength || 0) ? extChips("Hoe lang per keer?", "strengthMin", [[30,"30 min"],[45,"45 min"],[60,"60 min"],[90,"90 min"]]) + extChips("Hoe zwaar?", "strInt", [["rustig","Rustig, lange pauzes"],["stevig","Stevig, korte pauzes of circuit"]]) : ""}
       ${extChips("Cardio per week (hardlopen, fietsen, zwemmen)", "cardio", [[0,"Geen"],[1,"1×"],[2,"2×"],[3,"3×"],[4,"4×"],[5,"5×"],[6,"6×"]])}
       ${(d.ext.cardio || 0) ? extChips("Hoe lang per keer?", "cardioMin", [[20,"20 min"],[30,"30 min"],[45,"45 min"],[60,"60 min"],[90,"90 min"]]) + extChips("Hoe zwaar?", "cardioInt", [["rustig","Rustig, je kunt nog praten"],["stevig","Stevig, je bent buiten adem"]]) : ""}
-      ${(d.ext.strength || 0) + (d.ext.cardio || 0) ? `<div class="field"><div class="label">Op welke dagen train je meestal?</div><div class="chips">${DAYS.map((l, i) => `<button class="chip" data-tday="${i}" aria-pressed="${(d.ext.trainDays || []).includes(i)}">${l}</button>`).join("")}</div><p class="sub" style="margin:0">Op die dagen krijg je een hoger dagdoel, op rustdagen een lager.</p></div>` : ""}
+      ${extChips("Andere sport per week (voetbal, tennis, vechtsport, dansen)", "sport", [[0,"Geen"],[1,"1×"],[2,"2×"],[3,"3×"],[4,"4×"],[5,"5×"]])}
+      ${(d.ext.sport || 0) ? extChips("Hoe lang per keer?", "sportMin", [[30,"30 min"],[60,"60 min"],[90,"90 min"],[120,"120 min"]]) + extChips("Hoe zwaar?", "sportInt", [["licht","Licht, veel stilstaan"],["normaal","Normaal"],["stevig","Stevig, wedstrijd"]]) : ""}
+      ${(d.ext.strength || 0) + (d.ext.cardio || 0) + (d.ext.sport || 0) ? `<div class="field"><div class="label">Op welke dagen train je meestal?</div><div class="chips">${DAYS.map((l, i) => `<button class="chip" data-tday="${i}" aria-pressed="${(d.ext.trainDays || []).includes(i)}">${l}</button>`).join("")}</div><p class="sub" style="margin:0">Op die dagen krijg je een hoger dagdoel, op rustdagen een lager.</p></div>` : ""}
+      <div class="label" style="margin-top:8px">3. Je dag</div>
       ${extChips("Wat voor werk of studie heb je?", "job", [["zit","Vooral zitten"],["staand","Veel staan en lopen"],["zwaar","Zwaar lichamelijk"]])}
-      ${extChips("Hoeveel stappen zet je per dag?", "steps", [["laag","Minder dan 5.000"],["mid","5.000 tot 8.000"],["hoog","8.000 tot 12.000"],["zeerhoog","Meer dan 12.000"]])}
+      <div>${num("pf-stepsN","Gemiddeld aantal stappen per dag (van je telefoon of horloge)",d.stepsN,"stappen",0,50000)}</div>
+      ${d.stepsN > 0 ? "" : extChips("Weet je het niet precies? Schat dan:", "steps", [["laag","Minder dan 5.000"],["mid","5.000 tot 8.000"],["hoog","8.000 tot 12.000"],["zeerhoog","Meer dan 12.000"]])}
+      <p class="sub" style="margin:0">Tip: je telefoon telt je stappen al (Gezondheid op iPhone, Google Fit op Android). Kijk naar het gemiddelde van de laatste maand.</p>
+      <div class="label" style="margin-top:8px">4. Controlevragen</div>
+      <p class="sub" style="margin:0">Hiermee controleert de app of de berekening bij jou past. Sla over wat je niet weet.</p>
+      ${extChips("Hoe veranderde je gewicht de afgelopen 4 weken?", "wtrend", [["stabiel","Bleef gelijk"],["af","Afgevallen"],["aan","Aangekomen"]])}
+      ${d.ext.wtrend && d.ext.wtrend !== "stabiel" ? `<div>${num("pf-wkg","Hoeveel kilo ongeveer?",d.wkg,"kg",0,15)}</div>` : ""}
+      ${d.ext.wtrend ? `<div>${num("pf-curKcal","Hoeveel kcal at je in die weken ongeveer per dag? (alleen als je het bijhield)",d.curKcal,"kcal",1000,6000)}</div>` : ""}
+      <div class="label" style="margin-top:8px">5. Wat je eet</div>
       <div class="field"><div class="label">Wat eet je?</div><div class="chips">${DIETS.map(([k, l]) => `<button class="chip" data-diet="${k}" aria-pressed="${(d.diet || "alles") === k}">${l}</button>`).join("")}</div></div>
       <div class="field"><div class="label">Allergieën of dingen die je niet mag</div><div class="chips">${ALLERGY.map(([k, l]) => `<button class="chip no" data-allergy="${k}" aria-pressed="${(d.allergies || []).includes(k)}">${(d.allergies || []).includes(k) ? "✕ " : ""}${l}</button>`).join("")}</div>
       <p class="sub" style="margin:0">Gerechten met deze ingrediënten worden niet meer voorgesteld. Lees bij een echte allergie altijd zelf het etiket.</p></div>
@@ -4109,7 +4209,7 @@ function viewPrefs(){
     <label class="switch"><input type="checkbox" id="healthtoggle" ${healthOn() ? "checked" : ""}><span class="sw" aria-hidden="true"></span><b>Gezondheid en sport</b></label>
     <p class="sub" style="margin:0">${healthOn() ? "Aan: je krijgt dagdoelen voor calorieën, eiwit, koolhydraten en vet, met balkjes, advies-porties, tussendoortjes en trainingsdagen." : "Uit: je ziet wel calorieën en eiwit per gerecht, maar zonder dagdoelen of advies. Zet dit aan als je persoonlijk advies wilt, bijvoorbeeld voor sport of afvallen."}</p>
   </div></section>
-  ${healthOn() ? `${profileCard()}
+  ${healthOn() ? `${profileCard()}${S.profile ? adaptCard() : ""}
   ${S.profile ? customCard() : ""}
   ${weightCard(true)}
   <section class="section"><div class="label">Eten bijhouden</div>
@@ -4323,6 +4423,7 @@ function calcText(){
 
 function render(){
   if (!TABS.some(t => t[0] === S.tab)) S.tab = "week";
+  try { adaptUpdate(); } catch(e){}
   const v = { week: viewWeek, recepten: viewRecipes, lijst: viewList, vandaag: viewToday, smaak: viewPrefs }[S.tab];
   document.getElementById("app").innerHTML = `<main class="wrap">${v()}</main>`;
   const n = shopCount();
@@ -4555,6 +4656,7 @@ document.addEventListener("click", (e) => {
     case "editprofile": openProfile(); break;
     case "saveprofile": saveProfile(); break;
     case "cancelprofile": closeSheet(); break;
+    case "adaptreset": S.adapt = { off: false, plan: !!(S.adapt && S.adapt.plan) }; save(); render(); toast("Bijstelling gewist"); break;
     case "skipprofile": S.onboarded = true; save(); closeSheet(); toast("Je kunt je gegevens later invullen bij Profiel"); break;
     case "startcook": startCook(); document.getElementById("sheet").scrollTop = 0; break;
     case "endprep": UI.prep = null; UI.cook = null; stopTimer(); releaseWake(); renderPrepPick(); break;
@@ -4615,6 +4717,8 @@ document.addEventListener("change", async (e) => {
     return;
   }
   if (e.target.id === "sort"){ S.sort = e.target.value; save(); UI.filtersOpen = true; render(); }
+  if (e.target.id === "adapttoggle"){ S.adapt = S.adapt || {}; S.adapt.off = !e.target.checked; save(); render(); toast(S.adapt.off ? "Slim bijstellen staat uit" : "Slim bijstellen staat aan"); return; }
+  if (e.target.id === "adaptplan"){ S.adapt = S.adapt || {}; S.adapt.plan = e.target.checked; save(); render(); return; }
   if (e.target.id === "healthtoggle"){ S.health = e.target.checked; save(); if (S.health && !S.profile){ openProfile(); } else render(); toast(S.health ? "Gezondheid en sport staat aan" : "Lekker rustig: advies staat uit"); return; }
   if (e.target.id === "trackertoggle"){ S.tracker = e.target.checked; save(); render(); toast(S.tracker ? "Eettracker staat aan" : "Eettracker staat uit"); }
   if (e.target.id === "focusfilter"){ S.focusFilter = e.target.checked; save(); render(); }
