@@ -155,6 +155,12 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: left; width: 100%; }
 .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; margin-top: 1px; }
 .item.done { opacity: 0.5; }
+.item.hasimg { grid-template-columns: 28px 1fr 52px; }
+.pimg { width: 52px; height: 52px; border-radius: 8px; background: #fff; border: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; }
+.pimg img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; }
+.lightbox .lb { background: var(--surface); border-radius: 16px; padding: 16px; max-width: 360px; width: 100%; display: grid; gap: 10px; }
+.lightbox img { width: 100%; max-height: 50vh; object-fit: contain; background: #fff; border-radius: 10px; }
 .switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 17px; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .switch .sw { width: 50px; height: 30px; border-radius: 99px; background: var(--line); position: relative; flex: 0 0 50px; transition: background .2s; }
@@ -282,6 +288,7 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
 .btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
 ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.45; }
+.pill.tested { background: #dff0e3; color: #1f5a33; font-weight: 600; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -11488,7 +11495,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v38";
+const APP_VERSION = "v39";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -11774,7 +11781,8 @@ const ICONS = {
 };
 const TABS = [["week","Planning"],["recepten","Recepten"],["lijst","Boodschappen"],["vandaag","Vandaag"],["smaak","Profiel"]];
 function todayIdx(){ return (new Date().getDay() + 6) % 7; }
-function pills(r){ const m = pm(r); return `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
+function testedPill(r){ const n = comN(r.id), o = comOverall(r.id); return n >= 3 && o !== null && o >= 3.5 ? `<span class="pill tested num" title="Door ${n} mensen gekookt en goed beoordeeld">✓ Getest door ${n}</span>` : ""; }
+function pills(r){ const m = pm(r); return testedPill(r) + `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
 function metaLine(r){ const m = pm(r); return `${m.k} kcal · ${m.p} g eiwit · ${r.time} min`; }
 
 /* ============ Mijn week ============ */
@@ -11814,6 +11822,24 @@ function avgMacros(type){
   const list = (S.plan[type] || []).filter(x => RID[x.id]); const n = list.reduce((a, x) => a + x.n, 0); if (!n) return null;
   const t = list.reduce((a, x) => { const m = pm(RID[x.id]); return { k: a.k + m.k * x.n, p: a.p + m.p * x.n, v: a.v + m.v * x.n, gv: a.gv + m.gv * x.n, fr: a.fr + m.fr * x.n, kh: a.kh + m.kh * x.n, f: a.f + fatOf(m) * x.n }; }, { k: 0, p: 0, v: 0, gv: 0, fr: 0, kh: 0, f: 0 });
   return { k: Math.round(t.k / n), p: Math.round(t.p / n), v: Math.round(t.v / n), gv: Math.round(t.gv / n), fr: Math.round(t.fr / n * 10) / 10, kh: Math.round(t.kh / n), f: Math.round(t.f / n) };
+}
+/* ============ Weken bewaren: vorige week en favoriete weken ============ */
+function planCopy(){ const c = JSON.parse(JSON.stringify(S.plan)); Object.keys(c).forEach(t => c[t] = (c[t] || []).filter(x => RID[x.id] || SID[x.id])); return c; }
+function planNames(pl){ return ["ontbijt","lunch","diner"].flatMap(t => (pl[t] || []).filter(x => RID[x.id]).map(x => RID[x.id].name.split(/ met | en | op /)[0])); }
+function planEmpty(){ return !totalLunches() && !totalDinners() && !(S.plan.ontbijt || []).length; }
+function rememberWeek(){ if (!planEmpty()) S.lastWeek = { plan: planCopy(), dayMap: S.dayMap ? S.dayMap.slice() : null, d: dayKey() }; }
+function loadWeek(w){ S.plan = JSON.parse(JSON.stringify(w.plan)); ["lunch","diner","ontbijt","snack"].forEach(t => S.plan[t] = (S.plan[t] || []).filter(x => RID[x.id] || SID[x.id])); S.dayMap = w.dayMap ? w.dayMap.slice() : null; S.checks = {}; UI.insp = null; }
+function weeksCard(){
+  const favs = S.favWeeks || [], last = S.lastWeek, empty = planEmpty();
+  if (!favs.length && !(empty && last) && empty) return "";
+  const list = names => { const n = names.slice(0, 4).join(", "); return names.length > 4 ? n + " en nog " + (names.length - 4) : n; };
+  return `<section class="section"><div class="label">Je weken</div><div class="card" style="gap:10px">
+    ${empty && last ? `<button class="btn primary full" id="lastweek">Zelfde week als vorige keer</button><p class="sub" style="margin:0">${esc(list(planNames(last.plan)))}</p>` : ""}
+    ${favs.length ? `<div class="sub">Favoriete weken${!empty ? ". Tik twee keer om je huidige week te vervangen" : ""}</div>
+      ${favs.map((f, i) => `<div class="row between" style="gap:8px"><button class="btn small${UI.favArm === i ? " primary" : ""}" data-favload="${i}" style="flex:1;text-align:left">${UI.favArm === i ? "Tik nog eens: vervang je week" : "★ " + esc(f.name)}</button><button class="x" data-favdel="${i}" aria-label="${esc(f.name)} verwijderen">×</button></div>`).join("")}` : ""}
+    ${!empty ? (UI.favName !== undefined ? `<div class="row" style="gap:8px"><input id="favname" class="search" maxlength="30" placeholder="Naam, bijv. Drukke week" value="${esc(UI.favName)}" style="flex:1"><button class="btn primary small" id="favsave">Bewaar</button></div>`
+      : `<button class="btn small" id="favnew" style="justify-self:start">☆ Bewaar deze week als favoriet</button>`) : ""}
+  </div></section>`;
 }
 function planRows(type){
   const list = (S.plan[type] || []).filter(x => RID[x.id]);
@@ -11932,6 +11958,7 @@ function viewWeek(){
     <button class="btn small" id="autofill">${nl + nd ? "Vul aan met voorstellen" : "Kies een week voor mij"}</button>
     ${nl + nd ? `<button class="btn small" id="clearplan">${UI.clearArm ? "Zeker weten? Tik nog een keer" : "Week leegmaken"}</button>` : ""}
   </div>
+  ${weeksCard()}
   ${inspiration()}`;
   else if (seg === "week") body = nd ? `
   <section class="section">${weekStrip()}</section>
@@ -12136,6 +12163,24 @@ function renderPrep(){
 }
 /* ============ Aanbiedingen (bron: PrijsProfeet, elke nacht opgehaald naar deals.json) ============ */
 let DEALS = null;
+/* Productfoto's (Open Food Facts, CC BY-SA): zo ziet het eruit in de winkel */
+let PRODUCTS = null;
+async function loadProducts(){
+  try { const r = await fetch("products.json", { cache: "no-cache" }); if (!r.ok) return; PRODUCTS = await r.json(); if (S.tab === "lijst") render(); } catch(e){}
+}
+function prodOf(k){ return PRODUCTS && PRODUCTS[k] && PRODUCTS[k].img ? PRODUCTS[k] : null; }
+function showProduct(k){
+  const P = prodOf(k); if (!P) return;
+  const box = document.createElement("div"); box.className = "lightbox"; box.id = "lightbox";
+  box.innerHTML = `<div class="lb" role="dialog" aria-label="Zo ziet het eruit"><div class="label">Zo ziet het eruit</div>
+    <img src="${esc(P.big || P.img)}" alt="${esc(P.name)}" referrerpolicy="no-referrer">
+    <p style="margin:0"><b>${esc(DB[k].n)}</b><br><span class="sub">Voorbeeld: ${esc(P.name)}${P.brand ? " (" + esc(P.brand) + ")" : ""}. Andere merken mogen ook.</span></p>
+    ${WHERE[k] ? `<p class="iwhere" style="margin:0">📍 ${esc(WHERE[k])}</p>` : ""}
+    <p class="sub" style="margin:0;font-size:12px">Foto: <a href="https://world.openfoodfacts.org/product/${esc(P.code)}" target="_blank" rel="noopener">Open Food Facts</a>, CC BY-SA</p>
+    <button class="btn primary full" id="closelb">Sluiten</button></div>`;
+  box.addEventListener("click", e => { if (e.target === box || e.target.id === "closelb") box.remove(); });
+  document.body.appendChild(box);
+}
 async function loadDeals(){
   try { const r = await fetch("deals.json", { cache: "no-cache" }); if (!r.ok) return; DEALS = await r.json(); if (S.tab === "lijst") render(); } catch(e){}
 }
@@ -12893,10 +12938,7 @@ function viewPrefs(){
       <p class="sub" style="margin:0">Bij Vandaag vink je dan je maaltijden af en voeg je tussendoortjes toe. Zo zie je hoeveel je nog over hebt. Niet verplicht: zonder tracker werkt alles ook.</p>
     </div>
   </section>` : ""}
-  <section class="section"><div class="label">Mijn supermarkten</div>
-    <p class="sub" style="margin:0">Je boodschappenlijst past zich hierop aan.</p>
-    ${storeChips()}
-  </section>`;
+  <p class="sub" style="margin:0">Je supermarkten en hoe je wilt winkelen (goedkoop of in één winkel) kies je bij <button class="linkbtn" data-tab="lijst">Boodschappen</button>.</p>`;
   if (ps === "smaak") return `${head}
   ${healthOn() ? `<section class="section"><div class="label">Voedingskeuze</div>
     <p class="sub" style="margin:0">Gerechten die hierbij passen worden vaker voorgesteld.</p>
@@ -13013,9 +13055,10 @@ function viewList(){
   setTimeout(() => pushShare(false), 0);
   const items = shopItems(), sel = myStores(), stores = sel.length ? shopStores(items) : [];
   const nl = totalLunches(), nd = totalDinners();
-  const itemHtml = it => `<button class="item ${S.checks[it.id] ? "done" : ""}" data-check="${esc(it.id)}">
+  const itemHtml = it => `<button class="item ${S.checks[it.id] ? "done" : ""}${prodOf(it.id) ? " hasimg" : ""}" data-check="${esc(it.id)}">
           <span class="box">${S.checks[it.id] ? "✓" : ""}</span>
           <span style="min-width:0"><span class="iname num">${esc(it.label)}</span>${it.hint ? `<br><span class="ihint num">${esc(it.hint)}</span>` : ""}${it.where ? `<br><span class="iwhere">📍 ${esc(it.where)}</span>` : ""}${it.note ? `<br><span class="inote ${it.miss ? "miss" : ""}">${esc(it.note)}</span>` : ""}${brandTag(it)}${dealLine(it)}${it.pantry ? `<br><span class="havebtn" data-have="${it.id}" role="button">Heb ik al in huis</span>` : ""}${it.extra !== undefined ? `<br><span class="ihint" data-delx="${it.extra}" role="button" style="text-decoration:underline">Verwijderen</span>` : ""}</span>
+          ${prodOf(it.id) ? `<span class="pimg" data-pimg="${it.id}" role="button" aria-label="Zo ziet ${esc(DB[it.id].n)} eruit"><img src="${esc(prodOf(it.id).img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></span>` : ""}
         </button>`;
   const shop = !!UI.shop && items.length > 0;
   const cats = arr => ZONES.map(([z, label, tip]) => { const g = arr.filter(it => it.z === z && !it.have); if (!g.length) return "";
@@ -13137,6 +13180,27 @@ function portionPicker(r){
     ${EP(r.id) > 1 ? `<p class="sub" style="margin:0">Dit is jouw portie. De andere ${EP(r.id) - 1 === 1 ? "persoon eet" : EP(r.id) - 1 + " personen eten"} een normale portie. De hoeveelheden hieronder zijn daarop aangepast.</p>` : `<p class="sub" style="margin:0">De hoeveelheden en je boodschappenlijst passen zich aan je keuze aan.</p>`}
   </section>`;
 }
+/* Er klopte iets niet in een recept: gaat anoniem als feedback naar Sem */
+const REPORT = [["hoeveel","Hoeveelheden kloppen niet"],["stap","Een stap is onduidelijk"],["tijd","Kooktijd klopt niet"],["vinden","Ingrediënt niet te vinden"],["smaak","Smaakte niet goed"],["anders","Iets anders"]];
+function reportBox(r){
+  const R2 = UI.report;
+  if (!R2 || R2.id !== r.id) return `<button class="linkbtn" id="openreport" style="justify-self:center">Klopte er iets niet in dit recept? Laat het weten</button>`;
+  return `<section class="section card"><div class="label">Wat klopte er niet?</div>
+    <div class="chips">${REPORT.map(([k, l]) => `<button class="chip" data-rep="${k}" aria-pressed="${R2.why.includes(k)}">${l}</button>`).join("")}</div>
+    <textarea id="reptext" class="search fbtext" maxlength="600" placeholder="Bijv. bij stap 4 staat 10 minuten, maar de kip was na 6 minuten al gaar">${esc(R2.text)}</textarea>
+    <p class="sub" style="margin:0">Anoniem. Zo worden de recepten steeds beter.</p>
+    <div class="row" style="gap:8px"><button class="btn primary small" id="sendreport">Versturen</button><button class="btn small" id="cancelreport">Annuleren</button></div>
+  </section>`;
+}
+function sendReport(){
+  const R2 = UI.report, r = RID[R2.id]; if (!r) return;
+  const text = (R2.text || "").trim();
+  if (!R2.why.length && !text){ toast("Kies wat er niet klopte of schrijf iets"); return; }
+  const why = R2.why.map(k => REPORT.find(x => x[0] === k)[1]).join(", ");
+  const item = { d: dayKey(), score: 0, about: "recept", text: (`[${r.id}] ${r.name}: ${why}${text ? ". " + text : ""}`).slice(0, 1000), v: APP_VERSION };
+  S.fbQueue = S.fbQueue || []; S.fbQueue.push(item); save(); flushFeedback();
+  UI.report = null; renderRecipe(); toast("Bedankt! Hiermee wordt het recept verbeterd.");
+}
 function renderRecipe(){
   UI.view = "recipe";
   const r = RID[UI.open], f = factorFor(r), m = pm(r);
@@ -13147,7 +13211,7 @@ function renderRecipe(){
     ${heroImg(r)}
     <h1 class="dtitle">${esc(r.name)}</h1>
     <p style="margin:0;color:var(--muted)">${esc(r.short)}</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">${testedPill(r)}<span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
     <div class="row between"><span class="sub">Aantal personen</span>${pStep(r.id)}</div>
     ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${EP(r.id) > 1 ? ` (${portions} bakjes)` : ""}</span>
       <span class="stepper">${pc ? `<button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button>` : `<button data-ld="-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-ld="1" aria-label="Meer">+</button>`}</span>
@@ -13168,6 +13232,7 @@ function renderRecipe(){
     ${healthOn() ? (() => { const t = focusTags(r).filter(([k]) => S.prefs.focus.includes(k)); return t.length ? `<div class="row"><span class="sub">Past bij jouw keuze:</span>${t.map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}</div>` : ""; })() : ""}
     </section>
     <button class="btn full" id="made">Ik heb dit gemaakt: geef sterren</button>
+    ${reportBox(r)}
     ${photoSection()}
     ${communitySummary(r)}
     ${ratingSummary(r)}
@@ -13245,6 +13310,7 @@ async function copyText(text){
 
 /* ============ Acties ============ */
 document.addEventListener("click", (e) => {
+  const pi = e.target.closest("[data-pimg]"); if (pi){ e.stopPropagation(); showProduct(pi.dataset.pimg); return; }
   const b = e.target.closest("[data-have], button, [data-delx]"); if (!b) return;
   const d = b.dataset;
   if (d.home){ const [k, v] = d.home.split(":"); UI.homeDone[k] = +v; S.atHome = S.atHome || {}; S.have = S.have || {};
@@ -13290,6 +13356,11 @@ document.addEventListener("click", (e) => {
   if (d.feedback){ openFeedback(); return; }
   if (d.fbscore){ UI.fb.score = UI.fb.score === +d.fbscore ? 0 : +d.fbscore; renderFeedback(); return; }
   if (d.fbabout){ UI.fb.about = d.fbabout; renderFeedback(); return; }
+  if (d.rep && UI.report){ const a = UI.report.why, i = a.indexOf(d.rep); i < 0 ? a.push(d.rep) : a.splice(i, 1); renderRecipe(); return; }
+  if (d.favload !== undefined){ const i = +d.favload, f = (S.favWeeks || [])[i]; if (!f) return;
+    if (!planEmpty() && UI.favArm !== i){ UI.favArm = i; render(); setTimeout(() => { if (UI.favArm === i){ UI.favArm = null; render(); } }, 4000); return; }
+    UI.favArm = null; rememberWeek(); loadWeek(f); save(); render(); toast(f.name + " staat in je week"); return; }
+  if (d.favdel !== undefined){ const f = S.favWeeks.splice(+d.favdel, 1)[0]; save(); render(); toast((f ? f.name : "Week") + " verwijderd"); return; }
   if (d.addp){ const r = RID[d.addp], before = r.type === "lunch" && !planCount(d.addp) ? S.plan.lunch.filter(x => RID[x.id]).length : 0, n = addToPlan(d.addp); UI.clearArm = false; save(); render(); refreshSheet();
     toast(before ? `Je ${totalLunches()} lunchdagen zijn verdeeld: ${S.plan.lunch.filter(x => RID[x.id]).map(x => x.n).join(" + ")}. Pas het aan met − en +.` : `${r.name}: ${unitN(r.type, n)} in je week`); return; }
   if (d.pn){ const [id, dl] = d.pn.split(":"); setPlanN(id, +dl); save(); render(); refreshSheet(); return; }
@@ -13334,8 +13405,12 @@ document.addEventListener("click", (e) => {
     case "shopstart": UI.shop = true; keepAwake(); render(); window.scrollTo(0, 0); break;
     case "shopstop": UI.shop = false; releaseWake(); render(); window.scrollTo(0, 0); break;
     case "autofill": { const n = autofill(); UI.insp = null; save(); render(); toast(n ? "Voorstellen toegevoegd. Pas ze gerust aan." : "Je week is al gevuld"); break; }
+    case "lastweek": if (S.lastWeek){ loadWeek(S.lastWeek); save(); render(); toast("Je week van vorige keer staat er weer"); } break;
+    case "favnew": UI.favName = ""; render(); setTimeout(() => { const el = document.getElementById("favname"); if (el) el.focus(); }, 30); break;
+    case "favsave": { const nm = ((document.getElementById("favname") || {}).value || "").trim() || "Mijn week " + ((S.favWeeks || []).length + 1);
+      S.favWeeks = S.favWeeks || []; S.favWeeks.unshift({ name: nm.slice(0, 30), plan: planCopy(), dayMap: S.dayMap ? S.dayMap.slice() : null }); S.favWeeks = S.favWeeks.slice(0, 8); delete UI.favName; save(); render(); toast("Bewaard als favoriete week"); } break;
     case "clearplan": if (!UI.clearArm){ UI.clearArm = true; render(); setTimeout(() => { if (UI.clearArm){ UI.clearArm = false; render(); } }, 4000); }
-      else { UI.clearArm = false; S.plan = { lunch: [], diner: [], ontbijt: [], snack: [] }; S.dayMap = null; S.checks = {}; UI.insp = null; save(); render(); toast("Je week is leeg. Kies nieuwe gerechten."); } break;
+      else { UI.clearArm = false; rememberWeek(); S.plan = { lunch: [], diner: [], ontbijt: [], snack: [] }; S.dayMap = null; S.checks = {}; UI.insp = null; save(); render(); toast("Je week is leeg. Kies nieuwe gerechten."); } break;
     case "newinsp": UI.insp = null; render(); break;
     case "opentracker": openTracker(); break;
     case "trackeron": S.tracker = true; save(); render(); toast("Eettracker staat aan. Uitzetten kan bij Profiel."); break;
@@ -13355,6 +13430,9 @@ document.addEventListener("click", (e) => {
       { const r = RID[UI.open]; const n = allSteps(r, factorFor(r)).length;
       if (UI.cook < n - 1){ UI.cook++; renderCook(); } else { UI.cook = null; stopTimer(); releaseWake(); UI.rating = {}; UI.photo = null; renderRating(); document.getElementById("sheet").scrollTop = 0; toast("Goed gedaan! Eet smakelijk."); } break; }
     case "delphoto": UI.photo = null; renderRating(); break;
+    case "openreport": UI.report = { id: UI.open, why: [], text: "" }; renderRecipe(); break;
+    case "cancelreport": UI.report = null; renderRecipe(); break;
+    case "sendreport": sendReport(); break;
     case "made": UI.rating = {}; UI.photo = null; renderRating(); document.getElementById("sheet").scrollTop = 0; break;
     case "cancelrate": renderRecipe(); break;
     case "saverate": {
@@ -13413,6 +13491,7 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("toggle", (e) => { if (e.target.id === "filters") UI.filtersOpen = e.target.open; if (e.target.id === "storesfold") UI.storesOpen = e.target.open; if (e.target.id === "extfold") UI.extOpen = e.target.open; }, true);
 document.addEventListener("input", (e) => {
   if (e.target.id === "ingsearch"){ UI.ingq = e.target.value; document.getElementById("ingres").innerHTML = ingResults(); return; }
+  if (e.target.id === "reptext" && UI.report){ UI.report.text = e.target.value; return; }
   if (e.target.id === "fbtext"){ UI.fb.text = e.target.value; return; }
   if (e.target.id === "psearch"){ UI.pq = e.target.value; UI.pmax = 50; document.getElementById("plist").innerHTML = pickerList(); return; }
   if (e.target.id === "search"){ UI.q = e.target.value; UI.rmax = 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, 40, "data-rmore"); return; }
@@ -13430,7 +13509,7 @@ joinFromHash();
 render();
 if (!S.onboarded && !S.profile && !S.joined) openWelcome();
 initCloud();
-loadDeals();
+loadDeals(); loadProducts();
 </script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
 </body>
