@@ -289,6 +289,9 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
 ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.45; }
 .pill.tested { background: #dff0e3; color: #1f5a33; font-weight: 600; }
+ol.route { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+ol.route li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+ol.route .x:disabled { opacity: .3; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -11495,7 +11498,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v39";
+const APP_VERSION = "v40";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -11670,6 +11673,57 @@ const KEEP = ["havermout","linzen","rijst","pasta","spaghetti","mie","couscous",
 /* Wat je thuis even checkt voor je gaat: dingen die lang goed blijven */
 const HOMECHECK = [...KEEP, "ei","ui","rodeui","zoeteaardappel","citroen","limoen","kidney","mais","zwartebonen","kikkererwten","tomblokjes","passata","tompuree","kokosmelk","ananas","tonijn","melk"];
 function isPantry(k){ return !!PANTRY[k] || DB[k].c === "kruiden"; }
+/* ============ Winkelroute: startvolgorde per keten, daarna leert de app jouw winkel ============ */
+const ROUTE_BASE = ["agf","brood","vlees","vis","zuivel","droog","wereld","saus","kruiden","ontbijt","diepvries"];
+const CHAIN_ROUTE = {
+  ah:    ["agf","brood","vlees","vis","zuivel","droog","wereld","saus","kruiden","ontbijt","diepvries"],
+  jumbo: ["agf","brood","vlees","vis","zuivel","ontbijt","droog","wereld","saus","kruiden","diepvries"],
+  plus:  ["agf","brood","zuivel","vlees","vis","droog","wereld","saus","kruiden","ontbijt","diepvries"],
+  vomar: ["agf","vlees","vis","zuivel","brood","droog","wereld","saus","kruiden","ontbijt","diepvries"],
+  dirk:  ["agf","vlees","vis","zuivel","droog","wereld","saus","kruiden","ontbijt","brood","diepvries"],
+  lidl:  ["agf","brood","droog","saus","kruiden","wereld","ontbijt","zuivel","vlees","vis","diepvries"],
+  aldi:  ["droog","saus","kruiden","wereld","ontbijt","brood","zuivel","vlees","vis","agf","diepvries"]
+};
+function routeOf(st){
+  const base = CHAIN_ROUTE[st] || ROUTE_BASE, o = S.routeOrder && S.routeOrder[st];
+  return o ? [...o.filter(z => base.includes(z)), ...base.filter(z => !o.includes(z))] : base.slice();
+}
+function zonesFor(st){ return [...routeOf(st).map(z => ZONES.find(x => x[0] === z)).filter(Boolean), ZONES.find(x => x[0] === "extra")]; }
+/* Tijdens het winkelen: onthoud in welke volgorde je de vakken afvinkt (per winkel) */
+function learnRoute(id){
+  if (!UI.shop) return;
+  const it = shopItems().find(x => x.id === id); if (!it || !it.store || it.z === "extra") return;
+  const st = it.store, now = Date.now();
+  S.trip = S.trip || {}; let T = S.trip[st];
+  if (!T || now - T.t > 2 * 3600e3){ if (T) commitTrip(st); T = S.trip[st] = { t: now, seq: [] }; }
+  T.t = now; if (!T.seq.includes(it.z)) T.seq.push(it.z);
+}
+function commitTrip(st){
+  const T = S.trip && S.trip[st]; if (S.trip) delete S.trip[st];
+  if (!T || T.seq.length < 3) return;
+  /* De vakken die je bezocht komen in de volgorde waarin je ze afvinkte; de andere blijven op hun plek */
+  const cur = routeOf(st), slots = cur.map((z, i) => T.seq.includes(z) ? i : -1).filter(i => i >= 0);
+  slots.forEach((i, k) => cur[i] = T.seq[k]);
+  S.routeOrder = S.routeOrder || {}; S.routeOrder[st] = cur;
+  S.routeTrips = S.routeTrips || {}; S.routeTrips[st] = (S.routeTrips[st] || 0) + 1;
+}
+function moveZone(st, z, dir){
+  const cur = routeOf(st), i = cur.indexOf(z), j = i + dir;
+  if (i < 0 || j < 0 || j >= cur.length) return;
+  [cur[i], cur[j]] = [cur[j], cur[i]];
+  S.routeOrder = S.routeOrder || {}; S.routeOrder[st] = cur;
+}
+function routeBox(stores){
+  if (!stores.length) return "";
+  const st = UI.routeSt && stores.includes(UI.routeSt) ? UI.routeSt : stores[0];
+  const z = zonesFor(st).filter(x => x[0] !== "extra"), trips = (S.routeTrips && S.routeTrips[st]) || 0;
+  return `<details class="section fold card" ${UI.routeOpen ? "open" : ""} id="routefold"><summary class="label">Volgorde van de winkel aanpassen</summary>
+    <p class="sub" style="margin:0">${trips ? `De app heeft ${trips}× met je meegelopen in ${SNAME[st]} en de volgorde daarop aangepast.` : `Dit is de gebruikelijke route van ${SNAME[st]}. Winkel je met "Start met winkelen", dan onthoudt de app in welke volgorde je afvinkt en past de lijst zich aan jouw winkel aan.`} Je kunt de vakken ook zelf verschuiven.</p>
+    ${stores.length > 1 ? `<div class="chips">${stores.map(x => `<button class="chip" data-routest="${x}" aria-pressed="${x === st}">${SNAME[x]}</button>`).join("")}</div>` : ""}
+    <ol class="route">${z.map(([k, l], i) => `<li><span class="num">${i + 1}. ${l}</span><span class="row" style="gap:4px"><button class="x" data-zmove="${st}:${k}:-1" aria-label="${l} eerder" ${i === 0 ? "disabled" : ""}>↑</button><button class="x" data-zmove="${st}:${k}:1" aria-label="${l} later" ${i === z.length - 1 ? "disabled" : ""}>↓</button></span></li>`).join("")}</ol>
+    ${S.routeOrder && S.routeOrder[st] ? `<button class="btn small" data-zreset="${st}" style="justify-self:start">Terug naar de standaardroute</button>` : ""}
+  </details>`;
+}
 function zoneOf(k){ return ZONE_OF[k] || ({ groente:"agf", vlees:"vlees", vis:"vis", zuivel:"zuivel", brood:"brood", voorraad:"droog", kruiden:"kruiden" })[DB[k].c] || "droog"; }
 function buyText(k, q){
   const d = DB[k], need = amountOnly(k, q);
@@ -11763,10 +11817,10 @@ function shopStores(items){ const used = [...new Set(items.map(it => it.store).f
 function shopCount(){ return shopItems().filter(it => !S.checks[it.id] && !it.have).length; }
 function listAsText(){
   const items = shopItems(), stores = shopStores(items), lines = ["Boodschappen (Prepmaat)"];
-  const block = (arr) => { for (const [z, label] of ZONES){ const g = arr.filter(it => it.z === z && !S.checks[it.id] && !it.have); if (!g.length) continue; lines.push("", label.toUpperCase());
+  const block = (arr, st) => { for (const [z, label] of zonesFor(st)){ const g = arr.filter(it => it.z === z && !S.checks[it.id] && !it.have); if (!g.length) continue; lines.push("", label.toUpperCase());
     for (const it of g) lines.push("- " + it.label + (it.pack ? " (" + it.pack + ")" : "") + (it.miss && SUB[it.id] ? " [of: " + SUB[it.id] + "]" : "")); } };
-  if (stores.length > 1) stores.forEach(st => { lines.push("", "=== " + SNAME[st].toUpperCase() + " ==="); block(items.filter(it => it.store === st)); });
-  else block(items);
+  if (stores.length > 1) stores.forEach(st => { lines.push("", "=== " + SNAME[st].toUpperCase() + " ==="); block(items.filter(it => it.store === st), st); });
+  else block(items, stores[0]);
   return lines.join("\n");
 }
 
@@ -13061,7 +13115,7 @@ function viewList(){
           ${prodOf(it.id) ? `<span class="pimg" data-pimg="${it.id}" role="button" aria-label="Zo ziet ${esc(DB[it.id].n)} eruit"><img src="${esc(prodOf(it.id).img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></span>` : ""}
         </button>`;
   const shop = !!UI.shop && items.length > 0;
-  const cats = arr => ZONES.map(([z, label, tip]) => { const g = arr.filter(it => it.z === z && !it.have); if (!g.length) return "";
+  const cats = (arr, st) => zonesFor(st).map(([z, label, tip]) => { const g = arr.filter(it => it.z === z && !it.have); if (!g.length) return "";
     const open = g.filter(it => !S.checks[it.id]), done = g.filter(it => S.checks[it.id]);
     if (shop && !open.length) return `<div class="cat zdone"><div class="label">✓ ${label}</div><span class="sub num">${done.length} in je mandje</span></div>`;
     return `<div class="cat"><div class="label">${label}${done.length ? ` <span class="num" style="font-weight:400">· ${done.length}/${g.length}</span>` : ""}</div>${tip && !shop ? `<div class="ztip">${tip}</div>` : ""}${open.map(itemHtml).join("")}${done.map(itemHtml).join("")}</div>`; }).join("");
@@ -13070,7 +13124,7 @@ function viewList(){
   if (shop) return `
   ${shopBar}
   <div class="shop shopmode">
-    ${stores.length > 1 ? stores.map(st => { const arr = items.filter(it => it.store === st); return `<h2 class="storeh">${SNAME[st]} <span class="sub num">${arr.filter(it => !S.checks[it.id] && !it.have).length} te halen</span></h2>${cats(arr)}`; }).join("") : cats(items)}
+    ${stores.length > 1 ? stores.map(st => { const arr = items.filter(it => it.store === st); return `<h2 class="storeh">${SNAME[st]} <span class="sub num">${arr.filter(it => !S.checks[it.id] && !it.have).length} te halen</span></h2>${cats(arr, st)}`; }).join("") : cats(items, stores[0])}
   </div>
   <button class="btn primary full" id="shopdone">${UI.doneArm ? "Zeker weten? Tik nog een keer" : "✓ Boodschappen gedaan"}</button>`;
   const have = items.filter(it => it.have);
@@ -13093,11 +13147,12 @@ function viewList(){
   <details class="fold"><summary class="sub">Hoe werkt deze lijst?</summary><p class="sub" style="margin:6px 0 0">Voor ${totalBakjes()} ${totalBakjes() === 1 ? "lunchbakje" : "lunchbakjes"}, ${nd} keer avondeten${snackPlan().length ? " en je tussendoortjes" : ""}, met het aantal personen dat je per gerecht hebt gekozen. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p></details>
   ${got ? shopBar : ""}
   <div class="shop">
-    ${stores.length > 1 ? stores.map(st => { const arr = items.filter(it => it.store === st); return `<h2 class="storeh">${SNAME[st]} <span class="sub num">${arr.filter(it => !S.checks[it.id] && !it.have).length} te halen</span></h2>${cats(arr)}`; }).join("")
-      : `${stores.length ? `<h2 class="storeh">Alles bij ${SNAME[stores[0]]}</h2>` : ""}${cats(items)}`}
+    ${stores.length > 1 ? stores.map(st => { const arr = items.filter(it => it.store === st); return `<h2 class="storeh">${SNAME[st]} <span class="sub num">${arr.filter(it => !S.checks[it.id] && !it.have).length} te halen</span></h2>${cats(arr, st)}`; }).join("")
+      : `${stores.length ? `<h2 class="storeh">Alles bij ${SNAME[stores[0]]}</h2>` : ""}${cats(items, stores[0])}`}
   </div>
   ${restCard()}
   ${haveHtml}
+  ${routeBox(stores)}
   <div class="row"><button class="btn" id="copy">Kopieer lijst</button><button class="btn" id="share">Delen</button><button class="btn" id="uncheck">Vinkjes wissen</button></div>
   <button class="btn primary full" id="shopdone">${UI.doneArm ? "Zeker weten? Tik nog een keer" : "✓ Boodschappen gedaan"}</button>
   <p class="sub" style="margin:0">Tik hierop als je terug bent. De app onthoudt dan wat er over is van houdbare spullen, zoals rijst en pasta, en haalt dat de volgende keer van je lijst.</p>`}
@@ -13345,7 +13400,7 @@ document.addEventListener("click", (e) => {
   if (d.filter){ S.filter = d.filter; UI.rmax = 40; save(); render(); return; }
   if (d.rmore){ UI.rmax = (UI.rmax || 40) + 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, UI.rmax, "data-rmore"); return; }
   if (d.pmore){ UI.pmax = (UI.pmax || 50) + 50; document.getElementById("plist").innerHTML = pickerList(); return; }
-  if (d.check){ S.checks[d.check] = !S.checks[d.check]; save(); render(); if (S.share) setShareCheck(d.check, !!S.checks[d.check]); return; }
+  if (d.check){ S.checks[d.check] = !S.checks[d.check]; if (S.checks[d.check]) learnRoute(d.check); save(); render(); if (S.share) setShareCheck(d.check, !!S.checks[d.check]); return; }
   if (d.scheck){ const ck = (SHARE.doc && SHARE.doc.checks) || {}; const v = !ck[d.scheck]; if (SHARE.doc){ SHARE.doc.checks = Object.assign({}, ck, { [d.scheck]: v }); render(); } setShareCheck(d.scheck, v); return; }
   if (d.prepsel){ const a = UI.prepSel = UI.prepSel || [], i = a.indexOf(d.prepsel); i >= 0 ? a.splice(i, 1) : a.push(d.prepsel); renderPrepPick(); return; }
   if (d.meanwhile){ UI.prep.done[UI.cook] = true; UI.cook = +d.meanwhile; renderCook(); document.getElementById("sheet").scrollTop = 0; return; }
@@ -13357,6 +13412,9 @@ document.addEventListener("click", (e) => {
   if (d.fbscore){ UI.fb.score = UI.fb.score === +d.fbscore ? 0 : +d.fbscore; renderFeedback(); return; }
   if (d.fbabout){ UI.fb.about = d.fbabout; renderFeedback(); return; }
   if (d.rep && UI.report){ const a = UI.report.why, i = a.indexOf(d.rep); i < 0 ? a.push(d.rep) : a.splice(i, 1); renderRecipe(); return; }
+  if (d.zmove){ const [st, z, dir] = d.zmove.split(":"); moveZone(st, z, +dir); UI.routeOpen = true; UI.routeSt = st; save(); render(); return; }
+  if (d.zreset){ if (S.routeOrder) delete S.routeOrder[d.zreset]; if (S.routeTrips) delete S.routeTrips[d.zreset]; UI.routeOpen = true; save(); render(); toast("Standaardroute terug"); return; }
+  if (d.routest){ UI.routeSt = d.routest; UI.routeOpen = true; render(); return; }
   if (d.favload !== undefined){ const i = +d.favload, f = (S.favWeeks || [])[i]; if (!f) return;
     if (!planEmpty() && UI.favArm !== i){ UI.favArm = i; render(); setTimeout(() => { if (UI.favArm === i){ UI.favArm = null; render(); } }, 4000); return; }
     UI.favArm = null; rememberWeek(); loadWeek(f); save(); render(); toast(f.name + " staat in je week"); return; }
@@ -13389,7 +13447,8 @@ document.addEventListener("click", (e) => {
     case "homecheck": openHome(); break;
     case "sendfb": sendFeedback(); break;
     case "hidenudge": S.fbHide = true; save(); render(); toast("Feedback geven kan altijd bij Profiel, onder Hulp"); break;
-    case "shopdone": if (!UI.doneArm){ UI.doneArm = true; render(); setTimeout(() => { if (UI.doneArm){ UI.doneArm = false; render(); } }, 4000); }
+    case "shopdone": if (UI.doneArm && S.trip) Object.keys(S.trip).forEach(commitTrip);
+      if (!UI.doneArm){ UI.doneArm = true; render(); setTimeout(() => { if (UI.doneArm){ UI.doneArm = false; render(); } }, 4000); }
       else { UI.doneArm = false; UI.shop = false; releaseWake(); const left = shopDone(); save(); render(); window.scrollTo(0, 0); toast(left.length ? "Opgeslagen. Over voor volgende keer: " + left.slice(0, 3).join(", ") : "Opgeslagen. Je lijst is weer leeg afgevinkt."); } break;
     case "fillsnacks": { const n = fillSnacks(); save(); render(); toast(n ? n + (n === 1 ? " tussendoortje" : " tussendoortjes") + " gekozen en op je boodschappenlijst gezet" : "Je dag zit al vol"); break; }
     case "snackpick": UI.snackPick = !UI.snackPick; render(); break;
