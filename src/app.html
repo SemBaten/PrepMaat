@@ -141,6 +141,15 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance;
 .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: left; width: 100%; }
 .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; margin-top: 1px; }
 .item.done { opacity: 0.5; }
+.switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 17px; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .sw { width: 50px; height: 30px; border-radius: 99px; background: var(--line); position: relative; flex: 0 0 50px; transition: background .2s; }
+.switch .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.switch input:checked + .sw { background: var(--accent); }
+.switch input:checked + .sw::after { transform: translateX(20px); }
+.switch input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+.healthcard { gap: 8px; }
+.pfgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .fblist { display: grid; gap: 8px; }
 .fbitem { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
 code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-radius: 8px; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
@@ -255,7 +264,7 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .pill.fo { background: var(--accent-soft); color: var(--accent); }
 .pill.warnp { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
 .gbar { display: grid; gap: 4px; font-size: 15px; }
-.goals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
 .goals small { font-size: 12px; color: var(--muted); }
@@ -2569,6 +2578,17 @@ const FOCUS = [["kcal","Weinig calorieën"],["eiwit","Veel eiwit"],["vezels","Ve
 const FOCUS_FOR = { vet: ["kcal","eiwit"], gezond: ["vezels"], spieren: ["eiwit"], duur: ["khhoog"] };
 function focusForGoals(gl){ const out = []; gl.forEach(g => (FOCUS_FOR[g] || []).forEach(k => { if (!out.includes(k)) out.push(k); })); if (gl.includes("vet")) { const i = out.indexOf("khhoog"); if (i >= 0) out.splice(i, 1); } return out; }
 function goals(){
+  if (!healthOn()) return null;
+  const o = goalsCalc(); if (!o) return null;
+  const C = (S.profile && S.profile.custom) || {};
+  if (C.kcal){ const d = C.kcal - o.kcal; o.kcal = C.kcal; o.bfK = o.kcal * 0.20; o.lunchK = o.kcal * 0.30; o.dinnerK = o.kcal * 0.35; o.today = Object.assign({}, o.today, { kcal: o.today.kcal + d }); }
+  if (C.prot) o.prot = C.prot;
+  o.fatCalc = Math.round(o.kcal * 0.28 / 9); o.fat = C.fat || o.fatCalc;
+  o.carbCalc = Math.max(0, Math.round((o.kcal - o.prot * 4 - o.fat * 9) / 4)); o.carb = C.carb || o.carbCalc;
+  o.custom = !!(C.kcal || C.prot || C.carb || C.fat);
+  return o;
+}
+function goalsCalc(){
   const P = S && S.profile; if (!P) return null;
   const E = P.ext || {};
   const bmr = P.bf ? 370 + 21.6 * P.weight * (1 - P.bf / 100) : 10 * P.weight + 6.25 * P.height - 5 * P.age + (P.sex === "m" ? 5 : -161);
@@ -2622,6 +2642,7 @@ function adviceF(r){
 }
 function portionKey(r){ const k = S.portion && S.portion[r.id]; if (k === "advies" && !goals()) return (S.profile && S.profile.appetite) || "normaal"; return k || (S.profile && S.profile.appetite) || "normaal"; }
 function pf(r){
+  if (!healthOn()) return 1;
   const k = portionKey(r);
   if (k === "advies") return adviceF(r);
   return (APPETITE.find(x => x[0] === k) || APPETITE[1])[2];
@@ -2715,12 +2736,16 @@ const ALLERGY = [
   ["schaal","Schaal- en schelpdieren",["garnalen","oestersaus"]]
 ];
 const DIETS = [["alles","Ik eet alles"],["pesco","Geen vlees, wel vis"],["vega","Vegetarisch"]];
+function dietOf(){ return (S && S.prefs && S.prefs.diet) || (S && S.profile && S.profile.diet) || "alles"; }
+function allergiesOf(){ return [...new Set([...((S && S.prefs && S.prefs.allergies) || []), ...((S && S.profile && S.profile.allergies) || [])])]; }
+/* Gezondheid en sport: persoonlijk advies staat aan of uit. Uit = een rustige app zonder kcal en eiwit. */
+function healthOn(){ return !!(S && S.health); }
 function fits(r){
   const p = prefs(), P = S && S.profile;
   if (!["geen","vega"].includes(r.meat) && !p.meats[r.meat]) return false;
-  if (P && P.diet === "vega" && !["geen","vega"].includes(r.meat)) return false;
-  if (P && P.diet === "pesco" && ["kip","rund","varken"].includes(r.meat)) return false;
-  if (P && P.allergies && P.allergies.length){ const ex = ALLERGY.filter(a => P.allergies.includes(a[0])).flatMap(a => a[2]); if (r.items.some(([k]) => ex.includes(k))) return false; }
+  if (dietOf() === "vega" && !["geen","vega"].includes(r.meat)) return false;
+  if (dietOf() === "pesco" && ["kip","rund","varken"].includes(r.meat)) return false;
+  if (allergiesOf().length){ const ex = ALLERGY.filter(a => allergiesOf().includes(a[0])).flatMap(a => a[2]); if (r.items.some(([k]) => ex.includes(k))) return false; }
   if (r.spice > p.spice) return false;
   if (r.type === "diner" && p.maxTime && r.time > p.maxTime) return false;
   if (p.noCuisine.includes(r.cuisine)) return false;
@@ -2730,7 +2755,7 @@ function fits(r){
 function weight(id){
   const o = overall(id) ?? comOverall(id);
   let w = o === null ? 1 : 0.25 + (o / 5) * 1.75;
-  const fo = (S && S.prefs && S.prefs.focus) || [];
+  const fo = (healthOn() && S.prefs && S.prefs.focus) || [];
   for (const k of fo) if (focusMatch(RID[id], k)) w *= 2;
   return w * kcalFit(RID[id]);
 }
@@ -2761,6 +2786,7 @@ const LO = load();
 S = Object.assign(defaults(), LO || {});
 S.plan.ontbijt = S.plan.ontbijt || [];
 S.plan.snack = S.plan.snack || [];
+if (S.health === undefined && S.profile) S.health = true;
 ["ontbijt","lunch","diner"].forEach(t => (S.plan[t] || []).forEach(x => { if (!x.p) x.p = t === "diner" ? (S.persons || 2) : ((S.pp || {})[t] || 1); }));
 if (LO && !LO.plan && LO.lunch && RID[LO.lunch]){
   S.plan = { lunch: [{ id: LO.lunch, n: LO.lunchDays || 5 }], diner: [] };
@@ -2824,7 +2850,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v31";
+const APP_VERSION = "v32";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3027,8 +3053,10 @@ function shopItems(){
   S.plan.lunch.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || 1) - 1 + pf(r)) / r.serves); });
   S.plan.diner.forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || S.persons) - 1 + pf(r)) / r.serves); });
   (S.plan.ontbijt || []).forEach(x => { const r = RID[x.id]; if (r) add(r, x.n * ((x.p || 1) - 1 + pf(r)) / r.serves); });
-  (S.plan.snack || []).forEach(x => { const s = SID[x.id]; if (s) add(s, x.n); });
-  { const td = trainDays(), ts = trainSnack(); if (td.length && ts && (nPlanned() > 0)) add(ts, td.length); }
+  if (healthOn()){
+    (S.plan.snack || []).forEach(x => { const s = SID[x.id]; if (s) add(s, x.n); });
+    const td = trainDays(), ts = trainSnack(); if (td.length && ts && (nPlanned() > 0)) add(ts, td.length);
+  }
   const items = [];
   for (const [k, q] of Object.entries(tot)){
     const d = DB[k]; if (d.c === "water") continue;
@@ -3081,7 +3109,8 @@ const ICONS = {
 };
 const TABS = [["week","Planning"],["recepten","Recepten"],["lijst","Boodschappen"],["vandaag","Vandaag"],["smaak","Profiel"]];
 function todayIdx(){ return (new Date().getDay() + 6) % 7; }
-function pills(r){ const m = pm(r); return `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
+function pills(r){ const m = pm(r); return healthOn() ? `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>` : `<span class="pill num">⏱ ${r.time} min</span>`; }
+function metaLine(r){ const m = pm(r); return healthOn() ? `${m.k} kcal · ${m.p} g eiwit · ${r.time} min` : `${r.time} min`; }
 
 /* ============ Mijn week ============ */
 function planCount(id){ const r = RID[id]; if (!r) return 0; const e = (S.plan[r.type] || []).find(x => x.id === id); return e ? e.n : 0; }
@@ -3112,15 +3141,15 @@ function setPlanN(id, delta){
 function unitN(type, n){ return type === "lunch" ? `${n} ${n === 1 ? "dag" : "dagen"}` : type === "ontbijt" ? `${n} ${n === 1 ? "dag" : "dagen"}` : `${n}×`; }
 function avgMacros(type){
   const list = (S.plan[type] || []).filter(x => RID[x.id]); const n = list.reduce((a, x) => a + x.n, 0); if (!n) return null;
-  const t = list.reduce((a, x) => { const m = pm(RID[x.id]); return { k: a.k + m.k * x.n, p: a.p + m.p * x.n, v: a.v + m.v * x.n, gv: a.gv + m.gv * x.n, fr: a.fr + m.fr * x.n }; }, { k: 0, p: 0, v: 0, gv: 0, fr: 0 });
-  return { k: Math.round(t.k / n), p: Math.round(t.p / n), v: Math.round(t.v / n), gv: Math.round(t.gv / n), fr: Math.round(t.fr / n * 10) / 10 };
+  const t = list.reduce((a, x) => { const m = pm(RID[x.id]); return { k: a.k + m.k * x.n, p: a.p + m.p * x.n, v: a.v + m.v * x.n, gv: a.gv + m.gv * x.n, fr: a.fr + m.fr * x.n, kh: a.kh + m.kh * x.n, f: a.f + fatOf(m) * x.n }; }, { k: 0, p: 0, v: 0, gv: 0, fr: 0, kh: 0, f: 0 });
+  return { k: Math.round(t.k / n), p: Math.round(t.p / n), v: Math.round(t.v / n), gv: Math.round(t.gv / n), fr: Math.round(t.fr / n * 10) / 10, kh: Math.round(t.kh / n), f: Math.round(t.f / n) };
 }
 function planRows(type){
   const list = (S.plan[type] || []).filter(x => RID[x.id]);
-  if (!list.length) return `<div class="card"><p class="sub" style="margin:0">${type === "lunch" ? "Nog geen lunch gekozen. Eén lunchrecept maakt meteen bakjes voor meerdere dagen." : type === "ontbijt" ? "Optioneel. Kies een vast ontbijt: het telt elke dag mee in je dagdoel en komt vanzelf op je boodschappenlijst." : "Nog geen avondeten gekozen."}</p></div>`;
+  if (!list.length) return `<div class="card"><p class="sub" style="margin:0">${type === "lunch" ? "Nog geen lunch gekozen. Eén lunchrecept maakt meteen bakjes voor meerdere dagen." : type === "ontbijt" ? (healthOn() ? "Optioneel. Kies een vast ontbijt: het telt elke dag mee in je dagdoel en komt vanzelf op je boodschappenlijst." : "Optioneel. Kies een vast ontbijt: het komt vanzelf op je boodschappenlijst.") : "Nog geen avondeten gekozen."}</p></div>`;
   return `<div class="days">${list.map(x => { const r = RID[x.id], m = pm(r); return `
     <div class="prow">
-      <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${m.k} kcal · ${m.p} g eiwit · ${r.time} min</small></button>
+      <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${metaLine(r)}</small></button>
       <div class="pctl"><span class="stepper" aria-label="${type === "diner" ? "Hoe vaak" : "Aantal dagen"}"><button data-pn="${r.id}:-1" aria-label="Minder ${esc(r.name)}">−</button><span class="num">${unitN(type, x.n)}</span><button data-pn="${r.id}:1" aria-label="Meer ${esc(r.name)}">+</button></span>${pStep(r.id)}</div>
       ${type === "lunch" && (x.p || 1) > 1 ? `<small class="sub num">${x.n * x.p} bakjes: ${x.n} ${x.n === 1 ? "dag" : "dagen"} voor ${x.p} personen</small>` : ""}
     </div>`; }).join("")}</div>
@@ -3200,14 +3229,16 @@ function viewToday(){
   return `
   <header class="top"><h1 class="brand" style="font-size:26px">Vandaag</h1><div class="sub">${DAYS_LONG[todayIdx()]} ${d.getDate()} ${MND_LONG[d.getMonth()]}</div></header>
   ${todayMenu()}
-  ${todayCard()}
-  ${!S.tracker && goals() ? `<p class="sub" style="margin:0">Wil je precies zien hoeveel je vandaag al gegeten hebt? Zet hierboven "Bijhouden wat ik eet" aan. Het is niet verplicht.</p>` : ""}
-  ${weightCard(false)}`;
+  ${healthOn() ? todayCard() : ""}
+  ${healthOn() && !S.tracker && goals() ? `<p class="sub" style="margin:0">Wil je precies zien hoeveel je vandaag al gegeten hebt? Zet hierboven "Bijhouden wat ik eet" aan. Het is niet verplicht.</p>` : ""}
+  ${healthOn() ? weightCard(false) : ""}
+  ${healthOn() ? "" : `<p class="ihint" style="margin:0">Wil je ook zien hoeveel calorieën en eiwit je eet? Zet bij Profiel "Gezondheid en sport" aan.</p>`}`;
 }
 function viewWeek(){
   const nl = totalLunches(), nd = totalDinners(), open = shopCount(), any = nl + nd + totalOf("ontbijt");
-  const seg = UI.wseg || "gerechten", sn = snackPlan().length;
-  const segs = [["gerechten", "Gerechten"], ["week", "Weekkalender"], ["tussendoor", "Tussendoor" + (sn ? ` (${sn})` : "")]];
+  let seg = UI.wseg || "gerechten"; const sn = snackPlan().length; if (seg === "tussendoor" && !healthOn()) seg = "gerechten";
+  const segs = [["gerechten", "Gerechten"], ["week", "Weekkalender"], ...(healthOn() ? [["tussendoor", "Tussendoor" + (sn ? ` (${sn})` : "")]] : [])];
+  if (seg === "tussendoor" && !healthOn()) UI.wseg = "gerechten";
   const md = mealDay(), g = goals();
   let body = "";
   if (seg === "gerechten") body = `
@@ -3233,12 +3264,12 @@ function viewWeek(){
   ${inspiration()}`;
   else if (seg === "week") body = nd ? `
   <section class="section">${weekStrip()}</section>
-  ${trainSection()}
+  ${healthOn() ? trainSection() : ""}
   ${nl + nd ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Lunchbakjes en eventueel avondeten achter elkaar, met één afweeglijst en timers.</span></button>` : ""}
   ${restCard()}
   ${remindCard()}` : `<div class="card"><p style="margin:0">Kies eerst je avondeten. Daarna zet je hier per dag wat je eet.</p><button class="btn primary" data-wseg="gerechten" style="justify-self:start">Naar Gerechten</button></div>
   ${nl ? `<button class="btn full homebtn" id="prepopen"><b>Prepdag: alles in één keer koken</b><span class="sub">Je lunchbakjes met één afweeglijst en timers.</span></button>` : ""}
-  ${trainSection()}
+  ${healthOn() ? trainSection() : ""}
   ${remindCard()}`;
   else body = snackSection();
   return `
@@ -3268,7 +3299,7 @@ function pickerList(){
   if (!list.length) return `<p class="sub" style="margin:0">Niets gevonden. Probeer een ander woord.</p>`;
   const total = list.length; list = list.slice(0, UI.pmax || 50);
   return list.map(r => { const n = planCount(r.id), m = pm(r); return `<div class="pkrow ${n ? "on" : ""}">
-    <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${m.k} kcal · ${m.p} g eiwit · ${r.time} min${starTxt(r.id)}</small></button>
+    <button class="dmeal" data-open="${r.id}"><b>${esc(r.name)}</b><small class="num">${metaLine(r)}${starTxt(r.id)}</small></button>
     ${n ? `<span class="pill p num">${unitN(type, n)}</span>` : ""}
     <button class="addbtn" data-addp="${r.id}" aria-label="${esc(r.name)} toevoegen">+</button></div>`; }).join("") + moreBtn(total, UI.pmax || 50, "data-pmore");
 }
@@ -3307,7 +3338,12 @@ function addLog(e){
   const keys = Object.keys(S.log).sort(); while (keys.length > 60) delete S.log[keys.shift()];
   save();
 }
-function logTotals(){ const t = logToday().reduce((a, e) => ({ k: a.k + e.k, p: a.p + e.p, v: a.v + (e.v || 0), gv: a.gv + (e.gv || 0), fr: a.fr + (e.fr || 0) }), { k: 0, p: 0, v: 0, gv: 0, fr: 0 }); t.fr = Math.round(t.fr * 10) / 10; return t; }
+function logTotals(){
+  /* Losse producten hebben geen koolhydraat/vet-cijfer: schat dat uit de rest van de kcal (60/40). */
+  const est = e => { const rest = Math.max(0, e.k - e.p * 4); return { kh: e.kh ?? rest * 0.6 / 4, f: e.f ?? rest * 0.4 / 9 }; };
+  const t = logToday().reduce((a, e) => { const x = est(e); return { k: a.k + e.k, p: a.p + e.p, v: a.v + (e.v || 0), gv: a.gv + (e.gv || 0), fr: a.fr + (e.fr || 0), kh: a.kh + x.kh, f: a.f + x.f }; }, { k: 0, p: 0, v: 0, gv: 0, fr: 0, kh: 0, f: 0 });
+  t.fr = Math.round(t.fr * 10) / 10; t.kh = Math.round(t.kh); t.f = Math.round(t.f); return t;
+}
 const VEG_GOAL = 250, FRUIT_GOAL = 2;
 
 
@@ -3549,7 +3585,7 @@ function icsEvents(){
     const di = (todayIdx() + off) % 7, id = sch[di];
     if (id && id !== "-") ev.push({ start: at(off, 17, 30), min: 15, title: "Koken: " + RID[id].name, desc: "Open Prepmaat > Vandaag > Nu koken. " + EP(id) + (EP(id) === 1 ? " persoon." : " personen.") });
     if (nl && di + 1 < nl && di + 1 >= 3) ev.push({ start: at(off, 20, 0), min: 5, title: "Lunchbakje voor morgen uit de vriezer", desc: "Zet het in de koelkast, dan is het morgen ontdooid." });
-    if (trainDays().includes(di) && trainSnack()) ev.push({ start: at(off, 16, 0), min: 5, title: "Trainingsdag: " + trainSnack().name, desc: trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + ") });
+    if (healthOn() && trainDays().includes(di) && trainSnack()) ev.push({ start: at(off, 16, 0), min: 5, title: "Trainingsdag: " + trainSnack().name, desc: trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + ") });
   }
   const days = dayPlan(shopItems()); let shopOff = 0;
   if (days){ const best = days.reduce((a, b) => b.save > a.save + 1.5 ? b : a, days[0]); shopOff = best.off; }
@@ -3673,6 +3709,45 @@ function adminBox(){
   }
   return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback lezen</summary>${inner}</details>`;
 }
+
+/* ============ Eigen doelen: wie zijn cijfers al weet, vult ze zelf in ============ */
+function customCard(){
+  const g = goals(); if (!g) return "";
+  const C = (S.profile && S.profile.custom) || {};
+  const f = (id, label, val, calc, unit) => `<div class="field"><label for="${id}">${label}</label><div class="row"><input id="${id}" class="cin" type="number" inputmode="numeric" placeholder="${calc}" value="${val || ""}"><span class="sub">${unit}</span></div></div>`;
+  return `<details class="section fold card" ${UI.customOpen || g.custom ? "open" : ""}><summary class="label">Doelen zelf instellen${g.custom ? " (aan)" : ""}</summary>
+    <p class="sub" style="margin:0">Weet je je eigen cijfers al, bijvoorbeeld van een diëtist of coach? Vul ze hier in. Laat een vakje leeg om de uitgerekende waarde te gebruiken (grijs).</p>
+    <div class="pfgrid">
+      ${f("c-kcal", "Calorieën", C.kcal, goalsCalcPlain().kcal, "kcal")}
+      ${f("c-prot", "Eiwit", C.prot, goalsCalcPlain().prot, "g")}
+      ${f("c-carb", "Koolhydraten", C.carb, g.carbCalc, "g")}
+      ${f("c-fat", "Vet", C.fat, g.fatCalc, "g")}
+    </div>
+    <div class="row" style="gap:8px"><button class="btn primary small" id="savecustom">Opslaan</button>${g.custom ? `<button class="btn small" id="resetcustom">Terug naar uitgerekend</button>` : ""}</div>
+  </details>`;
+}
+function goalsCalcPlain(){ return goalsCalc() || { kcal: "", prot: "" }; }
+function saveCustom(){
+  const v = id => { const x = parseInt((document.getElementById(id) || {}).value, 10); return x > 0 ? x : null; };
+  const c = { kcal: v("c-kcal"), prot: v("c-prot"), carb: v("c-carb"), fat: v("c-fat") };
+  if (c.kcal && (c.kcal < 1000 || c.kcal > 6000)){ toast("Kies calorieën tussen 1000 en 6000"); return; }
+  Object.keys(c).forEach(k => { if (!c[k]) delete c[k]; });
+  S.profile.custom = c; UI.customOpen = true; save(); render(); toast(Object.keys(c).length ? "Je eigen doelen zijn opgeslagen" : "Uitgerekende doelen gebruikt");
+}
+function openWelcome(){
+  const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden";
+  UI.view = "welcome";
+  sh.innerHTML = `<div class="wrap" style="min-height:calc(100dvh - 40px);align-content:center">
+    <h1 class="dtitle">Welkom bij Prepmaat</h1>
+    <p style="margin:0">Prepmaat maakt eten makkelijk: kies wat je deze week eet, krijg een boodschappenlijst op volgorde van de winkel, en kook stap voor stap met precieze hoeveelheden.</p>
+    <div class="card" style="gap:10px">
+      <b>Wil je ook persoonlijk advies over je voeding?</b>
+      <p class="sub" style="margin:0">Bijvoorbeeld voor sport, afvallen of spieropbouw. De app rekent dan je calorieën, eiwit en andere doelen uit en laat zien hoe je ervoor staat. Je kunt dit later altijd aan- of uitzetten bij Profiel.</p>
+      <button class="btn primary full" id="welcomehealth">Ja, doe de korte test</button>
+      <button class="btn full" id="welcomesimple">Nee, houd het simpel</button>
+    </div>
+  </div>`;
+}
 /* ============ Weekkalender: welke avond eet je wat ============ */
 /* S.dayMap: 7 vakjes (ma t/m zo). null = automatisch, "-" = geen avondeten (vrij/uit eten), anders een recept-id */
 function weekSchedule(){
@@ -3695,7 +3770,7 @@ function weekStrip(){
   if (!totalDinners()) return "";
   const sch = weekSchedule(), t = todayIdx();
   const short = id => { const n = RID[id].name.split(/ met | en | op | in /)[0]; return n.length > 22 ? n.slice(0, 21) + "…" : n; };
-  return `<div class="row between" style="margin-top:6px"><div class="label">Welke avond wat?</div></div><div class="wk">${sch.map((id, i) => `<button class="wkday${i === t ? " now" : ""}${UI.dayPick === i ? " sel" : ""}" data-day="${i}"><b>${DAYS[i]}${trainDays().includes(i) ? " 💪" : ""}</b><span>${id && id !== "-" ? esc(short(id)) : `<i>vrij</i>`}</span>${id && id !== "-" && EP(id) > 1 ? `<small class="num">${EP(id)} pers.</small>` : ""}</button>`).join("")}</div>
+  return `<div class="row between" style="margin-top:6px"><div class="label">Welke avond wat?</div></div><div class="wk">${sch.map((id, i) => `<button class="wkday${i === t ? " now" : ""}${UI.dayPick === i ? " sel" : ""}" data-day="${i}"><b>${DAYS[i]}${healthOn() && trainDays().includes(i) ? " 💪" : ""}</b><span>${id && id !== "-" ? esc(short(id)) : `<i>vrij</i>`}</span>${id && id !== "-" && EP(id) > 1 ? `<small class="num">${EP(id)} pers.</small>` : ""}</button>`).join("")}</div>
   ${UI.dayPick !== undefined && UI.dayPick !== null ? `<div class="card" style="gap:8px"><div class="sub">Wat eet je op ${DAYS_LONG[UI.dayPick]}?</div><div class="chips">${S.plan.diner.filter(x => RID[x.id]).map(x => `<button class="chip" data-setday="${UI.dayPick}:${x.id}" aria-pressed="${sch[UI.dayPick] === x.id}">${esc(short(x.id))}</button>`).join("")}<button class="chip" data-setday="${UI.dayPick}:-" aria-pressed="${sch[UI.dayPick] === "-" || !sch[UI.dayPick]}">Niets (vrij of uit eten)</button></div></div>` : `<p class="ihint" style="margin:0">Tik op een dag om te kiezen wat je die avond eet. Je boodschappen veranderen daar niet door.</p>`}`;
 }
 function todayMenu(){
@@ -3709,7 +3784,7 @@ function todayMenu(){
     ${lu ? (t < totalLunches() ? `<div class="prow">${row("Lunch", lu.id, "Bakje uit de koelkast." + (t + 1 < totalLunches() && t + 1 >= 3 ? " Vanavond: bakje voor morgen van vriezer naar koelkast." : "") + (S.plan.lunch.length > 1 ? " Je hebt meerdere lunches: pak de oudste eerst." : ""))}</div>` : `<div class="prow"><div class="dmeal mrow"><small>Lunch</small><b>Vandaag geen lunchbakje gepland</b><small>Je bakjes zijn voor ${totalLunches()} ${totalLunches() === 1 ? "dag" : "dagen"}, vanaf maandag.</small></div></div>`) : ""}
     ${din && din !== "-" ? `<div class="prow">${row("Avondeten", din, EP(din) + (EP(din) === 1 ? " persoon" : " personen") + " · " + RID[din].time + " min")}<button class="btn small primary" data-cooknow="${din}" style="justify-self:start">Nu koken</button></div>`
       : `<div class="prow"><div class="dmeal mrow"><small>Avondeten</small><b>Vanavond niets gepland</b>${nxt ? `<small>Volgende: ${esc(RID[nxt[1]].name)} op ${nxt[0]}</small>` : ""}</div></div>`}
-    ${trainDays().includes(t) && trainSnack() ? `<div class="prow"><div class="dmeal mrow"><small>💪 Trainingsdag, extra</small><b>${esc(trainSnack().name)}</b><small>${esc(trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + "))}</small></div></div>` : ""}
+    ${healthOn() && trainDays().includes(t) && trainSnack() ? `<div class="prow"><div class="dmeal mrow"><small>💪 Trainingsdag, extra</small><b>${esc(trainSnack().name)}</b><small>${esc(trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + "))}</small></div></div>` : ""}
     ${sn.length ? `<div class="prow"><div class="dmeal mrow"><small>Tussendoor</small>${sn.map(x => `<b>${esc(SID[x.id].name)}</b><small>${esc(SID[x.id].items.map(([k, q]) => fmt(k, q)).join(" + "))}</small>`).join("")}</div></div>` : ""}
   </div></section>`;
 }
@@ -3728,25 +3803,26 @@ SNACKS.forEach(s => { s.type = "snack"; s.serves = 1; s.spice = 0; s.time = s.id
 const SID = Object.fromEntries(SNACKS.map(s => [s.id, s]));
 function snackOk(s){
   const P = S && S.profile, p = prefs();
-  if (P && P.diet === "vega" && s.meat === "kip") return false;
-  if (P && P.diet === "pesco" && s.meat === "kip") return false;
+  if (dietOf() === "vega" && s.meat === "kip") return false;
+  if (dietOf() === "pesco" && s.meat === "kip") return false;
   if (s.meat === "kip" && !p.meats.kip) return false;
-  if (P && P.allergies && P.allergies.length){ const ex = ALLERGY.filter(a => P.allergies.includes(a[0])).flatMap(a => a[2]); if (s.items.some(([k]) => ex.includes(k))) return false; }
+  if (allergiesOf().length){ const ex = ALLERGY.filter(a => allergiesOf().includes(a[0])).flatMap(a => a[2]); if (s.items.some(([k]) => ex.includes(k))) return false; }
   return !s.items.some(([k]) => p.noIng.includes(k));
 }
 function nPlanned(){ return S.plan.lunch.length + S.plan.diner.length + (S.plan.ontbijt || []).length + (S.plan.snack || []).length; }
-function snackPlan(){ return (S.plan.snack || []).filter(x => SID[x.id]); }
+function snackPlan(){ return healthOn() ? (S.plan.snack || []).filter(x => SID[x.id]) : []; }
 /* Gemiddelde per dag (een week = 7 dagen) */
 function snackDay(){
-  const t = { k:0, p:0, v:0, gv:0, fr:0 };
+  const t = { k:0, p:0, v:0, gv:0, fr:0, kh:0, f:0 };
+  if (!healthOn()) return { k:0, p:0, v:0, gv:0, fr:0, kh:0, f:0 };
   const td = trainDays(), ts = trainSnack(), list = snackPlan().slice(); if (td.length && ts) list.push({ id: ts.id, n: td.length });
-  for (const x of list){ const m = macros(SID[x.id]); t.k += m.kr * x.n / 7; t.p += m.pr * x.n / 7; t.v += m.vr * x.n / 7; t.gv += m.gvr * x.n / 7; t.fr += m.frr * x.n / 7; }
-  return { k: Math.round(t.k / 10) * 10, p: Math.round(t.p), v: Math.round(t.v), gv: Math.round(t.gv), fr: Math.round(t.fr * 10) / 10 };
+  for (const x of list){ const m = macros(SID[x.id]); t.k += m.kr * x.n / 7; t.p += m.pr * x.n / 7; t.v += m.vr * x.n / 7; t.gv += m.gvr * x.n / 7; t.fr += m.frr * x.n / 7; t.kh += m.khr * x.n / 7; t.f += fatOf(m) * x.n / 7; }
+  return { k: Math.round(t.k / 10) * 10, p: Math.round(t.p), v: Math.round(t.v), gv: Math.round(t.gv), fr: Math.round(t.fr * 10) / 10, kh: Math.round(t.kh), f: Math.round(t.f) };
 }
 /* Wat de gekozen maaltijden op een gemiddelde dag geven */
 function mealDay(){
-  const z = {k:0,p:0,v:0,gv:0,fr:0}, b = avgMacros("ontbijt") || z, l = avgMacros("lunch") || z, d = avgMacros("diner") || z;
-  return { k: b.k + l.k + d.k, p: b.p + l.p + d.p, v: b.v + l.v + d.v, gv: b.gv + l.gv + d.gv, fr: Math.round((b.fr + l.fr + d.fr) * 10) / 10, hasB: !!b.k, any: !!(b.k || l.k || d.k) };
+  const z = {k:0,p:0,v:0,gv:0,fr:0,kh:0,f:0}, b = avgMacros("ontbijt") || z, l = avgMacros("lunch") || z, d = avgMacros("diner") || z;
+  return { k: b.k + l.k + d.k, p: b.p + l.p + d.p, v: b.v + l.v + d.v, gv: b.gv + l.gv + d.gv, fr: Math.round((b.fr + l.fr + d.fr) * 10) / 10, kh: b.kh + l.kh + d.kh, f: b.f + l.f + d.f, hasB: !!b.k, any: !!(b.k || l.k || d.k) };
 }
 /* Kies 1 tot 3 vaste tussendoortjes die het gat in kcal en eiwit zo goed mogelijk dichten, zonder eroverheen te gaan */
 function fillSnacks(){
@@ -3802,7 +3878,7 @@ function snackSection(){
     ${UI.snackPick ? `<div class="days">${SNACKS.filter(snackOk).map(s => { const m2 = macros(s), on = snackPlan().some(x => x.id === s.id); return `<button class="dmeal" data-snackadd="${s.id}" aria-pressed="${on}"><b>${on ? "✓ " : "+ "}${esc(s.name)}</b><small class="num">${m2.k} kcal · ${m2.p} g eiwit</small></button>`; }).join("")}</div>` : ""}
   </section>`;
 }
-function dayBars(t, g, kcalGoal){ return bar("Calorieën", t.k, kcalGoal, "kcal") + bar("Eiwit", t.p, g.prot, "g") + bar("Vezels", t.v, g.fib, "g") + bar("Groente", t.gv, VEG_GOAL, "g") + bar("Fruit", t.fr, FRUIT_GOAL, "stuks"); }
+function dayBars(t, g, kcalGoal){ return bar("Calorieën", t.k, kcalGoal, "kcal") + bar("Eiwit", t.p, g.prot, "g") + (t.kh !== undefined && g.carb ? bar("Koolhydraten", t.kh, g.carb, "g") + bar("Vet", t.f, g.fat, "g") : "") + bar("Vezels", t.v, g.fib, "g") + bar("Groente", t.gv, VEG_GOAL, "g") + bar("Fruit", t.fr, FRUIT_GOAL, "stuks"); }
 function trainNote(g){ return g && g.today.train ? `<p class="tip" style="margin:0">💪 Vandaag is een trainingsdag: je dagdoel is ±${g.today.extra} kcal hoger. Neem een grote portie bij het avondeten, of een extra snack zoals een banaan met 250 g kwark.</p>` : ""; }
 function trackerCard(){
   const g = goals(), log = logToday(), tot = logTotals();
@@ -3861,7 +3937,7 @@ function todayCard(){
     <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="editprofile">Gegevens invullen</button><button class="btn small" id="trackeron">Bijhouden wat ik eet</button></div></div></section>`;
   const md = mealDay(); if (!md.any) return "";
   const sd = snackDay(), sl = snackPlan();
-  const t = { k: md.k + sd.k, p: md.p + sd.p, v: md.v + sd.v, gv: md.gv + sd.gv, fr: Math.round((md.fr + sd.fr) * 10) / 10 };
+  const t = { k: md.k + sd.k, p: md.p + sd.p, v: md.v + sd.v, gv: md.gv + sd.gv, fr: Math.round((md.fr + sd.fr) * 10) / 10, kh: md.kh + sd.kh, f: md.f + sd.f };
   const rk = Math.max(0, Math.round((g.kcal - t.k) / 10) * 10), rp = Math.max(0, g.prot - t.p);
   return `<section class="section"><div class="label">Een gemiddelde dag uit je week</div>
     <div class="card">
@@ -3885,7 +3961,7 @@ function recipeMatches(){
   let list = R.filter(r => f === "alle" || r.type === f || (f === "gemaakt" && ratingsOf(r.id).length));
   if (q) list = list.filter(r => (r.name + " " + r.short + " " + cuisineName(r.cuisine) + " " + r.items.map(([k]) => DB[k].n).join(" ")).toLowerCase().includes(q));
   if (S.minStars) list = list.filter(r => (score(r.id) ?? 0) >= S.minStars);
-  if (S.prefs.focus.length && S.focusFilter) list = list.filter(r => S.prefs.focus.every(k => focusMatch(r, k)));
+  if (healthOn() && S.prefs.focus.length && S.focusFilter) list = list.filter(r => S.prefs.focus.every(k => focusMatch(r, k)));
   const fitting = list.filter(fits);
   const hidden = list.length - fitting.length;
   if (!S.showAll) list = fitting;
@@ -3901,13 +3977,13 @@ function recipeListHtml(){
   ${list.length ? list.slice(0, UI.rmax || 40).map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
       <span class="rtop"><span class="rhead"><span class="label">${typeLabel(r)} · ${esc(cuisineName(r.cuisine))}${r.spice ? " · " + SPICE[r.spice].toLowerCase() : ""}</span>
       <h3>${esc(r.name)}</h3></span>${thumbImg(r)}</span><p>${esc(r.short)}</p>
-      <span class="row">${pills(r)}${starLine(r.id)}${focusTags(r).filter(([k]) => S.prefs.focus.includes(k)).map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}${kcalFit(r) < 0.4 ? `<span class="pill warnp">Veel kcal voor jouw doel</span>` : ""}</span></button>`).join("")
+      <span class="row">${pills(r)}${starLine(r.id)}${focusTags(r).filter(([k]) => S.prefs.focus.includes(k)).map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}${healthOn() && kcalFit(r) < 0.4 ? `<span class="pill warnp">Veel kcal voor jouw doel</span>` : ""}</span></button>`).join("")
     : `<p class="empty">${f === "gemaakt" ? "Nog niks gemaakt. Na het koken tik je op 'Ik heb dit gemaakt' om sterren te geven." : (S.minStars ? "Nog geen recepten met zoveel sterren. Kies minder sterren of geef zelf sterren na het koken." : "Geen recepten gevonden. Probeer een ander zoekwoord of zet bij Profiel wat meer aan.")}</p>`}`;
 }
 function moreBtn(n, max, attr){ return n > max ? `<button class="btn full" ${attr}="1">Toon meer (nog ${n - max})</button>` : ""; }
 function viewRecipes(){
   const f = S.filter;
-  const nActive = (S.minStars ? 1 : 0) + S.prefs.focus.length + (S.sort !== "standaard" ? 1 : 0);
+  const nActive = (S.minStars ? 1 : 0) + (healthOn() ? S.prefs.focus.length : 0) + (S.sort !== "standaard" ? 1 : 0);
   return `
   <header class="top"><h1 class="brand" style="font-size:26px">Recepten</h1><div class="sub num">${R.length} gerechten</div></header>
   <button class="linkbtn" data-basics="1" style="justify-self:start">Nieuw met koken? Lees de kookbasis</button>
@@ -3916,16 +3992,16 @@ function viewRecipes(){
     ${[["alle","Alles"],["ontbijt","Ontbijt"],["lunch","Lunch"],["diner","Avondeten"],["gemaakt","Gemaakt"]].map(([k,l]) => `<button class="chip" data-filter="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}
   </div>
   <details class="fold card" id="filters" ${UI.filtersOpen ? "open" : ""}><summary><b>Filters en sorteren</b>${nActive ? ` <span class="badge num">${nActive}</span>` : ""}</summary>
-    <div class="section"><div class="label">Voeding</div>
+    ${healthOn() ? `<div class="section"><div class="label">Voeding</div>
       <div class="chips">${FOCUS.map(([k,l]) => `<button class="chip" data-focus="${k}" aria-pressed="${S.prefs.focus.includes(k)}">${l}</button>`).join("")}</div>
       ${S.prefs.focus.length ? `<label class="check"><input type="checkbox" id="focusfilter" ${S.focusFilter ? "checked" : ""}> Alleen gerechten die aan al deze keuzes voldoen</label>` : ""}
-    </div>
+    </div>` : ""}
     <div class="section"><div class="label">Beoordeling</div>
       <div class="chips">${[[0,"Alles"],[3,"★ 3+"],[4,"★ 4+"],[4.5,"★ 4,5+"]].map(([v,l]) => `<button class="chip" data-minstars="${v}" aria-pressed="${(S.minStars||0)===v}">${l}</button>`).join("")}</div>
     </div>
     <div class="row between">
       <label class="label" for="sort">Sorteren op</label>
-      <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],["eiwit","Meeste eiwit"],["kcal","Minste calorieën"],["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
+      <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],...(healthOn() ? [["eiwit","Meeste eiwit"],["kcal","Minste calorieën"]] : []),["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
     </div>
   </details>
   <div class="rlist" id="rlist">${recipeListHtml()}</div>
@@ -3942,8 +4018,11 @@ function profileCard(){
       <div class="goals num">
         <div><b>${g.kcal}</b><small>kcal per dag</small></div>
         <div><b>${g.prot} g</b><small>eiwit per dag</small></div>
-        <div><b>${g.fib} g</b><small>vezels per dag</small></div>
+        <div><b>${g.carb} g</b><small>koolhydraten</small></div>
+        <div><b>${g.fat} g</b><small>vet</small></div>
+        <div><b>${g.fib} g</b><small>vezels</small></div>
       </div>
+      ${g.custom ? `<p class="tip" style="margin:0">Je gebruikt je eigen doelen (zie "Doelen zelf instellen").</p>` : ""}
       ${P.ext && P.ext.job ? `<p class="sub" style="margin:0">Uitgebreide test ingevuld${P.bf ? `, vetpercentage ${P.bf}%` : ""}. ${(P.ext.strength || 0) + (P.ext.cardio || 0) ? `Je traint ${(P.ext.strength || 0) + (P.ext.cardio || 0)}× per week.` : ""}${g.today.extra ? ` Op trainingsdagen eet je ±${g.today.extra} kcal meer.` : ""}${P.diet && P.diet !== "alles" ? ` ${DIETS.find(x => x[0] === P.diet)[1]}.` : ""}</p>` : `<p class="sub" style="margin:0">Wil je advies meer op maat? Doe de uitgebreide test via "Gegevens aanpassen".</p>`}
       <p class="sub" style="margin:0">Je lichaam verbruikt ongeveer ${g.tdee} kcal per dag. ${g.why} Lunch: ±${Math.round(g.lunchK/10)*10} kcal. Avondeten: ±${Math.round(g.dinnerK/10)*10} kcal.</p>
       <button class="btn" id="editprofile" style="justify-self:start">Gegevens aanpassen</button>
@@ -4022,26 +4101,37 @@ function viewPrefs(){
   const skip = ["water","zout","olie","peper","bouillon","runderbouillon"];
   const ingGroups = CATS.filter(([c]) => c !== "extra").map(([c, label]) => [label, [...used].filter(k => DB[k].c === c && !skip.includes(k)).sort((a, b) => ingName(a).localeCompare(ingName(b)))]).filter(g => g[1].length);
   const nFit = R.filter(fits).length, ps = UI.pseg || "ik";
-  const segs = [["ik", "Ik en doelen"], ["smaak", "Smaak"], ["hulp", "Hulp"]];
+  const segs = [["ik", healthOn() ? "Ik en doelen" : "Algemeen"], ["smaak", "Smaak"], ["hulp", "Hulp"]];
   const nav = `<nav class="seg" role="tablist">${segs.map(([k, l]) => `<button role="tab" data-pseg="${k}" aria-selected="${ps === k}">${l}</button>`).join("")}</nav>`;
   const head = `<header class="top"><h1 class="brand" style="font-size:26px">Profiel</h1></header>${nav}`;
   if (ps === "ik") return `${head}
-  ${profileCard()}
+  <section class="section"><div class="card healthcard">
+    <label class="switch"><input type="checkbox" id="healthtoggle" ${healthOn() ? "checked" : ""}><span class="sw" aria-hidden="true"></span><b>Gezondheid en sport</b></label>
+    <p class="sub" style="margin:0">${healthOn() ? "Aan: je ziet calorieën, eiwit en je dagdoelen, met advies-porties, tussendoortjes en trainingsdagen." : "Uit: Prepmaat helpt je alleen met kiezen, boodschappen en koken, zonder calorieën of eiwit. Zet dit aan als je persoonlijk advies wilt, bijvoorbeeld voor sport of afvallen."}</p>
+  </div></section>
+  ${healthOn() ? `${profileCard()}
+  ${S.profile ? customCard() : ""}
   ${weightCard(true)}
   <section class="section"><div class="label">Eten bijhouden</div>
     <div class="card">
       <label class="check"><input type="checkbox" id="trackertoggle" ${S.tracker ? "checked" : ""}> Ik wil bijhouden wat ik per dag eet</label>
       <p class="sub" style="margin:0">Bij Vandaag vink je dan je maaltijden af en voeg je tussendoortjes toe. Zo zie je hoeveel je nog over hebt. Niet verplicht: zonder tracker werkt alles ook.</p>
     </div>
-  </section>
+  </section>` : ""}
   <section class="section"><div class="label">Mijn supermarkten</div>
     <p class="sub" style="margin:0">Je boodschappenlijst past zich hierop aan.</p>
     ${storeChips()}
   </section>`;
   if (ps === "smaak") return `${head}
-  <section class="section"><div class="label">Voedingskeuze</div>
+  ${healthOn() ? `<section class="section"><div class="label">Voedingskeuze</div>
     <p class="sub" style="margin:0">Gerechten die hierbij passen worden vaker voorgesteld.</p>
     <div class="chips">${FOCUS.map(([k,l]) => `<button class="chip" data-focus="${k}" aria-pressed="${p.focus.includes(k)}">${l}</button>`).join("")}</div>
+  </section>` : ""}
+  <section class="section"><div class="label">Wat eet je?</div>
+    <div class="chips">${DIETS.map(([k, l]) => `<button class="chip" data-pdiet="${k}" aria-pressed="${dietOf() === k}">${l}</button>`).join("")}</div>
+  </section>
+  <section class="section"><div class="label">Allergieën of dingen die je niet mag</div>
+    <div class="chips">${ALLERGY.map(([k, l]) => `<button class="chip no" data-pallergy="${k}" aria-pressed="${allergiesOf().includes(k)}">${allergiesOf().includes(k) ? "✕ " : ""}${l}</button>`).join("")}</div>
   </section>
   <div class="row between"><div class="label" style="margin-top:6px">Jouw smaak</div><div class="sub num">${nFit} van ${R.length} recepten passen</div></div>
   <p class="sub" style="margin:0">De voorstellen houden hier rekening mee. Gerechten waar je veel sterren aan geeft komen vaker terug. Geef je bij "zou ik weer maken" 0 of 1 ster, dan komt een gerecht niet meer voor.</p>
@@ -4273,7 +4363,7 @@ function renderRecipe(){
     ${heroImg(r)}
     <h1 class="dtitle">${esc(r.name)}</h1>
     <p style="margin:0;color:var(--muted)">${esc(r.short)}</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill num">⏱ ${r.time} min</span>${healthOn() ? `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span>` : ""}</div>
     <div class="row between"><span class="sub">Aantal personen</span>${pStep(r.id)}</div>
     ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${EP(r.id) > 1 ? ` (${portions} bakjes)` : ""}</span>
       <span class="stepper">${pc ? `<button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button>` : `<button data-ld="-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-ld="1" aria-label="Meer">+</button>`}</span>
@@ -4287,11 +4377,11 @@ function renderRecipe(){
     <section class="section"><div class="label">Bereiding</div>
       <ol class="steps">${steps.map(s => `<li><div>${renderText(r, s.t, f)}${s.min ? `<div class="t">Timer: ${fmtMin(s.min)}</div>` : ""}</div></li>`).join("")}</ol>
     </section>
-    <section class="section"><div class="label">Voeding en portie</div>
+    ${healthOn() ? `<section class="section"><div class="label">Voeding en portie</div>
     <div class="macros num"><div class="macro p"><b>${m.p} g</b><small>eiwit in jouw portie</small></div><div class="macro"><b>${m.k}</b><small>kcal in jouw portie</small></div><div class="macro"><b>${m.v} g</b><small>vezels</small></div><div class="macro"><b>${m.kh} g</b><small>koolhydraten</small></div><div class="macro"><b>${r.time}</b><small>minuten</small></div><div class="macro"><b>${portions}</b><small>${r.type === "lunch" ? "bakjes" : portions === 1 ? "persoon" : "personen"}</small></div></div>
     ${portionPicker(r)}
     ${(() => { const t = focusTags(r).filter(([k]) => S.prefs.focus.includes(k)); return t.length ? `<div class="row"><span class="sub">Past bij jouw keuze:</span>${t.map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}</div>` : ""; })()}
-    </section>
+    </section>` : ""}
     <button class="btn full" id="made">Ik heb dit gemaakt: geef sterren</button>
     ${photoSection()}
     ${communitySummary(r)}
@@ -4419,6 +4509,8 @@ document.addEventListener("click", (e) => {
   if (d.sn){ const [id, dl] = d.sn.split(":"), L = S.plan.snack, i = L.findIndex(x => x.id === id); if (i >= 0){ L[i].n = Math.min(14, L[i].n + +dl); if (L[i].n <= 0){ L.splice(i, 1); toast(SID[id].name + " is uit je week gehaald"); } } save(); render(); return; }
   if (d.train !== undefined){ const a = S.train = trainDays(), i = a.indexOf(+d.train); i < 0 ? a.push(+d.train) : a.splice(i, 1); a.sort(); save(); render(); return; }
   if (d.tsnack){ S.trainSnack = d.tsnack; save(); render(); return; }
+  if (d.pdiet){ S.prefs.diet = d.pdiet; if (S.profile) S.profile.diet = d.pdiet; save(); render(); return; }
+  if (d.pallergy){ const a = S.prefs.allergies = allergiesOf(), i = a.indexOf(d.pallergy); i < 0 ? a.push(d.pallergy) : a.splice(i, 1); if (S.profile) S.profile.allergies = a.slice(); save(); render(); return; }
   if (d.pseg){ UI.pseg = d.pseg; render(); window.scrollTo(0, 0); return; }
   if (d.wseg){ UI.wseg = d.wseg; UI.dayPick = null; render(); window.scrollTo(0, 0); return; }
   if (d.day !== undefined){ const i = +d.day; UI.dayPick = UI.dayPick === i ? null : i; render(); return; }
@@ -4428,7 +4520,7 @@ document.addEventListener("click", (e) => {
   if (d.snackadd){ const L = S.plan.snack, i = L.findIndex(x => x.id === d.snackadd); i >= 0 ? L.splice(i, 1) : L.push({ id: d.snackadd, n: 7 }); save(); render(); return; }
   if (d.store){ if (S.tab === "lijst") UI.storesOpen = true; S.stores = S.stores || []; const i = S.stores.indexOf(d.store); i < 0 ? S.stores.push(d.store) : S.stores.splice(i, 1); save(); render(); return; }
   if (d.shopmode){ S.shopMode = d.shopmode; save(); render(); return; }
-  if (d.logplan){ const r = RID[d.logplan], m = pm(r); addLog({ n: typeLabel(r).split(" ·")[0] + ": " + r.name, k: m.k, p: m.p, v: m.v, gv: m.gv, fr: m.fr, src: r.id }); render(); toast("Toegevoegd aan vandaag"); return; }
+  if (d.logplan){ const r = RID[d.logplan], m = pm(r); addLog({ n: typeLabel(r).split(" ·")[0] + ": " + r.name, k: m.k, p: m.p, v: m.v, gv: m.gv, fr: m.fr, kh: m.kh, f: fatOf(m), src: r.id }); render(); toast("Toegevoegd aan vandaag"); return; }
   if (d.ld){ S.lunchDays = Math.min(7, Math.max(1, S.lunchDays + +d.ld)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   if (d.pe){ const [id, v] = d.pe.split(":"); setEP(id, +v); save(); render(); refreshSheet(); return; }
   if (d.pt){ const [t, v] = d.pt.split(":"); const n = Math.min(6, Math.max(1, PP(t) + +v)); if (t === "diner") S.persons = n; else { S.pp = S.pp || {}; S.pp[t] = n; } save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
@@ -4444,6 +4536,10 @@ document.addEventListener("click", (e) => {
     case "fillsnacks": { const n = fillSnacks(); save(); render(); toast(n ? n + (n === 1 ? " tussendoortje" : " tussendoortjes") + " gekozen en op je boodschappenlijst gezet" : "Je dag zit al vol"); break; }
     case "snackpick": UI.snackPick = !UI.snackPick; render(); break;
     case "ics": downloadIcs(); break;
+    case "savecustom": saveCustom(); break;
+    case "resetcustom": S.profile.custom = {}; UI.customOpen = true; save(); render(); toast("Uitgerekende doelen gebruikt"); break;
+    case "welcomehealth": S.health = true; save(); openProfile(); break;
+    case "welcomesimple": S.health = false; S.onboarded = true; save(); closeSheet(); toast("Lekker simpel. Je kunt advies later aanzetten bij Profiel."); break;
     case "loadfb": loadFeedback(); break;
     case "sharestart": startShare(); break;
     case "sharelink": { const url = shareLink(S.share.code); if (navigator.share) navigator.share({ title: "Onze boodschappenlijst", url }).catch(() => {}); else copyLinkText(url); break; }
@@ -4519,6 +4615,7 @@ document.addEventListener("change", async (e) => {
     return;
   }
   if (e.target.id === "sort"){ S.sort = e.target.value; save(); UI.filtersOpen = true; render(); }
+  if (e.target.id === "healthtoggle"){ S.health = e.target.checked; save(); if (S.health && !S.profile){ openProfile(); } else render(); toast(S.health ? "Gezondheid en sport staat aan" : "Lekker rustig: advies staat uit"); return; }
   if (e.target.id === "trackertoggle"){ S.tracker = e.target.checked; save(); render(); toast(S.tracker ? "Eettracker staat aan" : "Eettracker staat uit"); }
   if (e.target.id === "focusfilter"){ S.focusFilter = e.target.checked; save(); render(); }
 
@@ -4540,7 +4637,7 @@ document.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" 
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (UI.cook !== null || (UI.shop && S.tab === "lijst"))) keepAwake(); });
 joinFromHash();
 render();
-if (!S.onboarded && !S.profile && !S.joined) openProfile();
+if (!S.onboarded && !S.profile && !S.joined) openWelcome();
 initCloud();
 loadDeals();
 </script>
