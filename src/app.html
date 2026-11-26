@@ -267,6 +267,7 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .ingres { display: grid; gap: 6px; }
 .ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
 .btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
+ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.45; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -2700,21 +2701,40 @@ function renderText(r, text, factor){
     return `<span class="qty">${esc(fmt(key, q))}</span>`;
   });
 }
-function lunchStorageSteps(days, heat){
+function lunchStart(r){ let st = 0; for (const x of (S && S.plan && S.plan.lunch) || []){ if (x.id === r.id) return st; if (RID[x.id]) st += x.n; } return 0; }
+function lunchStorageSteps(days, heat, start){
+  start = start || 0;
   const out = ["Laat alles 30 minuten afkoelen met de deksels van de bakjes eraf. Doe daarna de deksels erop."];
-  if (days <= 3) out.push(`Zet alle ${days} bakjes in de koelkast. Gekookt vlees, kip en vis blijven 3 dagen goed in de koelkast.`);
-  else out.push(`Zet 3 bakjes in de koelkast en ${days-3} in de vriezer. Gekookt vlees, kip en vis blijven maar 3 dagen goed in de koelkast. Haal vanaf woensdagavond elke avond 1 bakje uit de vriezer en zet het in de koelkast. De volgende ochtend is het ontdooid.`);
+  const fr = Math.max(0, Math.min(days, 3 - start)), fz = days - fr;
+  if (!fz) out.push(`Zet alle ${days} bakjes in de koelkast. Gekookt vlees, kip en vis blijven 3 dagen goed in de koelkast.`);
+  else if (!fr) out.push(`Zet alle ${days} bakjes in de vriezer. Je eet ze pas later in de week, en gekookt vlees, kip en vis blijven maar 3 dagen goed in de koelkast. Haal elke avond het bakje voor de volgende dag uit de vriezer en zet het in de koelkast. De volgende ochtend is het ontdooid.`);
+  else out.push(`Zet ${fr} ${fr === 1 ? "bakje" : "bakjes"} in de koelkast en ${fz} in de vriezer. Gekookt vlees, kip en vis blijven maar 3 dagen goed in de koelkast. Haal elke avond het bakje voor de volgende dag uit de vriezer en zet het in de koelkast. De volgende ochtend is het ontdooid.`);
   if (heat === "koud") out.push("Op het werk: koud eten, direct uit de koelkast. Laat het bakje niet urenlang buiten de koelkast staan.");
   else if (heat === "koud of warm") out.push("Op het werk: koud eten kan, of 2½ tot 3 minuten in de magnetron op vol vermogen. Halverwege even roeren. Sauzen apart houden en pas erna erop doen.");
   else out.push("Op het werk: 2½ tot 3 minuten in de magnetron op vol vermogen, halverwege even roeren. Het moet overal gloeiend heet zijn.");
   return out;
+}
+/* Bewaartips per lunchgerecht, op basis van wat erin zit */
+function lunchTips(r){
+  const has = k => r.items.some(([x]) => x === k), cat = c => r.items.some(([x]) => DB[x] && DB[x].c === c), t = [];
+  if (cat("vis")) t.push("Er zit vis in: eet deze bakjes in de eerste 2 dagen en vries de rest meteen in.");
+  if (has("rijst") || has("risottorijst")) t.push("Rijst: laat hem binnen een uur afkoelen en zet hem dan in de koelkast, niet langer op het aanrecht. Doe bij het opwarmen een scheutje water over de rijst, dan wordt hij niet droog.");
+  if (["pasta","spaghetti","orzo","lasagne","mie","rijstnoedels"].some(has)) t.push("Pasta of noedels: kook ze 1 à 2 minuten korter dan op het pak staat. Bij het opwarmen garen ze nog na, anders worden ze papperig.");
+  if (["aardappel","krieltjes"].some(has)) t.push("Aardappel wordt korrelig na de vriezer. Zet deze bakjes liever in de koelkast en eet ze in 3 dagen op.");
+  if (has("avocado")) t.push("Avocado niet invriezen. Snijd hem het liefst pas op de dag zelf, of druppel er citroen- of limoensap op.");
+  if (["sla","rucola","komkommer"].some(has)) t.push("Sla, rucola en komkommer worden slap: doe ze in een apart bakje of zakje en meng ze pas op het werk erdoor.");
+  if (has("wraps") || has("pita")) t.push("Bewaar wraps of pita apart en vul ze pas op het werk, dan blijven ze stevig.");
+  if (has("ei") && r.heat === "koud") t.push("Gekookte eieren niet invriezen. Ze blijven gepeld 2 dagen goed in de koelkast.");
+  if (has("kokosmelk") || has("kookroom")) t.push("Romige sauzen kunnen na de vriezer wat schiften. Goed doorroeren tijdens het opwarmen, dan wordt het weer glad.");
+  t.push("Schrijf de dag op het deksel (ma, di, wo). Ingevroren bakjes blijven tot 3 maanden goed.");
+  return t;
 }
 function allSteps(r, factor){
   const pre = r.type === "lunch"
     ? [`Zet ${lunchN(r)} meal-prep bakjes klaar. Pak alle ingrediënten en weeg ze af vóór je begint. Dan hoef je tijdens het koken niet te zoeken.`]
     : ["Pak alle ingrediënten en weeg ze af vóór je begint. Dan hoef je tijdens het koken niet te zoeken."];
   const mid = r.steps.map(s => Array.isArray(s) ? {t:s[0], min:s[1]} : {t:s});
-  const post = r.type === "lunch" ? lunchStorageSteps(lunchN(r), r.heat) : [];
+  const post = r.type === "lunch" ? lunchStorageSteps(lunchN(r), r.heat, lunchStart(r)) : [];
   return [...pre.map(t => ({t})), ...mid, ...post.map(t => ({t}))];
 }
 
@@ -2871,7 +2891,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v37";
+const APP_VERSION = "v38";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3177,6 +3197,12 @@ function pickCount(type){ const n = totalOf(type); return type === "lunch" ? uni
 function addToPlan(id){
   const r = RID[id], list = (S.plan[r.type] = S.plan[r.type] || []), e = list.find(x => x.id === id);
   if (e) e.n = Math.min(r.type === "lunch" ? 10 : 7, e.n + 1);
+  else if (r.type === "lunch" && list.some(x => RID[x.id])){
+    /* Nog een lunch erbij: verdeel je lunchdagen over alle lunches (bijv. 5 dagen = 3 + 2) */
+    const T = Math.max(5, totalLunches()); list.push({ id, p: PP(r.type), n: 1 });
+    const L = list.filter(x => RID[x.id]), k = L.length;
+    if (k <= T) L.forEach((x, i) => x.n = Math.floor(T / k) + (i < T % k ? 1 : 0));
+  }
   else list.push({ id, p: PP(r.type), n: r.type === "lunch" ? Math.max(1, 5 - totalLunches()) : r.type === "ontbijt" ? Math.max(1, 7 - totalOf("ontbijt")) : 1 });
   return planCount(id);
 }
@@ -3457,7 +3483,7 @@ function prepSteps(){
     const r = RID[id], f = prepF(r);
     const pre = r.type === "lunch" ? [{ t: `Zet ${lunchN(r) * EP(id)} meal-prep bakjes klaar.` }] : [];
     const mid = r.steps.map(x => Array.isArray(x) ? { t: x[0], min: x[1] } : { t: x });
-    const post = r.type === "lunch" ? lunchStorageSteps(lunchN(r), r.heat).map(t => ({ t })) : [{ t: dinnerStore(r) }];
+    const post = r.type === "lunch" ? [...lunchStorageSteps(lunchN(r), r.heat, lunchStart(r)), ...(lunchTips(r).length > 1 ? ["Bewaartips voor dit gerecht: " + lunchTips(r).slice(0, -1).join(" ")] : [])].map(t => ({ t })) : [{ t: dinnerStore(r) }];
     [...pre, ...mid, ...post].forEach(x => out.push(Object.assign(x, { r, f, ri })));
   });
   return out;
@@ -4538,6 +4564,7 @@ function renderRecipe(){
     <section class="section"><div class="label">Bereiding</div>
       <ol class="steps">${steps.map(s => `<li><div>${renderText(r, s.t, f)}${s.min ? `<div class="t">Timer: ${fmtMin(s.min)}</div>` : ""}</div></li>`).join("")}</ol>
     </section>
+    ${r.type === "lunch" ? `<section class="section"><div class="label">Bewaren en opwarmen</div><ul class="tips">${lunchTips(r).map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
     <section class="section"><div class="label">${healthOn() ? "Voeding en portie" : "Voeding per portie"}</div>
     <div class="macros num"><div class="macro p"><b>${m.p} g</b><small>eiwit in jouw portie</small></div><div class="macro"><b>${m.k}</b><small>kcal in jouw portie</small></div><div class="macro"><b>${m.v} g</b><small>vezels</small></div><div class="macro"><b>${m.kh} g</b><small>koolhydraten</small></div><div class="macro"><b>${r.time}</b><small>minuten</small></div><div class="macro"><b>${portions}</b><small>${r.type === "lunch" ? "bakjes" : portions === 1 ? "persoon" : "personen"}</small></div></div>
     ${healthOn() ? portionPicker(r) : ""}
@@ -4666,7 +4693,8 @@ document.addEventListener("click", (e) => {
   if (d.feedback){ openFeedback(); return; }
   if (d.fbscore){ UI.fb.score = UI.fb.score === +d.fbscore ? 0 : +d.fbscore; renderFeedback(); return; }
   if (d.fbabout){ UI.fb.about = d.fbabout; renderFeedback(); return; }
-  if (d.addp){ const n = addToPlan(d.addp), r = RID[d.addp]; UI.clearArm = false; save(); render(); refreshSheet(); toast(`${r.name}: ${unitN(r.type, n)} in je week`); return; }
+  if (d.addp){ const r = RID[d.addp], before = r.type === "lunch" && !planCount(d.addp) ? S.plan.lunch.filter(x => RID[x.id]).length : 0, n = addToPlan(d.addp); UI.clearArm = false; save(); render(); refreshSheet();
+    toast(before ? `Je ${totalLunches()} lunchdagen zijn verdeeld: ${S.plan.lunch.filter(x => RID[x.id]).map(x => x.n).join(" + ")}. Pas het aan met − en +.` : `${r.name}: ${unitN(r.type, n)} in je week`); return; }
   if (d.pn){ const [id, dl] = d.pn.split(":"); setPlanN(id, +dl); save(); render(); refreshSheet(); return; }
   if (d.sn){ const [id, dl] = d.sn.split(":"), L = S.plan.snack, i = L.findIndex(x => x.id === id); if (i >= 0){ L[i].n = Math.min(14, L[i].n + +dl); if (L[i].n <= 0){ L.splice(i, 1); toast(SID[id].name + " is uit je week gehaald"); } } save(); render(); return; }
   if (d.train !== undefined){ const a = S.train = trainDays(), i = a.indexOf(+d.train); i < 0 ? a.push(+d.train) : a.splice(i, 1); a.sort(); save(); render(); return; }
