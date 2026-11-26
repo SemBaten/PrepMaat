@@ -278,6 +278,8 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .pill.fo { background: var(--accent-soft); color: var(--accent); }
 .pill.warnp { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
 .gbar { display: grid; gap: 4px; font-size: 15px; }
+.ingres { display: grid; gap: 6px; }
+.ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -11328,7 +11330,7 @@ const RATE = [
   ["vullend","Vullend","0 = had nog honger, 5 = helemaal vol"],
   ["weer","Zou ik weer maken","0 = nooit meer, 5 = zeker weten"]
 ];
-function defaultPrefs(){ return { meats: {kip:true, rund:true, varken:true, vis:true}, spice: 2, maxTime: 0, noCuisine: [], noIng: [], focus: [] }; }
+function defaultPrefs(){ return { meats: {kip:true, rund:true, varken:true, vis:true}, spice: 2, maxTime: 0, noCuisine: [], noIng: [], likeIng: [], focus: [] }; }
 function prefs(){ return (S && S.prefs) || defaultPrefs(); }
 function ratingsOf(id){ return (S && S.ratings && S.ratings[id]) || []; }
 function avgOf(id, key){
@@ -11370,6 +11372,8 @@ function weight(id){
   let w = o === null ? 1 : 0.25 + (o / 5) * 1.75;
   const fo = (healthOn() && S.prefs && S.prefs.focus) || [];
   for (const k of fo) if (focusMatch(RID[id], k)) w *= 2;
+  const lk = (S && S.prefs && S.prefs.likeIng) || [];
+  if (lk.length){ const n = RID[id].items.filter(([k]) => lk.includes(k)).length; if (n) w *= Math.min(3, 1 + 0.6 * n); }
   return w * kcalFit(RID[id]);
 }
 function pick(list, avoid, lo){
@@ -11463,7 +11467,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v34";
+const APP_VERSION = "v35";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -12792,6 +12796,24 @@ function saveProfile(){
   if (!S.prefs.focus.length || UI.pfd._goalChanged) S.prefs.focus = focusForGoals(d.goals);
   S.onboarded = true; save(); closeSheet(); toast("Opgeslagen. Je dagdoelen zijn uitgerekend.");
 }
+/* Smaak: zoek een ingrediënt en zeg of je het niet lust of juist lekker vindt */
+function ingUse(){
+  if (ingUse.m) return ingUse.m;
+  const m = {}; R.forEach(r => new Set(r.items.map(([k]) => k)).forEach(k => m[k] = (m[k] || 0) + 1));
+  SNACKS.forEach(x => x.items.forEach(([k]) => { m[k] = m[k] || 0; }));
+  ["water","zout","olie","peper"].forEach(k => delete m[k]);
+  return (ingUse.m = m);
+}
+function ingResults(){
+  const q = (UI.ingq || "").trim().toLowerCase(); if (q.length < 2) return "";
+  const p = prefs(), m = ingUse();
+  const hits = Object.keys(m).filter(k => DB[k] && (ingName(k).toLowerCase().includes(q) || (DB[k].pl || "").toLowerCase().includes(q) || k.includes(q)))
+    .sort((a, b) => m[b] - m[a]).slice(0, 8);
+  if (!hits.length) return `<p class="sub" style="margin:0">Niets gevonden. Probeer een ander woord, bijvoorbeeld "ui" of "paprika".</p>`;
+  return `<div class="ingres">${hits.map(k => { const no = p.noIng.includes(k), yes = (p.likeIng || []).includes(k);
+    return `<div class="ingrow"><span><b>${esc(ingName(k))}</b><small class="sub num"> in ${m[k]} ${m[k] === 1 ? "recept" : "recepten"}</small></span>
+      <span class="row" style="gap:6px"><button class="chip no" data-noing="${k}" aria-pressed="${no}">${no ? "✕ " : ""}Lust ik niet</button><button class="chip" data-likeing="${k}" aria-pressed="${yes}">${yes ? "♥ " : ""}Lekker</button></span></div>`; }).join("")}</div>`;
+}
 function viewPrefs(){
   const p = prefs();
   const used = new Set(); R.forEach(r => r.items.forEach(([k]) => used.add(k)));
@@ -12832,6 +12854,14 @@ function viewPrefs(){
   </section>
   <div class="row between"><div class="label" style="margin-top:6px">Jouw smaak</div><div class="sub num">${nFit} van ${R.length} recepten passen</div></div>
   <p class="sub" style="margin:0">De voorstellen houden hier rekening mee. Gerechten waar je veel sterren aan geeft komen vaker terug. Geef je bij "zou ik weer maken" 0 of 1 ster, dan komt een gerecht niet meer voor.</p>
+  <section class="section"><div class="label">Wat lust je wel en niet?</div>
+    <p class="sub" style="margin:0">Zoek een ingrediënt, bijvoorbeeld banaan of champignons. Lust je het niet, dan krijg je geen gerechten en tussendoortjes meer waar het in zit. Vind je het lekker, dan komen gerechten ermee vaker voorbij.</p>
+    <input id="ingsearch" class="search" type="search" placeholder="Zoek ingrediënt, bijv. banaan" value="${esc(UI.ingq || "")}" autocomplete="off">
+    <div id="ingres">${ingResults()}</div>
+    ${p.noIng.length ? `<div class="sub">Lust ik niet</div><div class="chips">${p.noIng.map(k => `<button class="chip no" data-noing="${k}" aria-pressed="true" aria-label="${esc(ingName(k))} weer toestaan">✕ ${esc(ingName(k))}</button>`).join("")}</div>
+      <p class="sub num" style="margin:0">Daardoor vallen ${R.filter(r => r.items.some(([k]) => p.noIng.includes(k))).length} recepten af. Tik op een ingrediënt om het weer toe te staan.</p>` : ""}
+    ${(p.likeIng || []).length ? `<div class="sub">Vind ik lekker</div><div class="chips">${p.likeIng.map(k => `<button class="chip" data-likeing="${k}" aria-pressed="true" aria-label="${esc(ingName(k))} weghalen">♥ ${esc(ingName(k))}</button>`).join("")}</div>` : ""}
+  </section>
   <section class="section"><div class="label">Welk vlees en welke vis eet je?</div>
     <div class="chips">${MEATS.map(([k,l]) => `<button class="chip" data-meat="${k}" aria-pressed="${!!p.meats[k]}">${l}</button>`).join("")}</div>
   </section>
@@ -12844,8 +12874,8 @@ function viewPrefs(){
   <section class="section"><div class="label">Welke keukens vind je lekker?</div>
     <div class="chips">${CUISINES.map(([k,l]) => `<button class="chip" data-cuisine="${k}" aria-pressed="${!p.noCuisine.includes(k)}">${l}</button>`).join("")}</div>
   </section>
-  <details class="section fold" ${p.noIng.length ? "open" : ""}><summary class="label">Wat lust je niet?${p.noIng.length ? ` (${p.noIng.length})` : ""}</summary>
-    <p class="sub" style="margin:0">Tik aan wat je niet lust. Gerechten met dat ingrediënt worden niet meer voorgesteld.</p>
+  <details class="section fold"><summary class="label">Of kies uit alle ingrediënten</summary>
+    <p class="sub" style="margin:0">Tik aan wat je niet lust.</p>
     ${ingGroups.map(([label, keys]) => `<div class="cat"><div class="sub">${esc(label.split(":")[0])}</div><div class="chips">${keys.map(k => `<button class="chip no" data-noing="${k}" aria-pressed="${p.noIng.includes(k)}">${p.noIng.includes(k) ? "✕ " : ""}${esc(ingName(k))}</button>`).join("")}</div></div>`).join("")}
   </details>
   <button class="btn full" id="resetprefs">Smaak en voorkeuren terugzetten</button>`;
@@ -13187,7 +13217,8 @@ document.addEventListener("click", (e) => {
   if (d.spice !== undefined){ S.prefs.spice = +d.spice; save(); render(); return; }
   if (d.maxtime !== undefined){ S.prefs.maxTime = +d.maxtime; save(); render(); return; }
   if (d.cuisine){ const a = S.prefs.noCuisine, i = a.indexOf(d.cuisine); i < 0 ? a.push(d.cuisine) : a.splice(i, 1); save(); render(); return; }
-  if (d.noing){ const a = S.prefs.noIng, i = a.indexOf(d.noing); i < 0 ? a.push(d.noing) : a.splice(i, 1); save(); render(); return; }
+  if (d.noing){ const a = S.prefs.noIng, i = a.indexOf(d.noing), lk = S.prefs.likeIng = S.prefs.likeIng || []; if (i < 0){ a.push(d.noing); const j = lk.indexOf(d.noing); if (j >= 0) lk.splice(j, 1); toast(ingName(d.noing) + ": komt niet meer voor"); } else a.splice(i, 1); save(); render(); return; }
+  if (d.likeing){ const a = S.prefs.likeIng = S.prefs.likeIng || [], i = a.indexOf(d.likeing); if (i < 0){ a.push(d.likeing); const j = S.prefs.noIng.indexOf(d.likeing); if (j >= 0) S.prefs.noIng.splice(j, 1); toast(ingName(d.likeing) + ": komt vaker voor"); } else a.splice(i, 1); save(); render(); return; }
   if (d.filter){ S.filter = d.filter; UI.rmax = 40; save(); render(); return; }
   if (d.rmore){ UI.rmax = (UI.rmax || 40) + 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, UI.rmax, "data-rmore"); return; }
   if (d.pmore){ UI.pmax = (UI.pmax || 50) + 50; document.getElementById("plist").innerHTML = pickerList(); return; }
@@ -13323,6 +13354,7 @@ document.addEventListener("change", async (e) => {
 });
 document.addEventListener("toggle", (e) => { if (e.target.id === "filters") UI.filtersOpen = e.target.open; if (e.target.id === "storesfold") UI.storesOpen = e.target.open; if (e.target.id === "extfold") UI.extOpen = e.target.open; }, true);
 document.addEventListener("input", (e) => {
+  if (e.target.id === "ingsearch"){ UI.ingq = e.target.value; document.getElementById("ingres").innerHTML = ingResults(); return; }
   if (e.target.id === "fbtext"){ UI.fb.text = e.target.value; return; }
   if (e.target.id === "psearch"){ UI.pq = e.target.value; UI.pmax = 50; document.getElementById("plist").innerHTML = pickerList(); return; }
   if (e.target.id === "search"){ UI.q = e.target.value; UI.rmax = 40; document.getElementById("rlist").innerHTML = recipeListHtml(); document.getElementById("rmore").innerHTML = moreBtn(recipeMatches().list.length, 40, "data-rmore"); return; }
