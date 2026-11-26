@@ -266,6 +266,8 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .gbar { display: grid; gap: 4px; font-size: 15px; }
 .ingres { display: grid; gap: 6px; }
 .ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
+.btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
+.btag.bio { background: #dcefdc; color: #24502c; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -2870,7 +2872,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v35";
+const APP_VERSION = "v36";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -2956,6 +2958,29 @@ function rerender(){ render(); if (UI.view === "recipe") renderRecipe(); }
 /* Supermarkten. Prijsniveau 1 = goedkoop, 4 = duurder (gemiddelde, schatting). */
 const STORES = [["ah","Albert Heijn",4],["jumbo","Jumbo",3],["plus","Plus",3],["vomar","Vomar",2],["dirk","Dirk",2],["lidl","Lidl",1],["aldi","Aldi",1]];
 const SNAME = Object.fromEntries(STORES.map(x => [x[0], x[1]]));
+/* Prijsniveau per winkel t.o.v. Albert Heijn (schatting uit prijsvergelijkingen van een vergelijkbaar mandje) */
+const SIDX = { ah: 1.00, plus: 0.99, jumbo: 0.97, vomar: 0.89, dirk: 0.88, lidl: 0.82, aldi: 0.81 };
+const HUIS = { ah: "AH-huismerk", jumbo: "Jumbo-huismerk", plus: "PLUS-huismerk", vomar: "Vomar-huismerk", dirk: "1 de Beste" };
+const BRANDCATS = ["vlees","vis","zuivel","brood","voorraad","kruiden"], BIOCATS = ["vlees","groente","zuivel"];
+/* Boodschappen-doelen: meerdere tegelijk mogelijk */
+function shopGoals(){
+  if (!S.shopGoals) S.shopGoals = S.shopMode === "goedkoop" ? { cheap: true } : { one: true };
+  return S.shopGoals;
+}
+function priceF(it, st){
+  const G = shopGoals(), c = DB[it.id] ? DB[it.id].c : "";
+  let f = st ? (SIDX[st] || 1) : 1;
+  if (G.cheap && (BRANDCATS.includes(c) || it.pantry)) f *= HUIS[st] ? 0.82 : 0.95;
+  if (G.bio && BIOCATS.includes(c)) f *= 1.35;
+  return f;
+}
+function brandTag(it){
+  if (it.extra !== undefined) return "";
+  const G = shopGoals(), c = DB[it.id] ? DB[it.id].c : "", tags = [];
+  if (G.cheap && (BRANDCATS.includes(c) || it.pantry) && HUIS[it.store]) tags.push(`<span class="btag">Kies ${HUIS[it.store]}</span>`);
+  if (G.bio && BIOCATS.includes(c)) tags.push(`<span class="btag bio">Kies biologisch</span>`);
+  return tags.length ? `<br>${tags.join(" ")}` : "";
+}
 const SRANK = Object.fromEntries(STORES.map(x => [x[0], x[2]]));
 /* Producten die een winkel vaak NIET heeft (schatting, kan per filiaal verschillen). */
 const MISS = {
@@ -3096,13 +3121,19 @@ function shopItems(){
   let primary = cheap[0];
   const today = DEALS ? isoDay(0) : null;
   const saveAt = (st) => { if (!DEALS) return 0; let t = 0; for (const it of items){ if (it.extra !== undefined || it.have) continue; const b = bestDeal(it.id, it.need || it.q, today); if (b && b.d.s === st) t += b.c.save; } return t; };
-  if (S.shopMode !== "goedkoop"){ let best = -1; for (const st of cheap){ const c = items.filter(it => it.extra !== undefined || hasAt(it.id, st)).length + saveAt(st) / 2; if (c > best){ best = c; primary = st; } } }
+  const G = shopGoals(), split = G.cheap && !G.one;
+  if (!split){
+    const avail = st => items.filter(it => it.extra !== undefined || hasAt(it.id, st)).length;
+    const cost = st => items.reduce((a, it) => it.extra !== undefined || it.have || !hasAt(it.id, st) ? a : a + itemPrice(it).eur * priceF(it, st), 0) - saveAt(st);
+    if (G.cheap){ const mx = Math.max(...cheap.map(avail)); primary = cheap.filter(st => avail(st) >= mx - 1).sort((a, b) => cost(a) - cost(b))[0]; }
+    else { let best = -1; for (const st of cheap){ const c = avail(st) + saveAt(st) / 2; if (c > best){ best = c; primary = st; } } }
+  }
   const names = sel.map(x => SNAME[x]).join(" of ").replace(/ of (?=.* of )/g, ", ");
   for (const it of items){
     if (it.extra !== undefined){ it.store = primary; continue; }
-    const dl = DEALS && S.shopMode === "goedkoop" ? bestDeal(it.id, it.need || it.q, today) : null;
-    const ok = dl && dl.c.save >= 0.75 ? dl.d.s : (S.shopMode === "goedkoop" ? cheap : [primary, ...cheap]).find(st => hasAt(it.id, st));
-    if (ok){ it.store = ok; if (ok !== primary && S.shopMode !== "goedkoop") it.note = `Meestal niet bij ${SNAME[primary]}, wel bij ${SNAME[ok]}.`; }
+    const dl = DEALS && split ? bestDeal(it.id, it.need || it.q, today) : null;
+    const ok = dl && dl.c.save >= 0.75 ? dl.d.s : (split ? cheap : [primary, ...cheap]).find(st => hasAt(it.id, st));
+    if (ok){ it.store = ok; if (ok !== primary && !split) it.note = `Meestal niet bij ${SNAME[primary]}, wel bij ${SNAME[ok]}.`; }
     else { it.store = primary; it.miss = true; it.note = `Vaak niet te koop bij ${names}.` + (SUB[it.id] ? ` Neem in plaats daarvan: ${SUB[it.id]}.` : ""); }
   }
   return items;
@@ -3336,7 +3367,8 @@ function autofill(){
 function storeChips(){
   const sel = myStores();
   return `<div class="chips">${STORES.map(([k, l]) => `<button class="chip" data-store="${k}" aria-pressed="${sel.includes(k)}">${l}</button>`).join("")}</div>
-  ${sel.length > 1 ? `<div class="sub">Hoe wil je de lijst verdelen?</div><div class="chips"><button class="chip" data-shopmode="een" aria-pressed="${S.shopMode !== "goedkoop"}">Zo veel mogelijk in één winkel</button><button class="chip" data-shopmode="goedkoop" aria-pressed="${S.shopMode === "goedkoop"}">Zo goedkoop mogelijk</button></div>` : ""}`;
+  ${sel.length ? `<div class="sub" style="margin-top:10px">Wat vind je belangrijk? Kies er één of meer</div><div class="chips">${[["cheap","Zo goedkoop mogelijk"], ...(sel.length > 1 ? [["one","Alles in één winkel"]] : []), ["bio","Biologisch waar het kan"]].map(([k, l]) => `<button class="chip" data-shopgoal="${k}" aria-pressed="${!!shopGoals()[k]}">${l}</button>`).join("")}</div>
+  <p class="sub" style="margin:0">${(() => { const G = shopGoals(); return G.cheap && G.one && sel.length > 1 ? "Je doet alles bij de winkel die voor jouw lijst het goedkoopst uitkomt, en de app zegt wanneer je het huismerk moet pakken." : G.cheap && sel.length > 1 ? "Elk product komt bij de goedkoopste winkel, met aanbiedingen. De app zegt wanneer je het huismerk moet pakken." : G.cheap ? "De app zegt wanneer je het huismerk moet pakken." : sel.length > 1 ? "Je lijst komt zo veel mogelijk bij één winkel." : ""; })()}</p>` : ""}`;
 }
 
 /* ============ Eettracker (optioneel) ============ */
@@ -3584,7 +3616,7 @@ function weekPrice(items){
   const today = DEALS ? isoDay(0) : null;
   for (const it of items){
     if (it.extra !== undefined || it.have || S.checks[it.id] === "skip") continue;
-    const pr = itemPrice(it); tot += pr.eur; if (pr.pantry) pantry += pr.eur;
+    const pr = itemPrice(it), f = priceF(it, it.store); tot += pr.eur * f; if (pr.pantry) pantry += pr.eur * f;
     if (DEALS){ const b = bestDeal(it.id, it.need || it.q, today); if (b) save += b.c.save; }
   }
   return { tot, pantry, save };
@@ -3594,7 +3626,8 @@ function priceCard(items){
   const nb = totalBakjes(), meals = nb + S.plan.diner.reduce((a, x) => a + x.n * (x.p || S.persons), 0) + (S.plan.ontbijt || []).reduce((a, x) => a + x.n * (x.p || 1), 0);
   const net = w.tot - w.save;
   return `<div class="pricebar"><div><b class="num">±${euro(net)}</b> <span class="sub">deze week${w.save > 0.5 ? `, met ±${euro(w.save)} korting` : ""}</span></div>
-    <div class="ihint num">${meals ? `Ongeveer ${euro((net - w.pantry) / meals)} per maaltijd. ` : ""}${w.pantry > 0.5 ? `Waarvan ±${euro(w.pantry)} aan potjes en flessen die weken meegaan. ` : ""}Schatting met gewone supermarktprijzen.</div></div>`;
+    <div class="ihint num">${meals ? `Ongeveer ${euro((net - w.pantry) / meals)} per maaltijd. ` : ""}${w.pantry > 0.5 ? `Waarvan ±${euro(w.pantry)} aan potjes en flessen die weken meegaan. ` : ""}${(() => { const st = [...new Set(items.filter(i => i.store).map(i => i.store))], G = shopGoals();
+      return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}${G.bio ? " en biologisch" : ""}.`; })()}</div></div>`;
 }
 /* ============ Herinneringen: een agendabestand (.ics) voor de komende 7 dagen ============ */
 function icsEvents(){
@@ -4362,7 +4395,7 @@ function viewList(){
   const nl = totalLunches(), nd = totalDinners();
   const itemHtml = it => `<button class="item ${S.checks[it.id] ? "done" : ""}" data-check="${esc(it.id)}">
           <span class="box">${S.checks[it.id] ? "✓" : ""}</span>
-          <span style="min-width:0"><span class="iname num">${esc(it.label)}</span>${it.hint ? `<br><span class="ihint num">${esc(it.hint)}</span>` : ""}${it.where ? `<br><span class="iwhere">📍 ${esc(it.where)}</span>` : ""}${it.note ? `<br><span class="inote ${it.miss ? "miss" : ""}">${esc(it.note)}</span>` : ""}${dealLine(it)}${it.pantry ? `<br><span class="havebtn" data-have="${it.id}" role="button">Heb ik al in huis</span>` : ""}${it.extra !== undefined ? `<br><span class="ihint" data-delx="${it.extra}" role="button" style="text-decoration:underline">Verwijderen</span>` : ""}</span>
+          <span style="min-width:0"><span class="iname num">${esc(it.label)}</span>${it.hint ? `<br><span class="ihint num">${esc(it.hint)}</span>` : ""}${it.where ? `<br><span class="iwhere">📍 ${esc(it.where)}</span>` : ""}${it.note ? `<br><span class="inote ${it.miss ? "miss" : ""}">${esc(it.note)}</span>` : ""}${brandTag(it)}${dealLine(it)}${it.pantry ? `<br><span class="havebtn" data-have="${it.id}" role="button">Heb ik al in huis</span>` : ""}${it.extra !== undefined ? `<br><span class="ihint" data-delx="${it.extra}" role="button" style="text-decoration:underline">Verwijderen</span>` : ""}</span>
         </button>`;
   const shop = !!UI.shop && items.length > 0;
   const cats = arr => ZONES.map(([z, label, tip]) => { const g = arr.filter(it => it.z === z && !it.have); if (!g.length) return "";
@@ -4651,7 +4684,7 @@ document.addEventListener("click", (e) => {
   if (d.snack){ UI.snackOpen = UI.snackOpen === d.snack ? null : d.snack; render(); return; }
   if (d.snackadd){ const L = S.plan.snack, i = L.findIndex(x => x.id === d.snackadd); i >= 0 ? L.splice(i, 1) : L.push({ id: d.snackadd, n: 7 }); save(); render(); return; }
   if (d.store){ if (S.tab === "lijst") UI.storesOpen = true; S.stores = S.stores || []; const i = S.stores.indexOf(d.store); i < 0 ? S.stores.push(d.store) : S.stores.splice(i, 1); save(); render(); return; }
-  if (d.shopmode){ S.shopMode = d.shopmode; save(); render(); return; }
+  if (d.shopgoal){ const G = shopGoals(); G[d.shopgoal] = !G[d.shopgoal]; save(); render(); return; }
   if (d.logplan){ const r = RID[d.logplan], m = pm(r); addLog({ n: typeLabel(r).split(" ·")[0] + ": " + r.name, k: m.k, p: m.p, v: m.v, gv: m.gv, fr: m.fr, kh: m.kh, f: fatOf(m), src: r.id }); render(); toast("Toegevoegd aan vandaag"); return; }
   if (d.ld){ S.lunchDays = Math.min(7, Math.max(1, S.lunchDays + +d.ld)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   if (d.pe){ const [id, v] = d.pe.split(":"); setEP(id, +v); save(); render(); refreshSheet(); return; }
