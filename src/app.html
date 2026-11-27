@@ -331,6 +331,15 @@ details.fold.card:not([open]) { gap: 0; }
 .phgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .phgrid figure { margin: 0; position: relative; }
 .phgrid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; display: block; }
+.phgrid figcaption.phact { left: 4px; right: 4px; bottom: 4px; display: flex; gap: 4px; align-items: center; justify-content: space-between; padding: 0 6px; }
+.phgrid figcaption.phact .linkbtn { font-size: 11px; padding: 2px 0; }
+.privlist { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.warnbox { border-color: var(--accent); background: var(--accent-soft); }
+.btn.danger { color: #b3261e; border-color: #b3261e; }
+:root[data-theme="dark"] .btn.danger { color: #ff8a80; border-color: #ff8a80; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.danger { color: #ff8a80; border-color: #ff8a80; } }
+.flagrow { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: center; }
+.flagrow img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
 .phgrid figcaption { position: absolute; left: 6px; bottom: 6px; font-size: 11px; font-weight: 600; background: var(--surface); color: var(--ink); padding: 1px 6px; border-radius: 6px; }
 .stars-ro { color: var(--protein); letter-spacing: 1px; }
 .stars-ro .dim { color: var(--line); }
@@ -2816,7 +2825,7 @@ function allSteps(r, factor){
 /* ============ Opslag (alleen op dit toestel) ============ */
 const KEY = "prepmaat-v1";
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ return null; } }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function save(){ if (typeof RESTORING !== "undefined" && RESTORING) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 let S = null;
 const CLOUD = { on: false, uid: null, db: null, stats: {} };
 const MEATS = [["kip","Kip"],["rund","Rund"],["varken","Varken"],["vis","Vis en garnalen"]];
@@ -2964,7 +2973,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v44";
+const APP_VERSION = "v45";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3012,8 +3021,10 @@ async function loadPhotos(id){
   UI.photos = local;
   if (!CLOUD.on) return;
   try {
-    const snap = await CLOUD.db.collection("photos").where("recipe", "==", id).limit(12).get();
-    const arr = []; snap.forEach(doc => { const x = doc.data(); if (x.uid !== CLOUD.uid) arr.push({ img: x.img, d: x.d }); });
+    const [snap, fl] = await Promise.all([CLOUD.db.collection("photos").where("recipe", "==", id).limit(12).get(), CLOUD.db.collection("photoflags").where("r", "==", id).limit(100).get().catch(() => null)]);
+    const flags = {}; if (fl) fl.forEach(doc => { const p = doc.data().p; flags[p] = (flags[p] || 0) + 1; });
+    const hide = S.hidePh || [];
+    const arr = []; snap.forEach(doc => { const x = doc.data(); if (x.uid !== CLOUD.uid && !hide.includes(doc.id) && ((flags[doc.id] || 0) < 2 || S.admin)) arr.push({ id: doc.id, img: x.img, d: x.d, flags: flags[doc.id] || 0 }); });
     arr.sort((a, b) => (b.d || "").localeCompare(a.d || ""));
     if (UI.open === id){ UI.photos = [...local, ...arr]; if (UI.view === "recipe") renderRecipe(); }
   } catch(e){ console.warn(e); }
@@ -3302,7 +3313,8 @@ const ICONS = {
 const TABS = [["week","Planning"],["recepten","Recepten"],["lijst","Boodschappen"],["vandaag","Vandaag"],["smaak","Profiel"]];
 function todayIdx(){ return (new Date().getDay() + 6) % 7; }
 function testedPill(r){ const n = comN(r.id), o = comOverall(r.id); return n >= 3 && o !== null && o >= 3.5 ? `<span class="pill tested num" title="Door ${n} mensen gekookt en goed beoordeeld">✓ Getest door ${n}</span>` : ""; }
-function pills(r){ const m = pm(r); return testedPill(r) + seasonPill(r) + `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
+function restPill(r){ const lo = UI._lo; if (!lo || !Object.keys(lo).length || planCount(r.id)) return ""; const n = overlapScore(r, lo); return n >= Math.min(2, Object.keys(lo).length) ? `<span class="pill tested" title="Gebruikt wat er van je boodschappen overblijft">♻️ Maakt ${n === 1 ? "een restje" : n + " restjes"} op</span>` : ""; }
+function pills(r){ const m = pm(r); return testedPill(r) + restPill(r) + seasonPill(r) + `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
 function metaLine(r){ const m = pm(r); return `${m.k} kcal · ${m.p} g eiwit · ${r.time} min`; }
 
 /* ============ Mijn week ============ */
@@ -3445,6 +3457,7 @@ function viewToday(){
   return `
   <header class="top"><h1 class="brand" style="font-size:26px">Vandaag</h1><div class="sub">${DAYS_LONG[todayIdx()]} ${d.getDate()} ${MND_LONG[d.getMonth()]}</div></header>
   ${todayMenu()}
+  ${todayRemind()}
   ${healthOn() ? todayCard() : ""}
   ${healthOn() && !S.tracker && goals() ? `<p class="sub" style="margin:0">Wil je precies zien hoeveel je vandaag al gegeten hebt? Zet hierboven "Bijhouden wat ik eet" aan. Het is niet verplicht.</p>` : ""}
   ${healthOn() ? weightCard(false) : ""}
@@ -3491,7 +3504,7 @@ function viewWeek(){
   else body = snackSection();
   return `
   <header class="top"><div class="brand">Prep<span>maat</span></div><div class="sub">Planning</div></header>
-  ${feedbackNudge()}
+  ${feedbackNudge() || backupNudge()}
   ${any ? `<div class="wsum num"><span><b>${totalBakjes()}</b> lunchbakjes</span><span><b>${nd}</b> ${nd === 1 ? "avond" : "avonden"}</span>${g && md.any ? `<span><b>${md.k + snackDay().k}</b> / ${g.kcal} kcal per dag</span>` : ""}</div>` : `<p class="sub" style="margin:0">Kies wat je deze week eet. Je boodschappenlijst maakt zich vanzelf.</p>`}
   <nav class="seg" role="tablist">${segs.map(([k, l]) => `<button role="tab" data-wseg="${k}" aria-selected="${seg === k}">${l}</button>`).join("")}</nav>
   ${body}
@@ -3842,13 +3855,14 @@ function priceCard(items){
       return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}.`; })()}</div>${(S._pantryEur = w.pantry, budgetBox(net))}</div>`;
 }
 /* ============ Herinneringen: een agendabestand (.ics) voor de komende 7 dagen ============ */
+function remHM(){ const [h, m] = (S.remTime || "17:30").split(":").map(Number); return [h, m]; }
 function icsEvents(){
   const ev = [], sch = weekSchedule(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
   const at = (off, h, m) => { const d = new Date(t0); d.setDate(d.getDate() + off); d.setHours(h, m, 0, 0); return d; };
   const nl = totalLunches();
   for (let off = 0; off < 7; off++){
     const di = (todayIdx() + off) % 7, id = sch[di];
-    if (id && id !== "-") ev.push({ start: at(off, 17, 30), min: 15, title: "Koken: " + RID[id].name, desc: "Open Prepmaat > Vandaag > Nu koken. " + EP(id) + (EP(id) === 1 ? " persoon." : " personen.") });
+    if (id && id !== "-") ev.push({ start: at(off, ...remHM()), min: 15, title: "Koken: " + RID[id].name, desc: "Open Prepmaat > Vandaag > Nu koken. " + EP(id) + (EP(id) === 1 ? " persoon." : " personen.") });
     if (nl && di + 1 < nl && di + 1 >= 3) ev.push({ start: at(off, 20, 0), min: 5, title: "Lunchbakje voor morgen uit de vriezer", desc: "Zet het in de koelkast, dan is het morgen ontdooid." });
     if (healthOn() && trainDays().includes(di) && trainSnack()) ev.push({ start: at(off, 16, 0), min: 5, title: "Trainingsdag: " + trainSnack().name, desc: trainSnack().items.map(([k, q]) => fmt(k, q)).join(" + ") });
   }
@@ -3878,11 +3892,21 @@ function downloadIcs(){
   a.href = url; a.download = "prepmaat-week.ics"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
   toast(n + " herinneringen klaar. Open het bestand om ze in je agenda te zetten.");
 }
+/* Vandaag: wat je vandaag niet moet vergeten (zelfde lijst als de agenda-herinneringen) */
+function todayRemind(){
+  const now = new Date(), ev = icsEvents().filter(e => e.start.toDateString() === now.toDateString() && e.start.getTime() + 3 * 3600e3 > now.getTime());
+  if (!ev.length) return "";
+  const hm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return `<section class="section"><div class="label">Niet vergeten</div><div class="card" style="gap:6px">
+    <ul class="deallist">${ev.map(e => `<li><b class="num">${hm(e.start)}</b> ${esc(e.title)}</li>`).join("")}</ul>
+    <p class="ihint" style="margin:0">Wil je hier een melding van op je telefoon? Zet ze in je agenda via Planning › Weekkalender › Herinneringen, of <button class="linkbtn" id="ics">zet ze nu in je agenda</button>.</p></div></section>`;
+}
 function remindCard(){
   const ev = icsEvents(); if (!ev.length) return "";
   return `<section class="section"><div class="label">Herinneringen</div>
     <div class="card" style="gap:8px"><p class="sub" style="margin:0">Zet ${ev.length} herinneringen voor de komende 7 dagen in de agenda van je telefoon, bijvoorbeeld:</p>
     <ul class="deallist">${ev.slice(0, 4).map(e => `<li>${DAYS_LONG[(e.start.getDay() + 6) % 7]} ${String(e.start.getHours()).padStart(2, "0")}:${String(e.start.getMinutes()).padStart(2, "0")}: ${esc(e.title)}</li>`).join("")}</ul>
+    <div class="field"><label for="remtime">Herinnering om te koken</label><select id="remtime" class="select">${["16:30","17:00","17:30","18:00","18:30","19:00"].map(t => `<option ${(S.remTime || "17:30") === t ? "selected" : ""}>${t}</option>`).join("")}</select></div>
     <button class="btn primary" id="ics" style="justify-self:start">Zet in mijn agenda</button>
     <p class="ihint" style="margin:0">Je telefoon vraagt of je ze wilt toevoegen. Verander je je planning? Tik dan opnieuw.</p></div></section>`;
 }
@@ -3972,8 +3996,8 @@ async function loadFeedback(){
   if (!CLOUD.on){ UI.fbList = { err: "offline" }; render(); return; }
   UI.fbList = { loading: true }; render();
   loadUsage();
-  try { const snap = await CLOUD.db.collection("feedback").limit(300).get(); const arr = []; snap.forEach(d => arr.push(d.data())); arr.sort((a, b) => (b.d || "").localeCompare(a.d || "")); UI.fbList = { arr }; }
-  catch(e){ UI.fbList = { err: "denied" }; }
+  try { const snap = await CLOUD.db.collection("feedback").limit(300).get(); const arr = []; snap.forEach(d => arr.push(d.data())); arr.sort((a, b) => (b.d || "").localeCompare(a.d || "")); UI.fbList = { arr }; if (!S.admin){ S.admin = true; save(); } loadFlagged(); }
+  catch(e){ UI.fbList = { err: "denied" }; if (S.admin){ S.admin = false; save(); } }
   render();
 }
 function adminBox(){
@@ -3992,7 +4016,130 @@ function adminBox(){
   const U = UI.usage, us = U && U.days ? `<div class="card" style="gap:6px"><b>Gebruik (anoniem)</b><p class="num" style="margin:0"><b>${U.week}</b> ${U.week === 1 ? "toestel" : "toestellen"} in de afgelopen 7 dagen</p>
     <div class="usebars">${U.days.slice().reverse().map(([d, n]) => `<div title="${d}: ${n}"><span style="height:${Math.max(4, n / Math.max(1, ...U.days.map(x => x[1])) * 60)}px"></span><small class="num">${n}</small><small>${DAYS[(new Date(d + "T12:00:00").getDay() + 6) % 7]}</small></div>`).join("")}</div></div>`
     : U && U.err ? `<p class="sub" style="margin:0">Gebruik kon niet geladen worden. Staan de nieuwste Firebase-regels erin?</p>` : "";
-  return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback en gebruik</summary>${inner}${us}</details>`;
+  return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback en gebruik</summary>${inner}${flaggedBox()}${us}</details>`;
+}
+
+/* ============ Back-up: al je gegevens in één bestand, om terug te zetten op een (nieuwe) telefoon ============ */
+function bkKeys(){ return [KEY, PKEY]; }
+function backupText(){ const o = {}; for (const k of bkKeys()){ try { const v = localStorage.getItem(k); if (v) o[k] = v; } catch(e){} } return JSON.stringify({ app: "prepmaat", v: APP_VERSION, d: dayKey(), data: o }); }
+async function makeBackup(){
+  const txt = backupText(), name = "prepmaat-backup-" + dayKey() + ".json";
+  const done = msg => { S.lastBackup = dayKey(); S.bkSnooze = null; save(); render(); toast(msg); };
+  try {
+    const f = new File([txt], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })){ await navigator.share({ files: [f], title: "Prepmaat back-up" }); done("Back-up gemaakt. Bewaar hem op een veilige plek."); return; }
+  } catch(e){ if (e && e.name === "AbortError") return; }
+  const url = URL.createObjectURL(new Blob([txt], { type: "application/json" })), a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  done("Back-up opgeslagen bij je downloads");
+}
+async function readBackup(file){
+  try {
+    const o = JSON.parse(await file.text());
+    if (!o || o.app !== "prepmaat" || !o.data || typeof o.data[KEY] !== "string") throw 0;
+    const st = JSON.parse(o.data[KEY]); if (!st || typeof st !== "object" || !st.plan) throw 0;
+    UI.restore = { o, n: (st.plan.lunch || []).length + (st.plan.diner || []).length, ratings: Object.keys(st.ratings || {}).length };
+  } catch(e){ UI.restore = null; toast("Dit is geen back-up van Prepmaat"); }
+  render();
+}
+function applyRestore(){
+  const o = UI.restore && UI.restore.o; if (!o) return;
+  try {
+    const st = JSON.parse(o.data[KEY]); st.lastBackup = o.d;
+    localStorage.setItem(KEY, JSON.stringify(st));
+    if (typeof o.data[PKEY] === "string") localStorage.setItem(PKEY, o.data[PKEY]);
+  } catch(e){ toast("Terugzetten lukt niet. Is je telefoon vol?"); return; }
+  RESTORING = true; location.reload();
+}
+var RESTORING = false;
+function dataCard(){
+  const lb = S.lastBackup, Rs = UI.restore;
+  return `<section class="section" id="datacard"><div class="label">Je gegevens</div><div class="card" style="gap:10px">
+    <p class="sub" style="margin:0">Alles wat je instelt (profiel, planning, sterren, smaak, winkelroute) staat alleen op deze telefoon. Gaat je telefoon kapot of krijg je een nieuwe? Dan ben je het kwijt, tenzij je een back-up hebt. Bewaar hem bijvoorbeeld in iCloud Drive, Google Drive of stuur hem naar jezelf.</p>
+    <p class="num" style="margin:0">${lb ? `Laatste back-up: <b>${dLabel(lb)} ${lb.slice(0, 4)}</b>` : "<b>Je hebt nog geen back-up gemaakt.</b>"}</p>
+    ${Rs ? `<div class="card warnbox" style="gap:8px"><b>Back-up van ${dLabel(Rs.o.d)} ${esc(Rs.o.d.slice(0, 4))} terugzetten?</b>
+        <p class="sub" style="margin:0">Daarin: ${Rs.n} ${Rs.n === 1 ? "gerecht" : "gerechten"} in je week en ${Rs.ratings} beoordeelde ${Rs.ratings === 1 ? "recept" : "recepten"}. Alles wat nu in de app staat wordt vervangen.</p>
+        <div class="row"><button class="btn primary small" id="restorego">Ja, terugzetten</button><button class="btn small" id="restorecancel">Annuleren</button></div></div>`
+      : `<div class="row" style="flex-wrap:wrap"><button class="btn primary small" id="backup">Back-up maken</button><label class="btn small" for="restorein">Back-up terugzetten</label><input id="restorein" class="vh" type="file" accept=".json,application/json"></div>`}
+  </div></section>
+  <button class="linkbtn" id="privacy" style="justify-self:start">Privacy: wat de app wel en niet verstuurt</button>`;
+}
+function backupNudge(){
+  if (!S.firstUse || (Date.now() - wTime(S.firstUse)) / 864e5 < 14) return "";
+  const last = S.lastBackup ? (Date.now() - wTime(S.lastBackup)) / 864e5 : 999, snooze = S.bkSnooze ? (Date.now() - wTime(S.bkSnooze)) / 864e5 : 999;
+  if (last < 45 || snooze < 30) return "";
+  return `<div class="card nudge"><p style="margin:0"><b>${S.lastBackup ? "Tijd voor een nieuwe back-up" : "Maak een back-up"}</b> Je gegevens staan alleen op deze telefoon. Met een back-up ben je niets kwijt als je een nieuwe telefoon krijgt.</p>
+    <div class="row"><button class="btn primary small" id="backup">Back-up maken</button><button class="btn small" id="bksnooze">Later</button></div></div>`;
+}
+/* ============ Privacy: in gewone taal wat er wel en niet de deur uit gaat ============ */
+function openPrivacy(){ UI.privFrom = UI.view; const sh = document.getElementById("sheet"); sh.hidden = false; sh.scrollTop = 0; document.documentElement.style.overflow = "hidden"; renderPrivacy(); }
+function renderPrivacy(){
+  UI.view = "privacy";
+  const li = a => `<ul class="privlist">${a.map(x => `<li>${x}</li>`).join("")}</ul>`;
+  document.getElementById("sheet").innerHTML = `<div class="wrap">
+    <div class="sheethead"><button class="back" id="privback">‹ Terug</button><span></span></div>
+    <h1 class="dtitle">Privacy</h1>
+    <p style="margin:0">Prepmaat is gratis, heeft geen account nodig en toont geen advertenties. We verkopen niets en volgen je niet.</p>
+    <section class="section"><div class="label">Blijft op je telefoon</div><div class="card">
+      ${li(["Je profiel: leeftijd, lengte, gewicht, sport en doelen", "Je gewicht en wat je eet (de eettracker)", "Je weekplanning, boodschappenlijst en winkelroute", "Wat je lust, allergieën en je keukenapparatuur", "Je eigen foto's, tenzij je ze deelt"])}
+      <p class="sub" style="margin:0">Dit wordt nergens naartoe gestuurd. Daarom is een back-up handig: zonder back-up ben je het kwijt als je telefoon kapot gaat.</p></div></section>
+    <section class="section"><div class="label">Gaat naar de server, zonder je naam</div><div class="card">
+      <p class="sub" style="margin:0">De app maakt bij de eerste keer een willekeurige code voor deze telefoon. Er hoort geen naam, e-mail of telefoonnummer bij. Met die code wordt opgeslagen:</p>
+      ${li(["<b>Sterren</b> die je aan een recept geeft. Anderen zien alleen het gemiddelde.", "<b>Foto's</b> die je deelt bij een beoordeling. Die zijn voor iedereen zichtbaar bij dat gerecht.", "<b>Feedback</b> en meldingen over recepten of foto's. Alleen de maker van de app leest dit.", "<b>Een gedeelde boodschappenlijst</b>, als je die zelf deelt. Alleen wie de link heeft kan hem zien.", "<b>Een telling</b>: één keer per dag dat de app is geopend, met het versienummer. Zo weet de maker hoeveel mensen de app gebruiken. Er wordt niets over jou of je eten in opgeslagen."])}
+      <p class="sub" style="margin:0">Dit staat bij Google Firebase, op servers in Nederland (Eemshaven).</p></div></section>
+    <section class="section"><div class="label">Andere websites</div><div class="card">
+      <p class="sub" style="margin:0">De app staat op GitHub Pages. Voorbeeldfoto's van gerechten komen van Wikipedia en foto's van producten van Open Food Facts. Zoals bij elke website zien die diensten je IP-adres als je telefoon er iets ophaalt. Ze krijgen verder niets van je.</p></div></section>
+    <section class="section"><div class="label">Weghalen</div><div class="card" style="gap:8px">
+      <p class="sub" style="margin:0">Wil je dat je sterren, foto's of berichten van de server worden gehaald? Stuur dan feedback met deze code erin:</p>
+      <code class="uid">${esc(CLOUD.uid || "(nog niet online)")}</code>
+      <p class="sub" style="margin:0">Alles op deze telefoon wissen kan hier meteen. Maak eerst een back-up als je het later terug wilt.</p>
+      <button class="btn small danger" id="wipeall" style="justify-self:start">${UI.wipeArm ? "Zeker weten? Alles is weg. Tik nog een keer" : "Alles op deze telefoon wissen"}</button></div></section>
+    <p class="sub" style="margin:0">Vragen over je gegevens? Gebruik de knop Feedback geven bij Profiel.</p>
+  </div>`;
+}
+function wipeAll(){
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith("prepmaat")) localStorage.removeItem(k); } catch(e){}
+  RESTORING = true; location.reload();
+}
+/* ============ Foto's van anderen: melden (verbergt meteen) en weghalen door de beheerder ============
+   Firestore photoflags/{fotoId_uid} = { p: fotoId, r: recept, uid, d }. Twee meldingen = verborgen voor iedereen. */
+async function flagPhoto(pid){
+  const r = UI.open; S.hidePh = [...new Set([...(S.hidePh || []), pid])].slice(-300); save();
+  UI.photos = UI.photos.filter(x => x.id !== pid); UI.phArm = null; renderRecipe();
+  toast("Bedankt. De foto is verborgen en de maker kijkt ernaar.");
+  if (!CLOUD.on) return;
+  try { await CLOUD.db.collection("photoflags").doc(pid + "_" + CLOUD.uid).set({ p: pid, r: String(r).slice(0, 40), uid: CLOUD.uid, d: dayKey() }); } catch(e){ console.warn(e); }
+}
+async function deletePhoto(pid){
+  try {
+    await CLOUD.db.collection("photos").doc(pid).delete();
+    const fl = await CLOUD.db.collection("photoflags").where("p", "==", pid).get(); fl.forEach(doc => doc.ref.delete().catch(() => {}));
+    UI.photos = (UI.photos || []).filter(x => x.id !== pid); if (UI.flagged) UI.flagged = UI.flagged.filter(x => x.id !== pid);
+    toast("Foto weggehaald");
+  } catch(e){ toast("Weghalen lukt niet. Staan de nieuwste Firebase-regels erin?"); }
+  UI.phArm = null; if (UI.view === "recipe") renderRecipe(); else render();
+}
+async function keepPhoto(pid){
+  try { const fl = await CLOUD.db.collection("photoflags").where("p", "==", pid).get(); const ps = []; fl.forEach(doc => ps.push(doc.ref.delete())); await Promise.all(ps); UI.flagged = (UI.flagged || []).filter(x => x.id !== pid); toast("Foto blijft staan"); }
+  catch(e){ toast("Dat lukt nu niet"); }
+  render();
+}
+async function loadFlagged(){
+  UI.flagged = null;
+  try {
+    const snap = await CLOUD.db.collection("photoflags").limit(300).get(), cnt = {};
+    snap.forEach(doc => { const x = doc.data(); cnt[x.p] = cnt[x.p] || { n: 0, r: x.r }; cnt[x.p].n++; });
+    const out = [];
+    for (const [id, c] of Object.entries(cnt).slice(0, 30)){ try { const ph = await CLOUD.db.collection("photos").doc(id).get(); if (ph.exists) out.push({ id, n: c.n, r: c.r, img: ph.data().img }); } catch(e){} }
+    UI.flagged = out.sort((a, b) => b.n - a.n);
+  } catch(e){ UI.flagged = []; }
+  render();
+}
+function flaggedBox(){
+  const F = UI.flagged; if (!F || !F.length) return "";
+  return `<div class="card" style="gap:8px"><b>Gemelde foto's (${F.length})</b><p class="sub" style="margin:0">Foto's met 2 of meer meldingen zijn al voor iedereen verborgen.</p>
+    ${F.map(x => `<div class="flagrow"><img src="${x.img}" alt="Gemelde foto"><div style="display:grid;gap:4px"><small class="sub">${esc(RID[x.r] ? RID[x.r].name : x.r)} · ${x.n}× gemeld</small>
+      <div class="row"><button class="btn small danger" data-phdel="${x.id}">${UI.phArm === "del" + x.id ? "Zeker? Tik nog eens" : "Weghalen"}</button><button class="btn small" data-phkeep="${x.id}">Mag blijven</button></div></div></div>`).join("")}</div>`;
 }
 
 /* ============ Eigen doelen: wie zijn cijfers al weet, vult ze zelf in ============ */
@@ -4094,6 +4241,7 @@ function openWelcome(){
       <button class="btn primary full" id="welcomehealth">Ja, doe de korte test</button>
       <button class="btn full" id="welcomesimple">Nee, houd het simpel</button>
     </div>
+    <p class="sub" style="margin:0">Geen account nodig. Je gegevens blijven op je telefoon. <button class="linkbtn" id="privacy">Lees hoe dat zit</button></p>
   </div>`;
 }
 /* ============ Weekkalender: welke avond eet je wat ============ */
@@ -4532,6 +4680,7 @@ function viewPrefs(){
   <section class="section"><div class="label">Lettergrootte</div>
     <div class="card"><select id="fontsize" class="select">${[[1, "Normaal"], [1.12, "Groter"], [1.25, "Groot"]].map(([v, l]) => `<option value="${v}" ${(S.fontScale || 1) === v ? "selected" : ""}>${l}</option>`).join("")}</select>
     <p class="sub" style="margin:0">Maakt alle tekst en knoppen in de app groter.</p></div></section>
+  ${dataCard()}
   <p class="sub" style="margin:0">Je supermarkten en hoe je wilt winkelen (goedkoop of in één winkel) kies je bij <button class="linkbtn" data-tab="lijst">Boodschappen</button>.</p>`;
   if (ps === "smaak") return `${head}
   ${healthOn() ? `<section class="section"><div class="label">Voedingskeuze</div>
@@ -4578,11 +4727,7 @@ function viewPrefs(){
   return `${head}
   <button class="btn full" data-basics="1">Kookbasis: maten, vuur en veilig bewaren</button>
   <button class="btn full" data-feedback="1">Feedback geven over de app</button>
-  <details class="section fold card"><summary class="label">Privacy: wat gaat er online?</summary><div class="prose">
-    <p><b>Blijft alleen op je eigen telefoon:</b> je gegevens en doelen, je gewicht, wat je eet, je planning, je boodschappenlijst en je voorkeuren. Niemand anders kan dat zien, ook de maker van de app niet.</p>
-    <p><b>Gaat anoniem online:</b> de sterren die je aan een gerecht geeft, foto's die je bij een gerecht zet en feedback die je verstuurt. Daar staat geen naam of e-mailadres bij. Foto's kan iedereen in de app zien, dus zet er geen mensen op.</p>
-    <p>Wis je de gegevens van je browser of verwijder je de app, dan is wat op je telefoon stond weg.</p>
-  </div></details>
+  <button class="btn full" id="privacy">Privacy: wat gaat er wel en niet online?</button>
   <details class="section fold card"><summary class="label">Hoe rekent Prepmaat je doelen uit?</summary>${calcText()}</details>
   ${adminBox()}`;
 }
@@ -4638,7 +4783,8 @@ function heroErr(img){ const rest = (img.dataset.alt || "").split(" ").filter(Bo
 function photoSection(){
   if (!UI.photos.length) return "";
   return `<section class="section"><div class="label">Foto's van dit gerecht</div>
-    <div class="phgrid">${UI.photos.map(x => `<figure><img src="${x.img}" alt="Foto van dit gerecht" loading="lazy">${x.mine ? "<figcaption>Jouw foto</figcaption>" : ""}</figure>`).join("")}</div></section>`;
+    <div class="phgrid">${UI.photos.map(x => `<figure><img src="${x.img}" alt="Foto van dit gerecht" loading="lazy">${x.mine ? "<figcaption>Jouw foto</figcaption>" : x.id ? `<figcaption class="phact">${S.admin ? `<button class="linkbtn" data-phdel="${x.id}">${UI.phArm === "del" + x.id ? "Zeker?" : "Weghalen"}</button>${x.flags ? ` <small>${x.flags}× gemeld</small>` : ""}` : `<button class="linkbtn" data-phflag="${x.id}">${UI.phArm === x.id ? "Zeker? Tik nog eens" : "Melden"}</button>`}</figcaption>` : ""}</figure>`).join("")}</div>
+    ${UI.photos.some(x => x.id) && !S.admin ? `<p class="ihint" style="margin:0">Zie je een foto die niet klopt of niet netjes is? Tik op Melden. Hij verdwijnt dan meteen bij jou.</p>` : ""}</section>`;
 }
 function ratingSummary(r){
   const list = ratingsOf(r.id); if (!list.length) return "";
@@ -4749,6 +4895,7 @@ function calcText(){
 function render(){
   if (!TABS.some(t => t[0] === S.tab)) S.tab = "week";
   try { adaptUpdate(); } catch(e){}
+  try { UI._lo = leftovers(); } catch(e){ UI._lo = null; }
   const v = { week: viewWeek, recepten: viewRecipes, lijst: viewList, vandaag: viewToday, smaak: viewPrefs }[S.tab];
   document.getElementById("app").innerHTML = `<main class="wrap">${v()}</main>`;
   const n = shopCount();
@@ -4968,6 +5115,9 @@ document.addEventListener("click", (e) => {
   if (d.favload !== undefined){ const i = +d.favload, f = (S.favWeeks || [])[i]; if (!f) return;
     if (!planEmpty() && UI.favArm !== i){ UI.favArm = i; render(); setTimeout(() => { if (UI.favArm === i){ UI.favArm = null; render(); } }, 4000); return; }
     UI.favArm = null; rememberWeek(); loadWeek(f); save(); render(); toast(f.name + " staat in je week"); return; }
+  if (d.phflag){ if (UI.phArm !== d.phflag){ UI.phArm = d.phflag; renderRecipe(); return; } flagPhoto(d.phflag); return; }
+  if (d.phdel){ if (UI.phArm !== "del" + d.phdel){ UI.phArm = "del" + d.phdel; UI.view === "recipe" ? renderRecipe() : render(); return; } deletePhoto(d.phdel); return; }
+  if (d.phkeep){ keepPhoto(d.phkeep); return; }
   if (d.favdel !== undefined){ const f = S.favWeeks.splice(+d.favdel, 1)[0]; save(); render(); toast((f ? f.name : "Week") + " verwijderd"); return; }
   if (d.addp){ const r = RID[d.addp], before = r.type === "lunch" && !planCount(d.addp) ? S.plan.lunch.filter(x => RID[x.id]).length : 0, n = addToPlan(d.addp); UI.clearArm = false; save(); render(); refreshSheet();
     toast(before ? `Je ${totalLunches()} lunchdagen zijn verdeeld: ${S.plan.lunch.filter(x => RID[x.id]).map(x => x.n).join(" + ")}. Pas het aan met − en +.` : `${r.name}: ${unitN(r.type, n)} in je week`); return; }
@@ -5002,6 +5152,13 @@ document.addEventListener("click", (e) => {
     case "fillsnacks": { const n = fillSnacks(); save(); render(); toast(n ? n + (n === 1 ? " tussendoortje" : " tussendoortjes") + " gekozen en op je boodschappenlijst gezet" : "Je dag zit al vol"); break; }
     case "snackpick": UI.snackPick = !UI.snackPick; render(); break;
     case "ics": downloadIcs(); break;
+    case "backup": makeBackup(); break;
+    case "bksnooze": S.bkSnooze = dayKey(); save(); render(); toast("Je kunt altijd een back-up maken bij Profiel"); break;
+    case "restorego": applyRestore(); break;
+    case "restorecancel": UI.restore = null; render(); break;
+    case "privacy": openPrivacy(); break;
+    case "privback": if (UI.privFrom === "welcome") openWelcome(); else closeSheet(); break;
+    case "wipeall": if (!UI.wipeArm){ UI.wipeArm = true; renderPrivacy(); setTimeout(() => { if (UI.wipeArm){ UI.wipeArm = false; if (UI.view === "privacy") renderPrivacy(); } }, 4000); } else wipeAll(); break;
     case "savecustom": saveCustom(); break;
     case "resetcustom": S.profile.custom = {}; UI.customOpen = true; save(); render(); toast("Uitgerekende doelen gebruikt"); break;
     case "welcomehealth": S.health = true; save(); openProfile(); break;
@@ -5087,6 +5244,8 @@ document.addEventListener("submit", (e) => {
   S.extras.push(v.slice(0, 80)); save(); render(); document.getElementById("addinput").focus();
 });
 document.addEventListener("change", async (e) => {
+  if (e.target.id === "restorein" && e.target.files[0]){ readBackup(e.target.files[0]); e.target.value = ""; return; }
+  if (e.target.id === "remtime"){ S.remTime = e.target.value; save(); render(); return; }
   if (e.target.id === "photoin" && e.target.files[0]){
     try { UI.photo = await shrinkPhoto(e.target.files[0]); renderRating(); } catch(err){ toast("Deze foto kan ik niet openen. Probeer een andere."); }
     return;

@@ -22,7 +22,7 @@ service cloud.firestore {
         && id == request.auth.uid + '_' + request.resource.data.recipe + '_' + request.resource.data.d;
       allow delete: if false;
     }
-    // Foto's: iedereen mag kijken, je mag alleen kleine JPG-foto's toevoegen, niets aanpassen of weghalen
+    // Foto's: iedereen mag kijken, je mag alleen kleine JPG-foto's toevoegen. Alleen de beheerder mag een foto weghalen
     match /photos/{id} {
       allow read: if true;
       allow create: if request.auth != null
@@ -33,7 +33,21 @@ service cloud.firestore {
         && request.resource.data.img is string
         && request.resource.data.img.size() < 300000
         && request.resource.data.img.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$');
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+    // Gemelde foto's: iedereen mag melden (1 keer per foto per toestel) en tellen; alleen de beheerder mag meldingen weghalen
+    match /photoflags/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['p', 'r', 'uid', 'd'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.p is string && request.resource.data.p.size() <= 40
+        && request.resource.data.r is string && request.resource.data.r.size() <= 40
+        && request.resource.data.d is string && request.resource.data.d.size() == 10
+        && id == request.resource.data.p + '_' + request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
     // Beheerders: alleen aan te passen in de Firebase-console (document admins/list met een lijst 'uids')
     function isAdmin() {
