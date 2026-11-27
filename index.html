@@ -11336,11 +11336,67 @@ function lunchTips(r){
   t.push("Schrijf de dag op het deksel (ma, di, wo). Ingevroren bakjes blijven tot 3 maanden goed.");
   return t;
 }
+/* ============ Keukenapparatuur: wat heb je in huis? ============ */
+const EQUIP = [["oven","Oven"],["airfryer","Airfryer"],["magnetron","Magnetron"],["staafmixer","Staafmixer"],["blender","Blender"],["keukenmachine","Keukenmachine"]];
+const EQ_RE = { oven: /\boven\b|ovenschaal|bakplaat/i, staafmixer: /staafmixer/i, blender: /blender/i, keukenmachine: /keukenmachine|foodprocessor/i, magnetron: /magnetron/i };
+function equip(){ return Object.assign({ oven: true, airfryer: false, magnetron: true, staafmixer: true, blender: false, keukenmachine: false, werkMagnetron: true }, (S && S.equip) || {}); }
+function stepTxt(x){ return Array.isArray(x) ? x[0] : x; }
+function needs(r){
+  if (r._needs) return r._needs;
+  const n = {}; for (const [k, re] of Object.entries(EQ_RE)) if (r.steps.some(x => re.test(stepTxt(x)))) n[k] = true;
+  /* De laatste stap "op het werk opwarmen" telt niet als magnetron thuis */
+  if (r.type === "lunch") delete n.magnetron;
+  return (r._needs = n);
+}
+function airOk(r){ return !r.steps.some(x => /lasagne|bakvorm|cakevorm|muffin/i.test(stepTxt(x))) && !(r.type === "lunch" && r.steps.some(x => /ovenschaal/i.test(stepTxt(x)))); }
+/* Kan dit gerecht met jouw keuken? null = nee, "air" = ja, met de airfryer in plaats van de oven */
+function equipFit(r){
+  const E = equip(), n = needs(r);
+  let mode = "ok";
+  if (n.oven && !E.oven){ if (E.airfryer && airOk(r)) mode = "air"; else return null; }
+  if ((n.staafmixer || n.blender) && !E.staafmixer && !E.blender) return null;
+  if (n.keukenmachine && !E.keukenmachine) return null;
+  if (n.magnetron && !E.magnetron) return null;
+  if (r.type === "lunch" && !E.werkMagnetron && !["koud","koud of warm"].includes(r.heat)) return null;
+  return mode;
+}
+function airText(t, min){
+  const had = /airfryer/i.test(t);
+  let x = t.replace(/\s*(?:en )?leg bakpapier op (?:een|2|twee) bakpla(?:a)?t(?:en)?\.?/gi, m => m.trim().endsWith(".") ? "." : "")
+    .replace(/Verwarm de oven voor op (\d+) °C/gi, (m, a) => `Zet de airfryer aan op ${+a - 20} °C (3 minuten voorverwarmen)`)
+    .replace(/oven(?: aan)? op (\d+) °C(?: \((?:heteluchtoven|hetelucht):? (\d+) °C\))?(?:\.? Airfryer kan ook: \d+ °C)?/gi, (m, a, b) => `airfryer aan op ${b || (+a - 20)} °C (3 minuten voorverwarmen)`)
+    .replace(/(?:naast elkaar )?op bakpapier/gi, "in de airfryermand")
+    .replace(/(?:op|over) (?:een|de|2|twee|de tweede) bakpla(?:a)?t(?:en)?(?: met bakpapier)?/gi, "in de airfryermand (in rondes als het niet past)")
+    .replace(/de bakplat(?:en)?|de bakplaat/gi, "de airfryermand")
+    .replace(/een grote ovenschaal|een ovenschaal/gi, "een schaaltje dat in je airfryer past (of in 2 delen)")
+    .replace(/ovenschaal/gi, "schaaltje")
+    .replace(/koekenpan die de oven in mag/gi, "koekenpan; schep het daarna in een schaaltje dat in je airfryer past")
+    .replace(/\boven\b/gi, "airfryer").replace(/\.\./g, ".").replace(/\s{2,}/g, " ").trim();
+  const baking = /\bbak|in de airfryer|airfryermand/i.test(x.replace(/[^.]*voorverwarmen\)\.?/gi, ""));
+  if (min && !had && baking && !/halverwege|omscheppen|omdraaien|schud/i.test(x)) x += " Schud halverwege de mand.";
+  return { t: x || t, min: min && !had && baking ? Math.max(1, Math.round(min * 0.8)) : min };
+}
+function cookSteps(r){
+  const mode = equipFit(r), raw = r.steps.map(x => Array.isArray(x) ? { t: x[0], min: x[1] } : { t: x });
+  if (mode !== "air") return raw;
+  return [{ t: "Aangepast voor de airfryer. Een airfryer is kleiner dan een oven: bak in 2 of 3 rondes en houd wat klaar is warm onder aluminiumfolie. De tijden zijn ongeveer 20% korter. Kijk zelf of het goudbruin en gaar is." },
+    ...raw.map(x => /\boven\b|ovenschaal|bakplaat/i.test(x.t) ? airText(x.t, x.min) : x)];
+}
+function equipCard(){
+  const E = equip(), nFit = R.filter(r => equipFit(r) !== null).length, nAir = R.filter(r => equipFit(r) === "air").length;
+  return `<section class="section"><div class="label">Je keuken</div><div class="card" style="gap:10px">
+    <p class="sub" style="margin:0">Wat heb je thuis? Gerechten die je niet kunt maken worden niet voorgesteld. Heb je geen oven maar wel een airfryer, dan past de app de stappen aan.</p>
+    <div class="chips">${EQUIP.map(([k, l]) => `<button class="chip" data-equip="${k}" aria-pressed="${!!E[k]}">${E[k] ? "✓ " : ""}${l}</button>`).join("")}</div>
+    <div class="sub">Is er een magnetron op je werk of school?</div>
+    <div class="chips"><button class="chip" data-werkmag="1" aria-pressed="${E.werkMagnetron}">Ja</button><button class="chip" data-werkmag="0" aria-pressed="${!E.werkMagnetron}">Nee, alleen koude lunches</button></div>
+    <p class="sub num" style="margin:0">${nFit} van de ${R.length} recepten kun je maken${nAir ? `, waarvan ${nAir} in de airfryer` : ""}.</p>
+  </div></section>`;
+}
 function allSteps(r, factor){
   const pre = r.type === "lunch"
     ? [`Zet ${lunchN(r)} meal-prep bakjes klaar. Pak alle ingrediënten en weeg ze af vóór je begint. Dan hoef je tijdens het koken niet te zoeken.`]
     : ["Pak alle ingrediënten en weeg ze af vóór je begint. Dan hoef je tijdens het koken niet te zoeken."];
-  const mid = r.steps.map(s => Array.isArray(s) ? {t:s[0], min:s[1]} : {t:s});
+  const mid = cookSteps(r);
   const post = r.type === "lunch" ? lunchStorageSteps(lunchN(r), r.heat, lunchStart(r)) : [];
   return [...pre.map(t => ({t})), ...mid, ...post.map(t => ({t}))];
 }
@@ -11396,6 +11452,7 @@ function fits(r){
   if (r.type === "diner" && p.maxTime && r.time > p.maxTime) return false;
   if (p.noCuisine.includes(r.cuisine)) return false;
   if (r.items.some(([k]) => p.noIng.includes(k))) return false;
+  if (equipFit(r) === null) return false;
   return !blocked(r.id);
 }
 function weight(id){
@@ -11498,7 +11555,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v41";
+const APP_VERSION = "v42";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -12160,7 +12217,7 @@ function prepSteps(){
   ids.forEach((id, ri) => {
     const r = RID[id], f = prepF(r);
     const pre = r.type === "lunch" ? [{ t: `Zet ${lunchN(r) * EP(id)} meal-prep bakjes klaar.` }] : [];
-    const mid = r.steps.map(x => Array.isArray(x) ? { t: x[0], min: x[1] } : { t: x });
+    const mid = cookSteps(r);
     const post = r.type === "lunch" ? [...lunchStorageSteps(lunchN(r), r.heat, lunchStart(r)), ...(lunchTips(r).length > 1 ? ["Bewaartips voor dit gerecht: " + lunchTips(r).slice(0, -1).join(" ")] : [])].map(t => ({ t })) : [{ t: dinnerStore(r) }];
     [...pre, ...mid, ...post].forEach(x => out.push(Object.assign(x, { r, f, ri })));
   });
@@ -12992,6 +13049,7 @@ function viewPrefs(){
       <p class="sub" style="margin:0">Bij Vandaag vink je dan je maaltijden af en voeg je tussendoortjes toe. Zo zie je hoeveel je nog over hebt. Niet verplicht: zonder tracker werkt alles ook.</p>
     </div>
   </section>` : ""}
+  ${equipCard()}
   <p class="sub" style="margin:0">Je supermarkten en hoe je wilt winkelen (goedkoop of in één winkel) kies je bij <button class="linkbtn" data-tab="lijst">Boodschappen</button>.</p>`;
   if (ps === "smaak") return `${head}
   ${healthOn() ? `<section class="section"><div class="label">Voedingskeuze</div>
@@ -13266,7 +13324,8 @@ function renderRecipe(){
     ${heroImg(r)}
     <h1 class="dtitle">${esc(r.name)}</h1>
     <p style="margin:0;color:var(--muted)">${esc(r.short)}</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap">${testedPill(r)}<span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
+    ${equipFit(r) === null ? `<p class="tip" style="margin:0">${(() => { const n = needs(r), E = equip(); return n.oven && !E.oven ? "Voor dit gerecht heb je een oven nodig." : (n.staafmixer || n.blender) && !E.staafmixer && !E.blender ? "Voor dit gerecht heb je een staafmixer of blender nodig." : n.keukenmachine && !E.keukenmachine ? "Voor dit gerecht heb je een keukenmachine nodig." : r.type === "lunch" && !E.werkMagnetron ? "Deze lunch moet warm, en je hebt geen magnetron op je werk." : "Voor dit gerecht heb je een magnetron nodig."; })()} Je keuken stel je in bij Profiel.</p>` : ""}
+    <div class="row" style="gap:6px;flex-wrap:wrap">${testedPill(r)}${equipFit(r) === "air" ? `<span class="pill tested">Aangepast voor airfryer</span>` : ""}<span class="pill num">⏱ ${r.time} min</span><span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="sub" style="font-size:13px">per portie</span></div>
     <div class="row between"><span class="sub">Aantal personen</span>${pStep(r.id)}</div>
     ${r.type === "lunch" ? `<div class="row between"><span class="sub">Aantal dagen${EP(r.id) > 1 ? ` (${portions} bakjes)` : ""}</span>
       <span class="stepper">${pc ? `<button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button>` : `<button data-ld="-1" aria-label="Minder">−</button><span class="num">${lunchN(r)}</span><button data-ld="1" aria-label="Meer">+</button>`}</span>
@@ -13412,6 +13471,8 @@ document.addEventListener("click", (e) => {
   if (d.fbscore){ UI.fb.score = UI.fb.score === +d.fbscore ? 0 : +d.fbscore; renderFeedback(); return; }
   if (d.fbabout){ UI.fb.about = d.fbabout; renderFeedback(); return; }
   if (d.rep && UI.report){ const a = UI.report.why, i = a.indexOf(d.rep); i < 0 ? a.push(d.rep) : a.splice(i, 1); renderRecipe(); return; }
+  if (d.equip){ S.equip = equip(); S.equip[d.equip] = !S.equip[d.equip]; save(); render(); return; }
+  if (d.werkmag){ S.equip = equip(); S.equip.werkMagnetron = d.werkmag === "1"; save(); render(); return; }
   if (d.zmove){ const [st, z, dir] = d.zmove.split(":"); moveZone(st, z, +dir); UI.routeOpen = true; UI.routeSt = st; save(); render(); return; }
   if (d.zreset){ if (S.routeOrder) delete S.routeOrder[d.zreset]; if (S.routeTrips) delete S.routeTrips[d.zreset]; UI.routeOpen = true; save(); render(); toast("Standaardroute terug"); return; }
   if (d.routest){ UI.routeSt = d.routest; UI.routeOpen = true; render(); return; }
