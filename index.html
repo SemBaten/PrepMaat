@@ -292,6 +292,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1
 ol.route { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 ol.route li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 ol.route .x:disabled { opacity: .3; }
+.updbar { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 55; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ink); color: var(--bg); box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 14px; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -11256,8 +11257,6 @@ function goalsCalc(){
 }
 function targetK(g, type){ return type === "lunch" ? g.lunchK : type === "ontbijt" ? g.bfK : g.dinnerK; }
 function typeLabel(r){ return ({ lunch: "Lunch · meal prep", diner: "Avondeten", ontbijt: "Ontbijt" })[r.type]; }
-function _noop(){
-}
 /* ============ Portie per gerecht ============
    Klein / normaal / groot volgt je eetlust. "Advies" is de portie die bij jouw dagdoel past.
    De gekozen portie geldt voor jóuw deel: bij avondeten eten de anderen een normale portie. */
@@ -11476,16 +11475,8 @@ function pick(list, avoid, lo){
 }
 const LUNCHES = R.filter(r => r.type === "lunch").map(r => r.id);
 const DINNERS = R.filter(r => r.type === "diner").map(r => r.id);
-function freshDinners(onDays){
-  const used = [], out = [];
-  for (let i = 0; i < 7; i++){
-    if (onDays[i]) { const id = pick(DINNERS, used); used.push(id); out.push(id); } else out.push(null);
-  }
-  return out;
-}
 function defaults(){
-  const on = [true,true,true,true,true,false,false];
-  return { lunch: "teriyaki", lunchDays: 5, persons: 2, dinners: freshDinners(on), checks: {}, extras: [], prev: [], plan: { lunch: [], diner: [] }, stores: [], shopMode: "een", profile: null, onboarded: false, tab: "week", filter: "alle", prefs: defaultPrefs(), ratings: {}, showAll: false, sort: "standaard" };
+  return { lunchDays: 5, persons: 2, checks: {}, extras: [], plan: { lunch: [], diner: [] }, stores: [], profile: null, onboarded: false, tab: "week", filter: "alle", prefs: defaultPrefs(), ratings: {}, showAll: false, sort: "standaard" };
 }
 const LO = load();
 S = Object.assign(defaults(), LO || {});
@@ -11498,6 +11489,9 @@ if (LO && !LO.plan && LO.lunch && RID[LO.lunch]){
   (LO.dinners || []).forEach(id => { if (!id || !RID[id]) return; const e = S.plan.diner.find(x => x.id === id); e ? e.n++ : S.plan.diner.push({ id, n: 1 }); });
 }
 S.prefs = Object.assign(defaultPrefs(), S.prefs || {});
+/* Opruimen: velden uit oude versies */
+if (!S.shopGoals) S.shopGoals = S.shopMode === "goedkoop" ? { cheap: true } : { one: true };
+["lunch","dinners","prev","shopMode","rank"].forEach(k => delete S[k]);
 let UI = { homeDone: {}, got: {}, cook: null, timer: null, view: null, rating: {}, photo: null, photos: [] };
 
 /* ============ Online: gedeelde sterren en foto's (Firebase, gratis) ============
@@ -11555,7 +11549,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v42";
+const APP_VERSION = "v43";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -11903,7 +11897,6 @@ function PP(t){ return t === "diner" ? S.persons : ((S.pp || {})[t] || 1); }
 function EP(id){ const r = RID[id], e = r && (S.plan[r.type] || []).find(x => x.id === id); return e ? (e.p || PP(r.type)) : PP(r.type); }
 function setEP(id, d){ const r = RID[id], e = (S.plan[r.type] || []).find(x => x.id === id); const n = Math.min(6, Math.max(1, EP(id) + d)); if (e) e.p = n; if (r.type === "diner") S.persons = n; else { S.pp = S.pp || {}; S.pp[r.type] = n; } }
 function pStep(id){ const n = EP(id); return `<span class="stepper" aria-label="Aantal personen"><button data-pe="${id}:-1" aria-label="Minder personen">−</button><span class="num">${n} pers.</span><button data-pe="${id}:1" aria-label="Meer personen">+</button></span>`; }
-function ppStep(t){ const n = PP(t); return `<span class="stepper" aria-label="Aantal personen"><button data-pt="${t}:-1" aria-label="Minder personen">−</button><span class="num">${n} pers.</span><button data-pt="${t}:1" aria-label="Meer personen">+</button></span>`; }
 function totalBakjes(){ return S.plan.lunch.reduce((a, x) => a + x.n * (x.p || 1), 0); }
 function totalLunches(){ return S.plan.lunch.reduce((a, x) => a + x.n, 0); }
 function totalDinners(){ return S.plan.diner.reduce((a, x) => a + x.n, 0); }
@@ -13500,7 +13493,6 @@ document.addEventListener("click", (e) => {
   if (d.logplan){ const r = RID[d.logplan], m = pm(r); addLog({ n: typeLabel(r).split(" ·")[0] + ": " + r.name, k: m.k, p: m.p, v: m.v, gv: m.gv, fr: m.fr, kh: m.kh, f: fatOf(m), src: r.id }); render(); toast("Toegevoegd aan vandaag"); return; }
   if (d.ld){ S.lunchDays = Math.min(7, Math.max(1, S.lunchDays + +d.ld)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   if (d.pe){ const [id, v] = d.pe.split(":"); setEP(id, +v); save(); render(); refreshSheet(); return; }
-  if (d.pt){ const [t, v] = d.pt.split(":"); const n = Math.min(6, Math.max(1, PP(t) + +v)); if (t === "diner") S.persons = n; else { S.pp = S.pp || {}; S.pp[t] = n; } save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   if (d.pp){ S.persons = Math.min(6, Math.max(1, S.persons + +d.pp)); save(); if (UI.open && !document.getElementById("sheet").hidden) renderRecipe(); render(); return; }
   switch (b.id){
     case "close": if (UI.view === "basics" && UI.basicsFrom === "recipe"){ UI.basicsFrom = null; renderRecipe(); document.getElementById("sheet").scrollTop = 0; break; }
@@ -13630,6 +13622,20 @@ render();
 if (!S.onboarded && !S.profile && !S.joined) openWelcome();
 initCloud();
 loadDeals(); loadProducts();
+/* Nieuwe versie? De app opent meteen uit het geheugen; is er online een nieuwere versie, dan verschijnt er een knop */
+async function checkUpdate(){
+  try {
+    const t = await (await fetch("sw.js", { cache: "no-store" })).text(), m = t.match(/prepmaat-(v\d+)/);
+    if (m && m[1] !== APP_VERSION && !document.getElementById("updbar")){
+      const b = document.createElement("div"); b.id = "updbar"; b.className = "updbar";
+      b.innerHTML = `<span>Er is een nieuwe versie van Prepmaat</span><button class="btn small primary" id="updnow">Vernieuwen</button>`;
+      b.querySelector("#updnow").onclick = () => location.reload();
+      document.body.appendChild(b);
+    }
+  } catch(e){}
+}
+setTimeout(checkUpdate, 3000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
 </script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
 </body>
