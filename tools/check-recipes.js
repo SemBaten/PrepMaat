@@ -81,6 +81,17 @@ const path = require('path');
       const parallel = /ondertussen|tegelijk|intussen/i.test(all);
       if (timed > r.time * (parallel ? 1.6 : 1.05)) add(r, "LET OP", `timers samen ${timed} min, maar recept zegt ${r.time} min`);
       if (r.time < timed * 0.5 && timed > 10) add(r, "LET OP", "tijd lijkt te kort");
+      // extra controles (v44)
+      if (r.steps.length < 2 || (r.type !== "ontbijt" && r.steps.length < 3)) add(r, "LET OP", "erg weinig stappen");
+      for (const st of r.steps){ const t = Array.isArray(st) ? st[0] : st, mn = Array.isArray(st) ? st[1] : null;
+        if (mn !== null && (mn <= 0 || mn > 240)) add(r, "FOUT", `vreemde timer: ${mn} min`);
+        if (t.length > 420) add(r, "LET OP", `lange stap (${t.length} tekens), lastig te lezen tijdens het koken`);
+        for (const m of t.matchAll(/(\d+) ?°C/g)) if (+m[1] < 140 || +m[1] > 250) add(r, "LET OP", `oventemperatuur ${m[1]} °C`); }
+      const meatG = r.items.filter(([k]) => DB[k] && ["vlees","vis"].includes(DB[k].c)).reduce((a, [k, q]) => a + grams(k, q), 0) / r.serves; if (r.type !== "ontbijt" && ["kip","rund","varken","vis"].includes(r.meat) && meatG < 45) add(r, "LET OP", `weinig vlees/vis per portie: ${Math.round(meatG)} g`);
+      const veg = r.items.filter(([k]) => DB[k] && DB[k].c === "groente" && !["aardappel","krieltjes","zoeteaardappel"].includes(k)).reduce((a, [k, q]) => a + grams(k, q), 0) / r.serves;
+      if (r.type !== "ontbijt" && veg > 550) add(r, "LET OP", `heel veel groente per portie: ${Math.round(veg)} g`);
+      if (typeof costOf === "function" && costOf(r) > 6) add(r, "LET OP", `duur: ±€${costOf(r).toFixed(2)} per portie`);
+      if (typeof cookSteps === "function"){ const keep = S.equip; S.equip = { oven: false, airfryer: true }; if (equipFit(r) === "air") for (const x of cookSteps(r)) if (/bakplaat|\boven\b/i.test(x.t) && !/^Aangepast/.test(x.t)) add(r, "LET OP", "airfryer-stap noemt nog oven/bakplaat: " + x.t.slice(0, 60)); S.equip = keep; }
     }
     return { n: R.length, issues };
   });

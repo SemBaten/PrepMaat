@@ -59,6 +59,16 @@ service cloud.firestore {
     }
     // Gedeelde boodschappenlijsten: wie de (lange, willekeurige) code kent mag lezen en afvinken.
     // Alleen de maker mag de producten aanpassen. Weghalen kan niet.
+    // Anoniem gebruik tellen: één document per toestel per dag (id = datum_uid), alleen de maker kan het lezen
+    match /usage/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if request.auth != null
+        && id == request.resource.data.d + "_" + request.auth.uid
+        && request.resource.data.keys().hasOnly(['d', 'v'])
+        && request.resource.data.d is string && request.resource.data.d.size() == 10
+        && request.resource.data.v is string && request.resource.data.v.size() <= 10;
+    }
     match /lists/{code} {
       allow read: if request.auth != null && code.size() >= 8 && code.size() <= 20;
       allow create: if request.auth != null

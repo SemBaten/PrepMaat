@@ -274,11 +274,19 @@ code.uid { display: block; padding: 8px 10px; background: var(--sunk); border-ra
 .ingrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface); border-radius: 12px; }
 .btag { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk, #e7ece8); color: var(--ink); }
 ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.45; }
-.pill.tested { background: #dff0e3; color: #1f5a33; font-weight: 600; }
+.pill.tested { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 ol.route { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 ol.route li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 ol.route .x:disabled { opacity: .3; }
 .updbar { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 55; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ink); color: var(--bg); box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 14px; }
+.havehit { display: block; font-size: 13px; color: var(--accent, #23664a); font-weight: 600; margin: 2px 0 4px; }
+.usebars { display: flex; gap: 6px; align-items: flex-end; }
+.usebars > div { flex: 1; display: grid; justify-items: center; gap: 2px; }
+.usebars span { display: block; width: 100%; background: var(--accent, #23664a); border-radius: 4px 4px 0 0; }
+.usebars small { font-size: 11px; color: var(--muted); }
+#extrasfold > summary .sub { font-weight: 400; }
+#extrasfold[open] { gap: 10px; }
+summary .badge { position: static; display: inline-block; vertical-align: middle; margin-left: 4px; }
 .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
 .goals div { background: var(--sunk); border-radius: 10px; padding: 10px; text-align: center; }
 .goals b { font-family: var(--display); font-size: 22px; display: block; line-height: 1.1; }
@@ -2740,7 +2748,7 @@ function lunchTips(r){
 }
 /* ============ Keukenapparatuur: wat heb je in huis? ============ */
 const EQUIP = [["oven","Oven"],["airfryer","Airfryer"],["magnetron","Magnetron"],["staafmixer","Staafmixer"],["blender","Blender"],["keukenmachine","Keukenmachine"]];
-const EQ_RE = { oven: /\boven\b|ovenschaal|bakplaat/i, staafmixer: /staafmixer/i, blender: /blender/i, keukenmachine: /keukenmachine|foodprocessor/i, magnetron: /magnetron/i };
+const EQ_RE = { oven: /\boven\b|ovenschaal/i, staafmixer: /staafmixer/i, blender: /blender/i, keukenmachine: /keukenmachine|foodprocessor/i, magnetron: /magnetron/i };
 function equip(){ return Object.assign({ oven: true, airfryer: false, magnetron: true, staafmixer: true, blender: false, keukenmachine: false, werkMagnetron: true }, (S && S.equip) || {}); }
 function stepTxt(x){ return Array.isArray(x) ? x[0] : x; }
 function needs(r){
@@ -2767,8 +2775,10 @@ function airText(t, min){
   let x = t.replace(/\s*(?:en )?leg bakpapier op (?:een|2|twee) bakpla(?:a)?t(?:en)?\.?/gi, m => m.trim().endsWith(".") ? "." : "")
     .replace(/Verwarm de oven voor op (\d+) °C/gi, (m, a) => `Zet de airfryer aan op ${+a - 20} °C (3 minuten voorverwarmen)`)
     .replace(/oven(?: aan)? op (\d+) °C(?: \((?:heteluchtoven|hetelucht):? (\d+) °C\))?(?:\.? Airfryer kan ook: \d+ °C)?/gi, (m, a, b) => `airfryer aan op ${b || (+a - 20)} °C (3 minuten voorverwarmen)`)
+    .replace(/bord of bakplaat/gi, "bord of grote schaal")
+    .replace(/een andere bakplaat erop/gi, "een ovenvast bordje erop (als het past)")
     .replace(/(?:naast elkaar )?op bakpapier/gi, "in de airfryermand")
-    .replace(/(?:op|over) (?:een|de|2|twee|de tweede) bakpla(?:a)?t(?:en)?(?: met bakpapier)?/gi, "in de airfryermand (in rondes als het niet past)")
+    .replace(/(?:op|over) (?:een|de|2|twee|de tweede|de eerste) bakpla(?:a)?t(?:en)?(?: met bakpapier)?/gi, "in de airfryermand (in rondes als het niet past)")
     .replace(/de bakplat(?:en)?|de bakplaat/gi, "de airfryermand")
     .replace(/een grote ovenschaal|een ovenschaal/gi, "een schaaltje dat in je airfryer past (of in 2 delen)")
     .replace(/ovenschaal/gi, "schaaltje")
@@ -2862,6 +2872,8 @@ function weight(id){
   let w = o === null ? 1 : 0.25 + (o / 5) * 1.75;
   const fo = (healthOn() && S.prefs && S.prefs.focus) || [];
   for (const k of fo) if (focusMatch(RID[id], k)) w *= 2;
+  if (S && S.prefs && S.prefs.season){ const [i, o] = seasonScore(RID[id]); w *= Math.min(2.2, Math.max(0.35, 1 + 0.45 * i - 0.35 * o)); }
+  if (S && S.budget){ const r = RID[id]; w *= Math.min(2.5, Math.max(0.3, Math.pow(costMed(r.type) / Math.max(0.3, costOf(r)), 1.5))); }
   const lk = (S && S.prefs && S.prefs.likeIng) || [];
   if (lk.length){ const n = RID[id].items.filter(([k]) => lk.includes(k)).length; if (n) w *= Math.min(3, 1 + 0.6 * n); }
   return w * kcalFit(RID[id]);
@@ -2921,7 +2933,7 @@ async function initCloud(){
     CLOUD.uid = cred.user.uid; CLOUD.db = firebase.firestore(); CLOUD.on = true;
     listenShare(); if (S.tab === "lijst") render();
     await refreshStats();
-    flushFeedback();
+    flushFeedback(); pingUsage();
   } catch(e){ console.warn("Online deel niet beschikbaar:", e); CLOUD.on = false; }
 }
 async function refreshStats(){
@@ -2952,7 +2964,7 @@ async function cloudSavePhoto(id, img, d){
   catch(e){ console.warn(e); toast("Foto online zetten lukte niet. Hij staat wel op je telefoon."); }
 }
 /* ============ Feedback van gebruikers (anoniem, alleen Sem kan het lezen in Firebase) ============ */
-const APP_VERSION = "v43";
+const APP_VERSION = "v44";
 const FB_ABOUT = [["algemeen","De hele app"],["planning","Planning"],["recepten","Recepten"],["boodschappen","Boodschappen"],["vandaag","Vandaag"],["profiel","Profiel"]];
 async function flushFeedback(){
   if (!CLOUD.on || !(S.fbQueue || []).length) return;
@@ -3290,7 +3302,7 @@ const ICONS = {
 const TABS = [["week","Planning"],["recepten","Recepten"],["lijst","Boodschappen"],["vandaag","Vandaag"],["smaak","Profiel"]];
 function todayIdx(){ return (new Date().getDay() + 6) % 7; }
 function testedPill(r){ const n = comN(r.id), o = comOverall(r.id); return n >= 3 && o !== null && o >= 3.5 ? `<span class="pill tested num" title="Door ${n} mensen gekookt en goed beoordeeld">✓ Getest door ${n}</span>` : ""; }
-function pills(r){ const m = pm(r); return testedPill(r) + `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
+function pills(r){ const m = pm(r); return testedPill(r) + seasonPill(r) + `<span class="pill p num">${m.p} g eiwit</span><span class="pill num">${m.k} kcal</span><span class="pill num">${r.time} min</span>`; }
 function metaLine(r){ const m = pm(r); return `${m.k} kcal · ${m.p} g eiwit · ${r.time} min`; }
 
 /* ============ Mijn week ============ */
@@ -3793,13 +3805,41 @@ function weekPrice(items){
   }
   return { tot, pantry, save };
 }
+/* Kosten per portie van een recept (gewone prijzen, zonder kastspullen) */
+/* Seizoensgroente (Nederland): maanden waarin het volop en goedkoop is */
+const SEASON = { boerenkool:[10,11,12,1,2,3], spruitjes:[9,10,11,12,1,2,3], rodekool:[8,9,10,11,12,1,2,3], pompoen:[9,10,11,12], witlof:[10,11,12,1,2,3,4], prei:[9,10,11,12,1,2,3,4],
+  andijvie:[6,7,8,9,10,11], spitskool:[5,6,7,8,9,10,11], bloemkool:[6,7,8,9,10,11], broccoli:[6,7,8,9,10], courgette:[6,7,8,9,10], sperziebonen:[6,7,8,9], tomaat:[6,7,8,9],
+  cherrytomaat:[6,7,8,9], komkommer:[5,6,7,8,9], paprika:[7,8,9,10], aubergine:[7,8,9], spinazie:[4,5,6,9,10,11], sla:[5,6,7,8,9,10], bietjes:[7,8,9,10,11,12,1,2,3], sugarsnaps:[6,7,8], zuurkool:[10,11,12,1,2,3] };
+function seasonScore(r){ const m = new Date().getMonth() + 1; let i = 0, o = 0; for (const [k] of r.items) if (SEASON[k]) SEASON[k].includes(m) ? i++ : o++; return [i, o]; }
+function seasonPill(r){ if (!(S && S.prefs && S.prefs.season)) return ""; const [i, o] = seasonScore(r); return i >= 1 && o === 0 ? `<span class="pill tested">🌱 Seizoen</span>` : ""; }
+function costOf(r){
+  if (r._cost !== undefined) return r._cost;
+  let t = 0;
+  for (const [k, q] of r.items){ const d = DB[k]; if (!d || isPantry(k) || d.c === "water") continue; const p = PRICE[k] ?? (d.u === "stuk" ? 0.5 : 5); t += d.u === "stuk" ? q * p : q / 1000 * p; }
+  return (r._cost = t / (r.serves || 1));
+}
+const COST_MED = {};
+function costMed(type){ if (COST_MED[type]) return COST_MED[type]; const a = R.filter(r => r.type === type).map(costOf).sort((x, y) => x - y); return (COST_MED[type] = a[Math.floor(a.length / 2)] || 2); }
+function budgetBox(net){
+  const B = S.budget || 0;
+  const opts = [[0, "Geen"], [30, "€30"], [40, "€40"], [50, "€50"], [60, "€60"], [80, "€80"]];
+  let msg = "";
+  if (B){
+    const over = net - (S._pantryEur || 0) - B;
+    if (over > 0.5){
+      const ids = [...new Set(planIds())].filter(id => RID[id]), dear = ids.sort((a, b) => costOf(RID[b]) * planCount(b) * EP(b) - costOf(RID[a]) * planCount(a) * EP(a))[0];
+      msg = `<p class="tip num" style="margin:0">±${euro(over)} boven je budget.${dear ? ` Het duurste gerecht is <span style="font-weight:700">${esc(RID[dear].name)}</span> (±${euro(costOf(RID[dear]))} per portie). Vervang het, of gebruik "Vul aan met voorstellen": die kiest nu goedkopere gerechten.` : ""}</p>`;
+    } else msg = `<p class="sub num" style="margin:0">✓ Binnen je budget, nog ±${euro(B - (net - (S._pantryEur || 0)))} over. Nieuwe voorstellen kiezen vaker goedkopere gerechten.</p>`;
+  }
+  return `<div class="sub" style="margin-top:6px">Weekbudget <span style="font-weight:400">(zonder potjes en flessen die weken meegaan)</span></div><div class="chips">${opts.map(([v, l]) => `<button class="chip" data-budget="${v}" aria-pressed="${B === v}">${l}</button>`).join("")}</div>${msg}`;
+}
 function priceCard(items){
   const w = weekPrice(items); if (!w.tot) return "";
   const nb = totalBakjes(), meals = nb + S.plan.diner.reduce((a, x) => a + x.n * (x.p || S.persons), 0) + (S.plan.ontbijt || []).reduce((a, x) => a + x.n * (x.p || 1), 0);
   const net = w.tot - w.save;
   return `<div class="pricebar"><div><b class="num">±${euro(net)}</b> <span class="sub">deze week${w.save > 0.5 ? `, met ±${euro(w.save)} korting` : ""}</span></div>
     <div class="ihint num">${meals ? `Ongeveer ${euro((net - w.pantry) / meals)} per maaltijd. ` : ""}${w.pantry > 0.5 ? `Waarvan ±${euro(w.pantry)} aan potjes en flessen die weken meegaan. ` : ""}${(() => { const st = [...new Set(items.filter(i => i.store).map(i => i.store))], G = shopGoals();
-      return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}.`; })()}</div></div>`;
+      return `Schatting${st.length ? " voor " + st.map(x => SNAME[x]).join(" en ") : ""}${G.cheap ? ", met huismerken" : ", met gewone merken"}.`; })()}</div>${(S._pantryEur = w.pantry, budgetBox(net))}</div>`;
 }
 /* ============ Herinneringen: een agendabestand (.ics) voor de komende 7 dagen ============ */
 function icsEvents(){
@@ -3912,9 +3952,26 @@ function viewJoined(){
 }
 
 /* ============ Feedback lezen (alleen voor de beheerder) ============ */
+/* Anoniem tellen: één regel per toestel per dag ("dit toestel opende de app vandaag"), zonder naam of gegevens */
+function applyFont(){ const z = S.fontScale || 1; ["app","sheet"].forEach(id => { const el = document.getElementById(id); if (el) el.style.zoom = z === 1 ? "" : z; }); }
+async function pingUsage(){
+  const d = dayKey(); if (!CLOUD.on || S.pinged === d) return;
+  try { await CLOUD.db.collection("usage").doc(d + "_" + CLOUD.uid).set({ d, v: APP_VERSION }); S.pinged = d; save(); } catch(e){}
+}
+async function loadUsage(){
+  if (!CLOUD.on) return;
+  try {
+    const days = [...Array(7)].map((_, i) => dayKey(new Date(Date.now() - i * 864e5)));
+    const snap = await CLOUD.db.collection("usage").where("d", ">=", days[6]).get(), per = {}, devs = new Set();
+    snap.forEach(x => { const v = x.data(); per[v.d] = (per[v.d] || 0) + 1; devs.add(x.id.slice(11)); });
+    UI.usage = { days: days.map(d => [d, per[d] || 0]), week: devs.size };
+  } catch(e){ UI.usage = { err: true }; }
+  render();
+}
 async function loadFeedback(){
   if (!CLOUD.on){ UI.fbList = { err: "offline" }; render(); return; }
   UI.fbList = { loading: true }; render();
+  loadUsage();
   try { const snap = await CLOUD.db.collection("feedback").limit(300).get(); const arr = []; snap.forEach(d => arr.push(d.data())); arr.sort((a, b) => (b.d || "").localeCompare(a.d || "")); UI.fbList = { arr }; }
   catch(e){ UI.fbList = { err: "denied" }; }
   render();
@@ -3932,7 +3989,10 @@ function adminBox(){
       <div class="fblist">${L.arr.map(x => `<div class="fbitem"><div class="row between"><small class="sub">${esc(x.d || "")} · ${esc(ABOUT[x.about] || x.about || "")} · ${esc(x.v || "")}</small>${x.score ? `<span class="pill star num">★ ${x.score}</span>` : ""}</div>${x.text ? `<p style="margin:0">${esc(x.text)}</p>` : ""}</div>`).join("") || `<p class="sub" style="margin:0">Nog geen feedback.</p>`}</div>
       <button class="btn small" id="loadfb" style="justify-self:start">Vernieuwen</button>`;
   }
-  return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback lezen</summary>${inner}</details>`;
+  const U = UI.usage, us = U && U.days ? `<div class="card" style="gap:6px"><b>Gebruik (anoniem)</b><p class="num" style="margin:0"><b>${U.week}</b> ${U.week === 1 ? "toestel" : "toestellen"} in de afgelopen 7 dagen</p>
+    <div class="usebars">${U.days.slice().reverse().map(([d, n]) => `<div title="${d}: ${n}"><span style="height:${Math.max(4, n / Math.max(1, ...U.days.map(x => x[1])) * 60)}px"></span><small class="num">${n}</small><small>${DAYS[(new Date(d + "T12:00:00").getDay() + 6) % 7]}</small></div>`).join("")}</div></div>`
+    : U && U.err ? `<p class="sub" style="margin:0">Gebruik kon niet geladen worden. Staan de nieuwste Firebase-regels erin?</p>` : "";
+  return `<details class="section fold card" ${L ? "open" : ""}><summary class="label">Feedback en gebruik</summary>${inner}${us}</details>`;
 }
 
 /* ============ Eigen doelen: wie zijn cijfers al weet, vult ze zelf in ============ */
@@ -4257,6 +4317,11 @@ function recipeMatches(){
   if (S.sort === "eiwit") list = [...list].sort((a, b) => pm(b).p - pm(a).p);
   if (S.sort === "kcal") list = [...list].sort((a, b) => pm(a).k - pm(b).k);
   if (S.sort === "tijd") list = [...list].sort((a, b) => a.time - b.time);
+  const H = UI.haveIng || [];
+  if (H.length){
+    const sc = r => { const ks = new Set(r.items.map(([k]) => k)), got = H.filter(k => ks.has(k)).length, miss = [...ks].filter(k => !H.includes(k) && !isPantry(k) && DB[k] && DB[k].c !== "water").length; return [got, miss]; };
+    list = list.map(r => [r, sc(r)]).filter(([, [g]]) => g > 0).sort((a, b) => b[1][0] - a[1][0] || a[1][1] - b[1][1]).map(([r]) => r);
+  }
   return { list, hidden };
 }
 function recipeListHtml(){
@@ -4265,10 +4330,27 @@ function recipeListHtml(){
   ${list.length ? list.slice(0, UI.rmax || 40).map(r => `<button class="rcard ${fits(r) ? "" : "nofit"}" data-open="${r.id}" data-ctx="${r.type}">
       <span class="rtop"><span class="rhead"><span class="label">${typeLabel(r)} · ${esc(cuisineName(r.cuisine))}${r.spice ? " · " + SPICE[r.spice].toLowerCase() : ""}</span>
       <h3>${esc(r.name)}</h3></span>${thumbImg(r)}</span><p>${esc(r.short)}</p>
+      ${(UI.haveIng || []).length ? (() => { const ks = new Set(r.items.map(([k]) => k)), got = UI.haveIng.filter(k => ks.has(k)), miss = [...ks].filter(k => !UI.haveIng.includes(k) && !isPantry(k) && DB[k] && DB[k].c !== "water"); return `<span class="havehit">Je hebt: ${esc(got.map(ingName).join(", "))}${miss.length ? ` · nog nodig: ${esc(miss.slice(0, 4).map(ingName).join(", "))}${miss.length > 4 ? " en " + (miss.length - 4) + " meer" : ""}` : " · verder alleen kastspullen"}</span>`; })() : ""}
       <span class="row">${pills(r)}${starLine(r.id)}${focusTags(r).filter(([k]) => S.prefs.focus.includes(k)).map(([k,l]) => `<span class="pill fo">${l}</span>`).join("")}${healthOn() && kcalFit(r) < 0.4 ? `<span class="pill warnp">Veel kcal voor jouw doel</span>` : ""}</span></button>`).join("")
     : `<p class="empty">${f === "gemaakt" ? "Nog niks gemaakt. Na het koken tik je op 'Ik heb dit gemaakt' om sterren te geven." : (S.minStars ? "Nog geen recepten met zoveel sterren. Kies minder sterren of geef zelf sterren na het koken." : "Geen recepten gevonden. Probeer een ander zoekwoord of zet bij Profiel wat meer aan.")}</p>`}`;
 }
 function moreBtn(n, max, attr){ return n > max ? `<button class="btn full" ${attr}="1">Toon meer (nog ${n - max})</button>` : ""; }
+/* Kook met wat je nog hebt: kies wat er in je koelkast ligt, de app zoekt gerechten */
+function haveResults(){
+  const q = (UI.haveq || "").trim().toLowerCase(); if (q.length < 2) return "";
+  const m = ingUse(), H = UI.haveIng || [];
+  const hits = Object.keys(m).filter(k => DB[k] && m[k] > 0 && !H.includes(k) && (ingName(k).toLowerCase().includes(q) || (DB[k].pl || "").toLowerCase().includes(q))).sort((a, b) => m[b] - m[a]).slice(0, 8);
+  return hits.length ? `<div class="chips">${hits.map(k => `<button class="chip" data-haveing="${k}">+ ${esc(ingName(k))}</button>`).join("")}</div>` : `<p class="sub" style="margin:0">Niets gevonden.</p>`;
+}
+function haveBox(){
+  const H = UI.haveIng || [];
+  return `<details class="fold card" id="havefold" ${UI.haveOpen || H.length ? "open" : ""}><summary><b>Kook met wat je nog hebt</b>${H.length ? ` <span class="badge num">${H.length}</span>` : ""}</summary>
+    <p class="sub" style="margin:0">Wat ligt er nog in je koelkast of kast? Kies een paar dingen. Bovenaan staan gerechten waar je het meeste van hebt.</p>
+    <input id="havesearch" class="search" type="search" placeholder="Bijv. paprika, kip, rijst" value="${esc(UI.haveq || "")}" autocomplete="off">
+    <div id="haveres">${haveResults()}</div>
+    ${H.length ? `<div class="chips">${H.map(k => `<button class="chip" data-haveing="${k}" aria-pressed="true">✕ ${esc(ingName(k))}</button>`).join("")}</div><button class="linkbtn" id="haveclear" style="justify-self:start">Alles wissen</button>` : ""}
+  </details>`;
+}
 function viewRecipes(){
   const f = S.filter;
   const nActive = (S.minStars ? 1 : 0) + (healthOn() ? S.prefs.focus.length : 0) + (S.sort !== "standaard" ? 1 : 0);
@@ -4292,6 +4374,7 @@ function viewRecipes(){
       <select id="sort" class="select">${[["standaard","Standaard"],["sterren","Meeste sterren"],["eiwit","Meeste eiwit"],["kcal","Minste calorieën"],["tijd","Snelst klaar"]].map(([k,l]) => `<option value="${k}" ${S.sort===k?"selected":""}>${l}</option>`).join("")}</select>
     </div>
   </details>
+  ${haveBox()}
   <div class="rlist" id="rlist">${recipeListHtml()}</div>
   <div id="rmore">${moreBtn(recipeMatches().list.length, UI.rmax || 40, "data-rmore")}</div>`;
 }
@@ -4446,6 +4529,9 @@ function viewPrefs(){
     </div>
   </section>` : ""}
   ${equipCard()}
+  <section class="section"><div class="label">Lettergrootte</div>
+    <div class="card"><select id="fontsize" class="select">${[[1, "Normaal"], [1.12, "Groter"], [1.25, "Groot"]].map(([v, l]) => `<option value="${v}" ${(S.fontScale || 1) === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+    <p class="sub" style="margin:0">Maakt alle tekst en knoppen in de app groter.</p></div></section>
   <p class="sub" style="margin:0">Je supermarkten en hoe je wilt winkelen (goedkoop of in één winkel) kies je bij <button class="linkbtn" data-tab="lijst">Boodschappen</button>.</p>`;
   if (ps === "smaak") return `${head}
   ${healthOn() ? `<section class="section"><div class="label">Voedingskeuze</div>
@@ -4460,6 +4546,10 @@ function viewPrefs(){
   </section>
   <div class="row between"><div class="label" style="margin-top:6px">Jouw smaak</div><div class="sub num">${nFit} van ${R.length} recepten passen</div></div>
   <p class="sub" style="margin:0">De voorstellen houden hier rekening mee. Gerechten waar je veel sterren aan geeft komen vaker terug. Geef je bij "zou ik weer maken" 0 of 1 ster, dan komt een gerecht niet meer voor.</p>
+  <section class="section"><div class="card">
+    <label class="switch"><input type="checkbox" id="seasontoggle" ${p.season ? "checked" : ""}><span class="sw" aria-hidden="true"></span><b>Seizoensgroente voorrang geven</b></label>
+    <p class="sub" style="margin:0">Groente uit het seizoen is goedkoper en lekkerder. Nu is het seizoen van onder andere ${esc(Object.keys(SEASON).filter(k => SEASON[k].includes(new Date().getMonth() + 1)).slice(0, 5).map(ingName).join(", "))}.</p>
+  </div></section>
   <section class="section"><div class="label">Wat lust je wel en niet?</div>
     <p class="sub" style="margin:0">Zoek een ingrediënt, bijvoorbeeld banaan of champignons. Lust je het niet, dan krijg je geen gerechten en tussendoortjes meer waar het in zit. Vind je het lekker, dan komen gerechten ermee vaker voorbij.</p>
     <input id="ingsearch" class="search" type="search" placeholder="Zoek ingrediënt, bijv. banaan" value="${esc(UI.ingq || "")}" autocomplete="off">
@@ -4596,8 +4686,8 @@ function viewList(){
   ${nCheck ? `<button class="btn full homebtn" id="homecheck"><b>1. Eerst thuis checken</b><span class="sub">${nCheck} dingen die je misschien al hebt. Duurt een minuut.</span></button>` : ""}
   <button class="btn primary full shopgo" id="shopstart"><b>${nCheck ? "2. " : ""}${got ? "Verder met winkelen" : "Start met winkelen"}</b><span>Grote vakjes, op volgorde van de winkel, scherm blijft aan</span></button>
   ${priceCard(items)}
-  ${shareBox()}
-  ${dealCard(items)}
+  ${(() => { const dc = dealCard(items), sb = shareBox(); if (!dc && !sb) return "";
+    return `<details class="fold card" id="extrasfold" ${UI.extrasOpen ? "open" : ""}><summary><b>Extra's</b> <span class="sub">${[dc ? "aanbiedingen" : "", sb ? "samen boodschappen doen" : ""].filter(Boolean).join(" en ")}</span></summary>${sb}${dc}</details>`; })()}
   <details class="fold"><summary class="sub">Hoe werkt deze lijst?</summary><p class="sub" style="margin:6px 0 0">Voor ${totalBakjes()} ${totalBakjes() === 1 ? "lunchbakje" : "lunchbakjes"}, ${nd} keer avondeten${snackPlan().length ? " en je tussendoortjes" : ""}, met het aantal personen dat je per gerecht hebt gekozen. De lijst volgt de looproute van een gewone supermarkt. Bij elk product staat wat je pakt en waar het ligt. Wat een winkel wel of niet heeft is een schatting en kan per filiaal verschillen.</p></details>
   ${got ? shopBar : ""}
   <div class="shop">
@@ -4729,6 +4819,7 @@ function renderRecipe(){
     ${pc ? (r.type !== "lunch" ? `<div class="row between"><span class="sub">In mijn week</span><span class="stepper"><button data-pn="${r.id}:-1" aria-label="Minder">−</button><span class="num">${unitN(r.type, pc)}</span><button data-pn="${r.id}:1" aria-label="Meer">+</button></span></div>` : `<p class="sub" style="margin:0">✓ Staat in je week. Je boodschappenlijst rekent met ${portions} ${portions === 1 ? "bakje" : "bakjes"}.</p>`)
          : `<button class="btn primary full" data-addp="${r.id}">+ Zet in mijn week</button>`}
     <button class="btn full${pc ? " primary" : ""}" id="startcook">Begin met koken, stap voor stap</button>
+    <button class="linkbtn" id="sharerecipe" style="justify-self:start">Deel dit recept met iemand</button>
     <section class="section"><div class="row between"><div class="label">Ingrediënten · tik af wat je klaar hebt staan</div><button class="linkbtn" data-basics="1">Wat is tl en el?</button></div>
       <ul class="ings">${r.items.map(([k, q]) => `<li><button data-got="${k}" class="${UI.got[k] ? "got" : ""}"><span class="tick" aria-hidden="true">${UI.got[k] ? "✓" : ""}</span><span class="amt">${esc(amtSplit(k, q*f)[0])}</span><span>${esc(amtSplit(k, q*f)[1])}</span></button></li>`).join("")}</ul>
     </section>
@@ -4866,6 +4957,8 @@ document.addEventListener("click", (e) => {
   if (d.feedback){ openFeedback(); return; }
   if (d.fbscore){ UI.fb.score = UI.fb.score === +d.fbscore ? 0 : +d.fbscore; renderFeedback(); return; }
   if (d.fbabout){ UI.fb.about = d.fbabout; renderFeedback(); return; }
+  if (d.budget !== undefined){ S.budget = +d.budget; save(); render(); toast(S.budget ? `Weekbudget: €${S.budget}` : "Geen weekbudget"); return; }
+  if (d.haveing){ const a = UI.haveIng = UI.haveIng || [], i = a.indexOf(d.haveing); i < 0 ? a.push(d.haveing) : a.splice(i, 1); UI.haveq = ""; UI.haveOpen = true; UI.rmax = 40; render(); return; }
   if (d.rep && UI.report){ const a = UI.report.why, i = a.indexOf(d.rep); i < 0 ? a.push(d.rep) : a.splice(i, 1); renderRecipe(); return; }
   if (d.equip){ S.equip = equip(); S.equip[d.equip] = !S.equip[d.equip]; save(); render(); return; }
   if (d.werkmag){ S.equip = equip(); S.equip.werkMagnetron = d.werkmag === "1"; save(); render(); return; }
@@ -4945,6 +5038,9 @@ document.addEventListener("click", (e) => {
       { const r = RID[UI.open]; const n = allSteps(r, factorFor(r)).length;
       if (UI.cook < n - 1){ UI.cook++; renderCook(); } else { UI.cook = null; stopTimer(); releaseWake(); UI.rating = {}; UI.photo = null; renderRating(); document.getElementById("sheet").scrollTop = 0; toast("Goed gedaan! Eet smakelijk."); } break; }
     case "delphoto": UI.photo = null; renderRating(); break;
+    case "haveclear": UI.haveIng = []; UI.haveOpen = true; render(); break;
+    case "sharerecipe": { const r = RID[UI.open], url = location.origin + location.pathname + "#recept=" + r.id;
+      if (navigator.share) navigator.share({ title: r.name, text: `${r.name}: ${r.short} Recept met boodschappen en stap-voor-stap uitleg in Prepmaat:`, url }).catch(() => {}); else copyLinkText(url); break; }
     case "openreport": UI.report = { id: UI.open, why: [], text: "" }; renderRecipe(); break;
     case "cancelreport": UI.report = null; renderRecipe(); break;
     case "sendreport": sendReport(); break;
@@ -4996,6 +5092,8 @@ document.addEventListener("change", async (e) => {
     return;
   }
   if (e.target.id === "sort"){ S.sort = e.target.value; save(); UI.filtersOpen = true; render(); }
+  if (e.target.id === "seasontoggle"){ S.prefs.season = e.target.checked; save(); render(); toast(S.prefs.season ? "Seizoensgroente krijgt voorrang" : "Seizoen staat uit"); return; }
+  if (e.target.id === "fontsize"){ S.fontScale = +e.target.value; applyFont(); save(); return; }
   if (e.target.id === "adapttoggle"){ S.adapt = S.adapt || {}; S.adapt.off = !e.target.checked; save(); render(); toast(S.adapt.off ? "Slim bijstellen staat uit" : "Slim bijstellen staat aan"); return; }
   if (e.target.id === "adaptplan"){ S.adapt = S.adapt || {}; S.adapt.plan = e.target.checked; save(); render(); return; }
   if (e.target.id === "healthtoggle"){ S.health = e.target.checked; save(); if (S.health && !S.profile){ openProfile(); } else render(); toast(S.health ? "Gezondheid en sport staat aan" : "Lekker rustig: advies staat uit"); return; }
@@ -5005,6 +5103,7 @@ document.addEventListener("change", async (e) => {
 });
 document.addEventListener("toggle", (e) => { if (e.target.id === "filters") UI.filtersOpen = e.target.open; if (e.target.id === "storesfold") UI.storesOpen = e.target.open; if (e.target.id === "extfold") UI.extOpen = e.target.open; }, true);
 document.addEventListener("input", (e) => {
+  if (e.target.id === "havesearch"){ UI.haveq = e.target.value; document.getElementById("haveres").innerHTML = haveResults(); return; }
   if (e.target.id === "ingsearch"){ UI.ingq = e.target.value; document.getElementById("ingres").innerHTML = ingResults(); return; }
   if (e.target.id === "reptext" && UI.report){ UI.report.text = e.target.value; return; }
   if (e.target.id === "fbtext"){ UI.fb.text = e.target.value; return; }
@@ -5021,8 +5120,11 @@ document.addEventListener("pointerdown", weightHover);
 document.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) weightHover(e); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (UI.cook !== null || (UI.shop && S.tab === "lijst"))) keepAwake(); });
 joinFromHash();
-render();
-if (!S.onboarded && !S.profile && !S.joined) openWelcome();
+const SHARED_RECIPE = (location.hash.match(/recept=([a-z0-9_-]{2,40})/i) || [])[1];
+if (SHARED_RECIPE) history.replaceState(null, "", location.pathname);
+render(); applyFont();
+if (SHARED_RECIPE && RID[SHARED_RECIPE]) openRecipe(SHARED_RECIPE);
+else if (!S.onboarded && !S.profile && !S.joined) openWelcome();
 initCloud();
 loadDeals(); loadProducts();
 /* Nieuwe versie? De app opent meteen uit het geheugen; is er online een nieuwere versie, dan verschijnt er een knop */
